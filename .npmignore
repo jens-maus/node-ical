@@ -4,6 +4,7 @@ test
 *.tgz
 .idea
 .git
+.github
 .gitignore
 .eslintrc.js
 .prettierrc.js
