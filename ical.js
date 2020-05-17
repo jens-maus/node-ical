@@ -79,18 +79,17 @@ const addTZ = function(dt, params) {
 
     if (params && p && dt) {
         dt.tz = p.TZID;
-        if (dt.tz !== undefined)
-        {
-          // Remove surrouding quotes if found at the begining and at the end of the string
-          // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
-          dt.tz = dt.tz.replace(/^"(.*)"$/, "$1")
+        if (dt.tz !== undefined) {
+            // Remove surrouding quotes if found at the begining and at the end of the string
+            // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
+            dt.tz = dt.tz.replace(/^"(.*)"$/, '$1');
         }
     }
 
     return dt;
 };
 
-const typeParam = function(name, typeName) {
+const typeParam = function(name) {
     // typename is not used in this function?
     return function(val, params, curr) {
         let ret = 'date-time';
@@ -503,24 +502,24 @@ module.exports = {
         }
     },
 
-    getLineBreakChar: function (string) {
-      const indexOfLF = string.indexOf('\n', 1);  // No need to check first-character
-    
-      if (indexOfLF === -1) {
-        if (string.indexOf('\r') !== -1) return '\r';
-    
+    getLineBreakChar: function(string) {
+        const indexOfLF = string.indexOf('\n', 1); // No need to check first-character
+
+        if (indexOfLF === -1) {
+            if (string.indexOf('\r') !== -1) return '\r';
+
+            return '\n';
+        }
+
+        if (string[indexOfLF - 1] === '\r') return '\r?\n';
+
         return '\n';
-      }
-    
-      if (string[indexOfLF - 1] === '\r') return '\r?\n';
-    
-      return '\n';
     },
 
     parseICS(str, cb) {
         const self = this;
-        const line_end_type = self.getLineBreakChar(str)
-        const lines = str.split(line_end_type==='\n'?/\n/:/\r?\n/);
+        const line_end_type = self.getLineBreakChar(str);
+        const lines = str.split(line_end_type === '\n' ? /\n/ : /\r?\n/);
         let ctx;
 
         if (cb) {

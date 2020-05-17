@@ -8,7 +8,7 @@ process.env.TZ = 'America/San_Francisco';
 const vows = require('vows');
 const assert = require('assert');
 const _ = require('underscore');
-const ical = require('../index');
+const ical = require('../node-ical');
 
 vows.describe('node-ical')
     .addBatch({
@@ -49,10 +49,10 @@ vows.describe('node-ical')
                 'has a summary (invalid colon handling tolerance)': function(topic) {
                     assert.equal(topic.summary, '[Async]: Everything Express');
                 },
-                'has a date only start datetime' : function(topic) {
+                'has a date only start datetime': function(topic) {
                     assert.equal(topic.start.dateOnly, true);
                 },
-                'has a date only end datetime' : function(topic) {
+                'has a date only end datetime': function(topic) {
                     assert.equal(topic.end.dateOnly, true);
                 },
             },
@@ -302,7 +302,7 @@ vows.describe('node-ical')
                 return ical.parseFile('./test10.ics');
             },
             'grabbing custom properties': {
-                topic(topic) {},
+                topic() {},
             },
         },
 
@@ -553,25 +553,28 @@ vows.describe('node-ical')
             },
         },
 
-        'with test15.ics (testing Microsoft Exchange Server 2010 with timezones)' : {
-          topic: function () {
-            return ical.parseFile('./test/test15.ics')
-          },
-          'event with start and end including timezones' : {
-            topic: function(events) {
-              return _.select(_.values(events), function(x) {
-              return x.uid === '040000008200E00074C5B7101A82E00800000000C9AB6E5A6AFED401000000000000000010000000C55132227F0F0948A7D58F6190A3AEF9';
-              })[0];
+        'with test15.ics (testing Microsoft Exchange Server 2010 with timezones)': {
+            'topic': function() {
+                return ical.parseFile('./test/test15.ics');
             },
-            'has a start' : function(topic){
-              assert.equal(topic.start.tz, "(UTC+07:00) Bangkok, Hanoi, Jakarta")
-              assert.equal(topic.start.toISOString(), new Date(2019, 3, 30, 9, 0, 0).toISOString())
-              assert.equal(topic.end.tz, "(UTC+07:00) Bangkok, Hanoi, Jakarta")
-              assert.equal(topic.end.toISOString(), new Date(2019, 3, 30, 12, 0, 0).toISOString())
-            }
-          }
+            'event with start and end including timezones': {
+                'topic': function(events) {
+                    return _.select(_.values(events), function(x) {
+                        return (
+                            x.uid ===
+                            '040000008200E00074C5B7101A82E00800000000C9AB6E5A6AFED401000000000000000010000000C55132227F0F0948A7D58F6190A3AEF9'
+                        );
+                    })[0];
+                },
+                'has a start': function(topic) {
+                    assert.equal(topic.start.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+                    assert.equal(topic.start.toISOString(), new Date(2019, 3, 30, 9, 0, 0).toISOString());
+                    assert.equal(topic.end.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+                    assert.equal(topic.end.toISOString(), new Date(2019, 3, 30, 12, 0, 0).toISOString());
+                },
+            },
         },
- 
+
         'with test16.ics (testing quoted parameter values)': {
             'topic': function() {
                 return ical.parseFile('./test/test16.ics');
@@ -600,7 +603,7 @@ vows.describe('node-ical')
                 },
             },
         },
-     
+
         'url request errors': {
             'topic': function() {
                 ical.fromURL('http://255.255.255.255/', {}, this.callback);

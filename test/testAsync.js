@@ -8,7 +8,7 @@ process.env.TZ = 'America/San_Francisco';
 const vows = require('vows');
 const assert = require('assert');
 const _ = require('underscore');
-const ical = require('../index');
+const ical = require('../node-ical');
 
 console.log('START Async Tests');
 vows.describe('node-ical')
@@ -327,7 +327,7 @@ vows.describe('node-ical')
                 });
             },
             'grabbing custom properties': {
-                topic(topic) {},
+                topic() {},
             },
         },
 
@@ -521,25 +521,28 @@ vows.describe('node-ical')
             },
         },
 
-        'with test15.ics (testing Microsoft Exchange Server 2010 with timezones)' : {
-          topic: function () {
-            return ical.parseFile('./test/test15.ics')
-          },
-          'event with start and end including timezones' : {
-            topic: function(events) {
-              return _.select(_.values(events), function(x) {
-              return x.uid === '040000008200E00074C5B7101A82E00800000000C9AB6E5A6AFED401000000000000000010000000C55132227F0F0948A7D58F6190A3AEF9';
-              })[0];
+        'with test15.ics (testing Microsoft Exchange Server 2010 with timezones)': {
+            'topic': function() {
+                return ical.parseFile('./test/test15.ics');
             },
-            'has a start' : function(topic){
-              assert.equal(topic.start.tz, "(UTC+07:00) Bangkok, Hanoi, Jakarta")
-              assert.equal(topic.start.toISOString(), new Date(2019, 3, 30, 9, 0, 0).toISOString())
-              assert.equal(topic.end.tz, "(UTC+07:00) Bangkok, Hanoi, Jakarta")
-              assert.equal(topic.end.toISOString(), new Date(2019, 3, 30, 12, 0, 0).toISOString())
-            }
-          }
+            'event with start and end including timezones': {
+                'topic': function(events) {
+                    return _.select(_.values(events), function(x) {
+                        return (
+                            x.uid ===
+                            '040000008200E00074C5B7101A82E00800000000C9AB6E5A6AFED401000000000000000010000000C55132227F0F0948A7D58F6190A3AEF9'
+                        );
+                    })[0];
+                },
+                'has a start': function(topic) {
+                    assert.equal(topic.start.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+                    assert.equal(topic.start.toISOString(), new Date(2019, 3, 30, 9, 0, 0).toISOString());
+                    assert.equal(topic.end.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+                    assert.equal(topic.end.toISOString(), new Date(2019, 3, 30, 12, 0, 0).toISOString());
+                },
+            },
         },
- 
+
         'with test16.ics (testing quoted parameter values)': {
             'topic': function() {
                 const self = this;

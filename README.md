@@ -7,7 +7,6 @@
 [![License](https://img.shields.io/github/license/jens-maus/node-ical.svg)](https://github.com/jens-maus/node-ical/blob/master/LICENSE)
 [![Donate](https://img.shields.io/badge/donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=RAQSDY9YNZVCL)
 [![GitHub stars](https://img.shields.io/github/stars/jens-maus/node-ical.svg?style=social&label=Star)](https://github.com/jens-maus/node-ical/stargazers/)
-[![Build](https://github.com/jens-maus/node-ical/workflows/CI/badge.svg)](https://github.com/jens-maus/node-ical/actions)
 
 [![NPM](https://nodei.co/npm/node-ical.png?downloads=true)](https://nodei.co/npm/node-ical/)
 
@@ -36,7 +35,7 @@ All functions will either return a promise for `async/await` or use a callback i
 
 `autodetect` provides a mix of both for backwards compatibility with older node-ical applications.
 
-All API functions are documented using JSDoc in the [index.js](index.js) file.
+All API functions are documented using JSDoc in the [node-ical.js](node-ical.js) file.
 This allows for IDE hinting!
 
 ### sync

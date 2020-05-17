@@ -1,13 +1,11 @@
 Gruntfile.js
 tasks
 test
-test.js
-example.js
-*.ics
 *.tgz
-.travis.yml
 .idea
 .git
 .gitignore
-node_modules
+.eslintrc.js
+.prettierrc.js
+/node_modules
 appveyor.yml

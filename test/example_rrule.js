@@ -1,7 +1,7 @@
 const moment = require('moment-timezone');
-const ical = require('./index'); // require('node-ical');
+const ical = require('./node-ical'); // require('node-ical');
 
-const data = ical.parseFile('./examples/example_rrule.ics');
+const data = ical.parseFile('./example_rrule.ics');
 
 // Complicated example demonstrating how to handle recurrence rules and exceptions.
 
@@ -33,7 +33,7 @@ for (const k in data) {
         else if (typeof event.rrule !== 'undefined') {
             // For recurring events, get the set of event start dates that fall within the range
             // of dates we're looking for.
-            const dates = event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, function(date, i) {
+            const dates = event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, function() {
                 return true;
             });
 
