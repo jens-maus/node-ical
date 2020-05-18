@@ -10,11 +10,17 @@ const vows = require('vows');
 const _ = require('underscore');
 const ical = require('../node-ical');
 
+console.log('START Async Tests');
 vows.describe('node-ical')
     .addBatch({
       'when parsing test1.ics (node conferences schedule from lanyrd.com, modified)': {
         topic() {
-          return ical.parseFile('./test/test1.ics');
+          const self = this;
+          ical.parseFile('./test/test1.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
 
         'we get 9 events'(topic) {
@@ -48,12 +54,6 @@ vows.describe('node-ical')
           },
           'has a summary (invalid colon handling tolerance)'(topic) {
             assert.equal(topic.summary, '[Async]: Everything Express');
-          },
-          'has a date only start datetime'(topic) {
-            assert.equal(topic.start.dateOnly, true);
-          },
-          'has a date only end datetime'(topic) {
-            assert.equal(topic.end.dateOnly, true);
           }
         },
         'event d4c8': {
@@ -83,7 +83,12 @@ vows.describe('node-ical')
       },
       'with test2.ics (testing ical features)': {
         topic() {
-          return ical.parseFile('./test/test2.ics');
+          const self = this;
+          ical.parseFile('./test/test2.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'todo item uid4@host1.com': {
           topic(items) {
@@ -143,7 +148,12 @@ vows.describe('node-ical')
       },
       'with test3.ics (testing tvcountdown.com)': {
         topic() {
-          return ical.parseFile('./test/test3.ics');
+          const self = this;
+          ical.parseFile('./test/test3.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'event -83': {
           topic(events) {
@@ -167,7 +177,12 @@ vows.describe('node-ical')
 
       'with test4.ics (testing tripit.com)': {
         topic() {
-          return ical.parseFile('./test/test4.ics');
+          const self = this;
+          ical.parseFile('./test/test4.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'event c32a5...': {
           topic(events) {
@@ -209,7 +224,12 @@ vows.describe('node-ical')
 
       'with test5.ics (testing meetup.com)': {
         topic() {
-          return ical.parseFile('./test/test5.ics');
+          const self = this;
+          ical.parseFile('./test/test5.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'event nsmxnyppbfc@meetup.com': {
           topic(events) {
@@ -226,7 +246,12 @@ vows.describe('node-ical')
 
       'with test6.ics (testing assembly.org)': {
         topic() {
-          return ical.parseFile('./test/test6.ics');
+          const self = this;
+          ical.parseFile('./test/test6.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'event with no ID': {
           topic(events) {
@@ -254,7 +279,12 @@ vows.describe('node-ical')
       },
       'with test7.ics (testing dtstart of rrule)': {
         topic() {
-          return ical.parseFile('./test/test7.ics');
+          const self = this;
+          ical.parseFile('./test/test7.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'recurring yearly event (14 july)': {
           topic(events) {
@@ -268,7 +298,12 @@ vows.describe('node-ical')
       },
       'with test 8.ics (VTODO completion)': {
         topic() {
-          return ical.parseFile('./test/test8.ics');
+          const self = this;
+          ical.parseFile('./test/test8.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'grabbing VTODO task': {
           topic(topic) {
@@ -282,7 +317,12 @@ vows.describe('node-ical')
       },
       'with test 9.ics (VEVENT with VALARM)': {
         topic() {
-          return ical.parseFile('./test/test9.ics');
+          const self = this;
+          ical.parseFile('./test/test9.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'grabbing VEVENT task': {
           topic(topic) {
@@ -295,7 +335,12 @@ vows.describe('node-ical')
       },
       'with test 11.ics (VEVENT with custom properties)': {
         topic() {
-          return ical.parseFile('./test10.ics');
+          const self = this;
+          ical.parseFile('./test/test10.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'grabbing custom properties': {
           topic() {}
@@ -304,7 +349,12 @@ vows.describe('node-ical')
 
       'with test10.ics': {
         topic() {
-          return ical.parseFile('./test/test10.ics');
+          const self = this;
+          ical.parseFile('./test/test10.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
 
         'when categories present': {
@@ -364,7 +414,12 @@ vows.describe('node-ical')
 
       'with test11.ics (testing zimbra freebusy)': {
         topic() {
-          return ical.parseFile('./test/test11.ics');
+          const self = this;
+          ical.parseFile('./test/test11.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
 
         'freebusy params': {
@@ -409,7 +464,12 @@ vows.describe('node-ical')
 
       'with test12.ics (testing recurrences and exdates)': {
         topic() {
-          return ical.parseFile('./test/test12.ics');
+          const self = this;
+          ical.parseFile('./test/test12.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'event with rrule': {
           topic(events) {
@@ -451,7 +511,12 @@ vows.describe('node-ical')
 
       'with test13.ics (testing recurrence-id before rrule)': {
         topic() {
-          return ical.parseFile('./test/test13.ics');
+          const self = this;
+          ical.parseFile('./test/test13.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'event with rrule': {
           topic(events) {
@@ -475,75 +540,6 @@ vows.describe('node-ical')
                         topic.recurrences[new Date(Date.UTC(2016, 7, 26, 11, 0, 0)).toISOString().substring(0, 10)]
                             .summary,
                         'bla bla'
-                    );
-          }
-        }
-      },
-
-      'with test14.ics (testing comma-separated exdates)': {
-        topic() {
-          return ical.parseFile('./test/test14.ics');
-        },
-        'event with comma-separated exdate': {
-          topic(events) {
-            return _.select(_.values(events), x => {
-              return x.uid === '98765432-ABCD-DCBB-999A-987765432123';
-            })[0];
-          },
-          'Has summary \'Example of comma-separated exdates\''(topic) {
-            assert.equal(topic.summary, 'Example of comma-separated exdates');
-          },
-          'Has four comma-separated EXDATES'(topic) {
-            assert.notEqual(topic.exdate, undefined);
-                    // Verify the four comma-separated EXDATES are there
-            assert.notEqual(
-                        topic.exdate[new Date(2017, 6, 6, 12, 0, 0).toISOString().substring(0, 10)],
-                        undefined
-                    );
-            assert.notEqual(
-                        topic.exdate[new Date(2017, 6, 17, 12, 0, 0).toISOString().substring(0, 10)],
-                        undefined
-                    );
-            assert.notEqual(
-                        topic.exdate[new Date(2017, 6, 20, 12, 0, 0).toISOString().substring(0, 10)],
-                        undefined
-                    );
-            assert.notEqual(
-                        topic.exdate[new Date(2017, 7, 3, 12, 0, 0).toISOString().substring(0, 10)],
-                        undefined
-                    );
-                    // Verify an arbitrary date isn't there
-            assert.equal(
-                        topic.exdate[new Date(2017, 4, 5, 12, 0, 0).toISOString().substring(0, 10)],
-                        undefined
-                    );
-          }
-        }
-      },
-
-      'with test14.ics (testing exdates with bad times)': {
-        topic() {
-          return ical.parseFile('./test/test14.ics');
-        },
-        'event with exdates with bad times': {
-          topic(events) {
-            return _.select(_.values(events), x => {
-              return x.uid === '1234567-ABCD-ABCD-ABCD-123456789012';
-            })[0];
-          },
-          'Has summary \'Example of exdate with bad times\''(topic) {
-            assert.equal(topic.summary, 'Example of exdate with bad times');
-          },
-          'Has two EXDATES even though they have bad times'(topic) {
-            assert.notEqual(topic.exdate, undefined);
-                    // Verify the two EXDATES are there, even though they have bad times
-            assert.notEqual(
-                        topic.exdate[new Date(2017, 11, 18, 12, 0, 0).toISOString().substring(0, 10)],
-                        undefined
-                    );
-            assert.notEqual(
-                        topic.exdate[new Date(2017, 11, 19, 12, 0, 0).toISOString().substring(0, 10)],
-                        undefined
                     );
           }
         }
@@ -573,7 +569,12 @@ vows.describe('node-ical')
 
       'with test16.ics (testing quoted parameter values)': {
         topic() {
-          return ical.parseFile('./test/test16.ics');
+          const self = this;
+          ical.parseFile('./test/test16.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'quoted params': {
           topic(events) {
@@ -587,7 +588,12 @@ vows.describe('node-ical')
 
       'with test17.ics (testing for non-stringified start/end time)': {
         topic() {
-          return ical.parseFile('./test/test17.ics');
+          const self = this;
+          ical.parseFile('./test/test17.ics', (err, ctx) => {
+            if (!err) {
+              self.callback(null, ctx);
+            }
+          });
         },
         'stringified params': {
           topic(events) {

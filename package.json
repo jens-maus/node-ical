@@ -1,6 +1,6 @@
 {
   "name": "node-ical",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "main": "node-ical.js",
   "types": "node-ical.d.ts",
   "description": "NodeJS class for parsing iCalendar/ICS files",
@@ -32,7 +32,9 @@
     "eslint-plugin-prettier": "^3.1.1",
     "prettier": "^1.19.1",
     "underscore": "1.9.1",
-    "vows": "^0.8.2"
+    "vows": "^0.8.2",
+    "xo": "^0.18.2",
+    "pre-commit": "^1.2.2"
   },
   "xo": {
     "space": 2
@@ -41,9 +43,9 @@
     "lintfix"
   ],
   "scripts": {
-    "test": "xo; vows test/test.js && vows test/testAsync.js && printf \"\\n\"",
-    "lint": "eslint *.js test/*.js",
-    "fix": "eslint --fix *.js test/*.js",
+    "test": "xo; vows test/test.js && vows test/test-async.js && printf \"\\n\"",
+    "lint": "xo",
+    "lintfix": "xo --fix",
     "format-check": "prettier --config .prettierrc.js --check *.js test/*.js",
     "format": "prettier --config .prettierrc.js --write *.js test/*.js",
     "precommit": "npm run format && npm run fix"
