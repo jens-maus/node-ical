@@ -20,7 +20,7 @@
   "dependencies": {
     "moment-timezone": "^0.5.23",
     "request": "^2.88.0",
-    "rrule": "^2.5.6",
+    "rrule": "^2.6.4",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
