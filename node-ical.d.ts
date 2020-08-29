@@ -7,7 +7,7 @@ declare module 'node-ical' {
     export interface NodeICalSync {
         parseICS(body: string): CalendarResponse;
 
-        fromFile(file: string): CalendarResponse;
+        parseFile(file: string): CalendarResponse;
     }
 
     export const sync: NodeICalSync;
@@ -26,9 +26,9 @@ declare module 'node-ical' {
 
         parseICS(body: string): Promise<CalendarResponse>;
 
-        fromFile(file: string, callback: NodeIcalCallback): void;
+        parseFile(file: string, callback: NodeIcalCallback): void;
 
-        fromFile(file: string): Promise<CalendarResponse>;
+        parseFile(file: string): Promise<CalendarResponse>;
     }
 
     export const async: NodeICalAsync;
@@ -46,9 +46,9 @@ declare module 'node-ical' {
 
     export function parseICS(body: string): CalendarResponse;
 
-    export function fromFile(file: string, callback: NodeIcalCallback): void;
+    export function parseFile(file: string, callback: NodeIcalCallback): void;
 
-    export function fromFile(file: string): CalendarResponse;
+    export function parseFile(file: string): CalendarResponse;
 
     /**
      * Response objects
