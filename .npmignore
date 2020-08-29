@@ -6,6 +6,7 @@ test
 .git
 .github
 .gitignore
+.gitattributes
 .eslintrc.js
 .prettierrc.js
 /node_modules
