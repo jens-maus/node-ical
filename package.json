@@ -34,7 +34,8 @@
     "underscore": "1.9.1",
     "vows": "^0.8.2",
     "xo": "^0.18.2",
-    "pre-commit": "^1.2.2"
+    "pre-commit": "^1.2.2",
+    "dot-prop": ">=4.2.1"
   },
   "xo": {
     "space": 2
