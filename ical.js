@@ -99,6 +99,55 @@ const addTZ = function (dt, params) {
   return dt;
 };
 
+let zoneTable = null;
+function getIanaTZFromMS(msTZName) {
+  if (!zoneTable) {
+    const fs = require('fs');
+    const p = require('path');
+    const wtz = JSON.parse(fs.readFileSync(p.join(__dirname + 'windowsZones.json')));
+    const v = getObjects(wtz, 'name', 'mapZone');
+    zoneTable = {};
+    for (const zone of v) {
+      // Get the object based on zone name
+      let wzone = zoneTable[zone.attributes.other];
+      // If not set
+      if (wzone === null) {      // Initialize
+        wzone = {iana: [], type: zone.attributes.territory};
+      }
+      for (const iana of zone.attributes.type.split(' ')) {
+        if (wzone.iana.indexOf(iana) === -1) {
+          wzone.iana.push(iana);
+        }
+      }
+      zoneTable[zone.attributes.other] = wzone;
+    }
+    // Fix for incomplete IANA timezone list. WEST shifts +1(winter) to +0 (summer)
+    // zoneTable['W. Europe Standard Time'].iana.unshift("Europe/London")
+  }
+  return zoneTable[msTZName].iana[0];
+}
+
+function getObjects(obj, key, val) {
+  let objects = [];
+  for (const i in obj) {
+    if (!obj.hasOwnProperty(i)) {
+      continue;
+    }
+    if (typeof obj[i] === 'object') {
+      objects = objects.concat(getObjects(obj[i], key, val));
+    } else
+      // If key matches and value matches or if key matches and value is not passed (eliminating the case where key matches but passed value does not)
+      if (i === key && obj[i] === val || i === key && val === '') { //
+        objects.push(obj);
+      } else if (obj[i] === val && key === '') {
+          // Only add if the object is not already in the array
+        if (objects.lastIndexOf(obj) === -1) {
+          objects.push(obj);
+        }
+      }
+  }
+  return objects;
+}
 const typeParam = function (name) {
     // Typename is not used in this function?
   return function (val, params, curr) {
@@ -126,7 +175,7 @@ const dateParam = function (name) {
         newDate = addTZ(newDate, params);
         newDate.dateOnly = true;
 
-                // Store as string - worst case scenario
+        // Store as string - worst case scenario
         return storeValParam(name)(newDate, curr);
       }
     }
@@ -148,7 +197,11 @@ const dateParam = function (name) {
                 );
                 // TODO add tz
       } else if (params && params[0] && params[0].indexOf('TZID=') > -1 && params[0].split('=')[1]) {
-        const tz = params[0].split('=')[1];
+        let tz = params[0].split('=')[1];
+        // Watch out for windows timeszones
+        if (tz && tz.indexOf(' ') > -1) {
+          tz = getIanaTZFromMS(tz);
+        }
                 // Lookup tz
         const found = moment.tz.names().filter(zone => {
           return zone === tz;
