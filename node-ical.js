@@ -63,16 +63,16 @@ const ical = require('./ical.js');
 
 // utility to allow callbacks to be used for promises
 function promiseCallback(fn, cb) {
-    const promise = new Promise(fn);
-    if (!cb) {
-        return promise;
-    }
-    promise
+  const promise = new Promise(fn);
+  if (!cb) {
+    return promise;
+  }
+  promise
         .then(ret => {
-            cb(null, ret);
+          cb(null, ret);
         })
         .catch(err => {
-            cb(err, null);
+          cb(err, null);
         });
 }
 
@@ -95,28 +95,28 @@ const autodetect = {};
  *
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
-async.fromURL = function(url, opts, cb) {
-    return promiseCallback((resolve, reject) => {
-        request(url, opts, (err, res, data) => {
-            if (err) {
-                reject(err);
-                return;
-            }
+async.fromURL = function (url, opts, cb) {
+  return promiseCallback((resolve, reject) => {
+    request(url, opts, (err, res, data) => {
+      if (err) {
+        reject(err);
+        return;
+      }
             // If (r.statusCode !== 200) {
             // all ok status codes should be accepted (any 2XX code)
-            if (Math.floor(res.statusCode / 100) !== 2) {
-                reject(new Error(`${res.statusCode} ${res.statusMessage}`));
-                return;
-            }
-            ical.parseICS(data, (err, ics) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(ics);
-            });
-        });
-    }, cb);
+      if (Math.floor(res.statusCode / 100) !== 2) {
+        reject(new Error(`${res.statusCode} ${res.statusMessage}`));
+        return;
+      }
+      ical.parseICS(data, (err, ics) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(ics);
+      });
+    });
+  }, cb);
 };
 
 /**
@@ -128,22 +128,22 @@ async.fromURL = function(url, opts, cb) {
  *
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
-async.parseFile = function(filename, cb) {
-    return promiseCallback((resolve, reject) => {
-        fs.readFile(filename, 'utf8', (err, data) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            ical.parseICS(data, (err, ics) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(ics);
-            });
-        });
-    }, cb);
+async.parseFile = function (filename, cb) {
+  return promiseCallback((resolve, reject) => {
+    fs.readFile(filename, 'utf8', (err, data) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      ical.parseICS(data, (err, ics) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(ics);
+      });
+    });
+  }, cb);
 };
 
 /**
@@ -155,16 +155,16 @@ async.parseFile = function(filename, cb) {
  *
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
-async.parseICS = function(data, cb) {
-    return promiseCallback((resolve, reject) => {
-        ical.parseICS(data, (err, ics) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            resolve(ics);
-        });
-    }, cb);
+async.parseICS = function (data, cb) {
+  return promiseCallback((resolve, reject) => {
+    ical.parseICS(data, (err, ics) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(ics);
+    });
+  }, cb);
 };
 
 /**
@@ -174,9 +174,9 @@ async.parseICS = function(data, cb) {
  *
  * @returns {iCalData} Parsed iCal data.
  */
-sync.parseFile = function(filename) {
-    const data = fs.readFileSync(filename, 'utf8');
-    return ical.parseICS(data);
+sync.parseFile = function (filename) {
+  const data = fs.readFileSync(filename, 'utf8');
+  return ical.parseICS(data);
 };
 
 /**
@@ -186,8 +186,8 @@ sync.parseFile = function(filename) {
  *
  * @returns {iCalData} Parsed iCal data.
  */
-sync.parseICS = function(data) {
-    return ical.parseICS(data);
+sync.parseICS = function (data) {
+  return ical.parseICS(data);
 };
 
 /**
@@ -199,12 +199,12 @@ sync.parseICS = function(data) {
  *
  * @returns {iCalData|undefined} Parsed iCal data or undefined if a callback is being used.
  */
-autodetect.parseFile = function(filename, cb) {
-    if (!cb) {
-        return sync.parseFile(filename);
-    }
+autodetect.parseFile = function (filename, cb) {
+  if (!cb) {
+    return sync.parseFile(filename);
+  }
 
-    async.parseFile(filename, cb);
+  async.parseFile(filename, cb);
 };
 
 /**
@@ -216,26 +216,26 @@ autodetect.parseFile = function(filename, cb) {
  *
  * @returns {iCalData|undefined} Parsed iCal data or undefined if a callback is being used.
  */
-autodetect.parseICS = function(data, cb) {
-    if (!cb) {
-        return sync.parseICS(data);
-    }
+autodetect.parseICS = function (data, cb) {
+  if (!cb) {
+    return sync.parseICS(data);
+  }
 
-    async.parseICS(data, cb);
+  async.parseICS(data, cb);
 };
 
 // Export api functions
 module.exports = {
     // Autodetect
-    fromURL: async.fromURL,
-    parseFile: autodetect.parseFile,
-    parseICS: autodetect.parseICS,
+  fromURL: async.fromURL,
+  parseFile: autodetect.parseFile,
+  parseICS: autodetect.parseICS,
     // Sync
-    sync,
+  sync,
     // Async
-    async,
+  async,
     // Other backwards compat things
-    objectHandlers: ical.objectHandlers,
-    handleObject: ical.handleObject,
-    parseLines: ical.parseLines,
+  objectHandlers: ical.objectHandlers,
+  handleObject: ical.handleObject,
+  parseLines: ical.parseLines
 };
