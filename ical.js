@@ -555,7 +555,10 @@ module.exports = {
         l += lines[i + 1].slice(1);
         i++;
       }
-
+      // Remove any double quotes in any tzid statement// except around (utc+hh:mm
+      if (l.indexOf('TZID=') && l.indexOf('"(') === -1) {
+        l = l.replace(/"/g, '');
+      }
       const exp = /([^":;]+)((?:;(?:[^":;]+)(?:=(?:(?:"[^"]*")|(?:[^":;]+))))*):(.*)/;
       let kv = l.match(exp);
 
