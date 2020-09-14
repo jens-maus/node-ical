@@ -21,7 +21,8 @@
     "moment-timezone": "^0.5.31",
     "request": "^2.88.2",
     "rrule": "2.6.4",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.2",
+    "xml-js": "^1.6.11"
   },
   "devDependencies": {
     "@types/request": "^2.48.3",
@@ -49,7 +50,8 @@
     "lintfix": "xo --fix",
     "format-check": "prettier --config .prettierrc.js --check *.js test/*.js",
     "format": "prettier --config .prettierrc.js --write *.js test/*.js",
-    "precommit": "npm run format && npm run fix"
+    "precommit": "npm run format && npm run fix",
+    "postinstall":"./postinstall"
   },
   "readmeFilename": "README.md"
 }

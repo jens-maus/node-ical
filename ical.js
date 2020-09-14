@@ -61,7 +61,7 @@ const storeValParam = function (name) {
       return curr;
     }
 
-    if (typeof (current) === 'undefined') {
+    if (typeof current === 'undefined') {
       curr[name] = val;
     } else {
       curr[name] = [current, val];
@@ -104,14 +104,16 @@ function getIanaTZFromMS(msTZName) {
   if (!zoneTable) {
     const fs = require('fs');
     const p = require('path');
-    const wtz = JSON.parse(fs.readFileSync(p.join(__dirname + 'windowsZones.json')));
+    const wtz = JSON.parse(fs.readFileSync(p.join(__dirname, 'windowsZones.json')));
     const v = getObjects(wtz, 'name', 'mapZone');
     zoneTable = {};
     for (const zone of v) {
-      // Get the object based on zone name
+            // Get the object based on zone name
+            //  let wzone = null;
       let wzone = zoneTable[zone.attributes.other];
-      // If not set
-      if (wzone === null) {      // Initialize
+            // If not set
+      if (wzone === undefined) {
+                // Initialize
         wzone = {iana: [], type: zone.attributes.territory};
       }
       for (const iana of zone.attributes.type.split(' ')) {
@@ -121,8 +123,8 @@ function getIanaTZFromMS(msTZName) {
       }
       zoneTable[zone.attributes.other] = wzone;
     }
-    // Fix for incomplete IANA timezone list. WEST shifts +1(winter) to +0 (summer)
-    // zoneTable['W. Europe Standard Time'].iana.unshift("Europe/London")
+        // Fix for incomplete IANA timezone list. WEST shifts +1(winter) to +0 (summer)
+        // zoneTable['W. Europe Standard Time'].iana.unshift("Europe/London")
   }
   return zoneTable[msTZName].iana[0];
 }
@@ -130,21 +132,20 @@ function getIanaTZFromMS(msTZName) {
 function getObjects(obj, key, val) {
   let objects = [];
   for (const i in obj) {
-    if (!obj.hasOwnProperty(i)) {
+    if (!Object.prototype.hasOwnProperty.call(obj, i)) {
       continue;
     }
     if (typeof obj[i] === 'object') {
       objects = objects.concat(getObjects(obj[i], key, val));
-    } else
-      // If key matches and value matches or if key matches and value is not passed (eliminating the case where key matches but passed value does not)
-      if (i === key && obj[i] === val || i === key && val === '') { //
+    } else if ((i === key && obj[i] === val) || (i === key && val === '')) {
+       // If key matches and value matches or if key matches and value is not passed (eliminating the case where key matches but passed value does not)
+      objects.push(obj);
+    } else if (obj[i] === val && key === '') {
+            // Only add if the object is not already in the array
+      if (objects.lastIndexOf(obj) === -1) {
         objects.push(obj);
-      } else if (obj[i] === val && key === '') {
-          // Only add if the object is not already in the array
-        if (objects.lastIndexOf(obj) === -1) {
-          objects.push(obj);
-        }
       }
+    }
   }
   return objects;
 }
@@ -166,7 +167,6 @@ const dateParam = function (name) {
 
     if (params && params.indexOf('VALUE=DATE') > -1 && params.indexOf('VALUE=DATE-TIME') === -1) {
             // Just Date
-
       const comps = /^(\d{4})(\d{2})(\d{2}).*$/.exec(val);
       if (comps !== null) {
                 // No TZ info - assume same timezone as this computer
@@ -175,7 +175,7 @@ const dateParam = function (name) {
         newDate = addTZ(newDate, params);
         newDate.dateOnly = true;
 
-        // Store as string - worst case scenario
+                // Store as string - worst case scenario
         return storeValParam(name)(newDate, curr);
       }
     }
@@ -198,18 +198,36 @@ const dateParam = function (name) {
                 // TODO add tz
       } else if (params && params[0] && params[0].indexOf('TZID=') > -1 && params[0].split('=')[1]) {
         let tz = params[0].split('=')[1];
-        // Watch out for windows timeszones
-        if (tz && tz.indexOf(' ') > -1) {
-          tz = getIanaTZFromMS(tz);
+        let found = '';
+        let offset = '';
+                // Remove quotes if found
+        tz = tz.replace(/^"(.*)"$/, '$1');
+                // Watch out for offset timezones
+        if (tz && tz.startsWith('(')) {
+                    // Extract just the offset
+          const regex = /[+|-]\d*:\d*/;
+          offset = tz.match(regex);
+          tz = null;
+          found = offset;
         }
-                // Lookup tz
-        const found = moment.tz.names().filter(zone => {
-          return zone === tz;
-        })[0];
+                // Watch out for windows timeszones
+        if (tz && !tz.startsWith('(') && tz.indexOf(' ') > -1) {
+          const tz1 = getIanaTZFromMS(tz);
+          if (tz1) {
+            tz = tz1;
+          }
+        }
+
+        if (found === '') {
+                    // Lookup tz
+          found = moment.tz.names().filter(zone => {
+            return zone === tz;
+          })[0];
+        }
         if (found) {
-          const zoneDate = moment.tz(val, 'YYYYMMDDTHHmmss', tz);
-          newDate = zoneDate.toDate();
+          newDate = moment.tz(val, 'YYYYMMDDTHHmmss' + offset, tz).toDate();
         } else {
+          console.log('no understandable timezone = ' + tz);
                     // Fallback if tz not found
           newDate = new Date(
                         parseInt(comps[1], 10),
@@ -230,7 +248,6 @@ const dateParam = function (name) {
                     parseInt(comps[6], 10)
                 );
       }
-
       newDate = addTZ(newDate, params);
     }
 
@@ -334,12 +351,12 @@ const freebusyParam = function (name) {
 
 module.exports = {
   objectHandlers: {
-    BEGIN(component, params, curr, stack) {
+    'BEGIN'(component, params, curr, stack) {
       stack.push(curr);
 
       return {type: component, params};
     },
-    END(val, params, curr, stack) {
+    'END'(val, params, curr, stack) {
             // Original end function
       const originalEnd = function (component, params, curr, stack) {
                 // Prevents the need to search the root of the tree for the VCALENDAR object
@@ -368,15 +385,15 @@ module.exports = {
           if (par[curr.uid] === undefined) {
             par[curr.uid] = curr;
           } else if (curr.recurrenceid === undefined) {
-            // If we have multiple ical entries with the same UID, it's either going to be a
-            // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
-            // to the entry (SEQUENCE).
+                        // If we have multiple ical entries with the same UID, it's either going to be a
+                        // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
+                        // to the entry (SEQUENCE).
 
-            // TODO: Look into proper sequence logic.
+                        // TODO: Look into proper sequence logic.
 
-            // If we have the same UID as an existing record, and it *isn't* a specific recurrence ID,
-            // not quite sure what the correct behaviour should be.  For now, just take the new information
-            // and merge it with the old record by overwriting only the fields that appear in the new record.
+                        // If we have the same UID as an existing record, and it *isn't* a specific recurrence ID,
+                        // not quite sure what the correct behaviour should be.  For now, just take the new information
+                        // and merge it with the old record by overwriting only the fields that appear in the new record.
             let key;
             for (key in curr) {
               if (key !== null) {
@@ -395,7 +412,7 @@ module.exports = {
                     // in the recurrences array, and then when we process the RRULE entry later it overwrites the appropriate
                     // fields in the parent record.
 
-          if (typeof (curr.recurrenceid) !== 'undefined') {
+          if (typeof curr.recurrenceid !== 'undefined') {
                         // TODO:  Is there ever a case where we have to worry about overwriting an existing entry here?
 
                         // Create a copy of the current object to save in our recurrences array.  (We *could* just do par = curr,
@@ -410,7 +427,7 @@ module.exports = {
               }
             }
 
-            if (typeof (recurrenceObj.recurrences) !== 'undefined') {
+            if (typeof recurrenceObj.recurrences !== 'undefined') {
               delete recurrenceObj.recurrences;
             }
 
@@ -431,7 +448,10 @@ module.exports = {
 
                     // One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
                     // let's make sure to clear the recurrenceid off the parent field.
-          if (typeof (par[curr.uid].rrule) !== 'undefined' && typeof (par[curr.uid].recurrenceid) !== 'undefined') {
+          if (
+                        typeof par[curr.uid].rrule !== 'undefined' &&
+                        typeof par[curr.uid].recurrenceid !== 'undefined'
+                    ) {
             delete par[curr.uid].recurrenceid;
           }
         } else {
@@ -475,7 +495,7 @@ module.exports = {
     URL: storeParam('url'),
     UID: storeParam('uid'),
     LOCATION: storeParam('location'),
-    DTSTART(val, params, curr) {
+    'DTSTART'(val, params, curr) {
       curr = dateParam('start')(val, params, curr);
       return typeParam('datetype')(val, params, curr);
     },
@@ -492,7 +512,7 @@ module.exports = {
     CREATED: dateParam('created'),
     'LAST-MODIFIED': dateParam('lastmodified'),
     'RECURRENCE-ID': recurrenceParam('recurrenceid'),
-    RRULE(val, params, curr, stack, line) {
+    'RRULE'(val, params, curr, stack, line) {
       curr.rrule = line;
       return curr;
     }
