@@ -3,19 +3,19 @@ const ical = require('../node-ical');
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, (err, data) => {
-    if (!err) {
-        for (const k in data) {
-            if (!{}.hasOwnProperty.call(data, k)) {
-                continue;
-            }
-            const ev = data[k];
-            if (data[k].type === 'VEVENT') {
-                console.log(
-                    `${ev.summary} is in ${ev.location} on the ${ev.start.getDate()} of ${
-                        months[ev.start.getMonth()]
-                    } at ${ev.start.toLocaleTimeString('en-GB')}`
-                );
-            }
-        }
+  if (!err) {
+    for (const k in data) {
+      if (!{}.hasOwnProperty.call(data, k)) {
+        continue;
+      }
+      const ev = data[k];
+      if (data[k].type === 'VEVENT') {
+        console.log(
+          `${ev.summary} is in ${ev.location} on the ${ev.start.getDate()} of ${
+            months[ev.start.getMonth()]
+          } at ${ev.start.toLocaleTimeString('en-GB')}`
+        );
+      }
     }
+  }
 });

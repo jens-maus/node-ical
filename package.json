@@ -26,11 +26,6 @@
   "devDependencies": {
     "@types/request": "^2.48.3",
     "diff": ">=3.5.0",
-    "eslint": "^6.8.0",
-    "eslint-config-prettier": "^6.3.0",
-    "eslint-plugin-import": "^2.18.2",
-    "eslint-plugin-prettier": "^3.1.1",
-    "prettier": "^1.19.1",
     "underscore": "1.9.1",
     "vows": "^0.8.2",
     "xo": "^0.18.2",
@@ -47,9 +42,7 @@
     "test": "xo; vows test/test.js && vows test/test-async.js && printf \"\\n\"",
     "lint": "xo",
     "lintfix": "xo --fix",
-    "format-check": "prettier --config .prettierrc.js --check *.js test/*.js",
-    "format": "prettier --config .prettierrc.js --write *.js test/*.js",
-    "precommit": "npm run format && npm run fix"
+    "precommit": "npm run lint && npm run lintfix"
   },
   "readmeFilename": "README.md"
 }
