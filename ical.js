@@ -99,6 +99,16 @@ const addTZ = function (dt, params) {
   return dt;
 };
 
+let zoneTable = null;
+function getIanaTZFromMS(msTZName) {
+  if (!zoneTable) {
+    const fs = require('fs');
+    const p = require('path');
+    zoneTable = JSON.parse(fs.readFileSync(p.join(__dirname, 'windowsZones.json')));
+  }
+  return zoneTable[msTZName].iana[0];
+}
+
 const typeParam = function (name) {
   // Typename is not used in this function?
   return function (val, params, curr) {
@@ -148,14 +158,36 @@ const dateParam = function (name) {
         );
         // TODO add tz
       } else if (params && params[0] && params[0].indexOf('TZID=') > -1 && params[0].split('=')[1]) {
-        const tz = params[0].split('=')[1];
-        // Lookup tz
-        const found = moment.tz.names().filter(zone => {
-          return zone === tz;
-        })[0];
+        let tz = params[0].split('=')[1];
+        let found = '';
+        let offset = '';
+        // Remove quotes if found
+        tz = tz.replace(/^"(.*)"$/, '$1');
+        // Watch out for offset timezones
+        if (tz && tz.startsWith('(')) {
+          // Extract just the offset
+          const regex = /[+|-]\d*:\d*/;
+          offset = tz.match(regex);
+          tz = null;
+          found = offset;
+        }
+        // Watch out for windows timeszones
+        if (tz && !tz.startsWith('(') && tz.indexOf(' ') > -1) {
+          const tz1 = getIanaTZFromMS(tz);
+          if (tz1) {
+            tz = tz1;
+          }
+        }
+        // Timezone not confirmed yet
+        if (found === '') {
+          // Lookup tz
+          found = moment.tz.names().filter(zone => {
+            return zone === tz;
+          })[0];
+        }
+        // Timezone confirmed or forced to offset
         if (found) {
-          const zoneDate = moment.tz(val, 'YYYYMMDDTHHmmss', tz);
-          newDate = zoneDate.toDate();
+          newDate = moment.tz(val, 'YYYYMMDDTHHmmss' + offset, tz).toDate();
         } else {
           // Fallback if tz not found
           newDate = new Date(
@@ -481,6 +513,10 @@ module.exports = {
       while (lines[i + 1] && /[ \t]/.test(lines[i + 1][0])) {
         l += lines[i + 1].slice(1);
         i++;
+      }
+      // Remove any double quotes in any tzid statement// except around (utc+hh:mm
+      if (l.indexOf('TZID=') && l.indexOf('"(') === -1) {
+        l = l.replace(/"/g, '');
       }
 
       const exp = /([^":;]+)((?:;(?:[^":;]+)(?:=(?:(?:"[^"]*")|(?:[^":;]+))))*):(.*)/;
