@@ -1,10 +1,9 @@
 // Convert xml-json raw conversion to hash for fast lookup
 // Save as json for quick import when needed
 const fs = require('fs');
-
 const p = require('path');
 
-const wtz = JSON.parse(fs.readFileSync(p.join(__dirname, 'windowsZones.json')));
+const wtz = require(p.join(__dirname, 'windowsZones.json'));
 const v = getObjects(wtz, 'name', 'mapZone');
 const zoneTable = {};
 
