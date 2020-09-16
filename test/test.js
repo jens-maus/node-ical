@@ -578,6 +578,34 @@ vows
       }
     },
 
+    'with ms_timezones.ics (testing tiem conversions)': {
+      'topic'() {
+        return ical.parseFile('./test/ms_timezones.ics');
+      },
+      'event with time in CET': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'Log Yesterday\'s Jira time';
+          })[0];
+        },
+        'Has summary \'Log Yesterday\'s Jira time\''(topic) {
+          assert.equal(topic.summary, 'Log Yesterday\'s Jira time');
+        },
+        'Has proper start and end dates and times'(topic) {
+                  // DTSTART;TZID=W. Europe Standard Time:20200609T090000
+          assert.equal(topic.start.getFullYear(), 2020);
+          assert.equal(topic.start.getMonth(), 5);
+          assert.equal(topic.start.getUTCHours(), 7);
+          assert.equal(topic.start.getUTCMinutes(), 0);
+                  // DTEND;TZID=W. Europe Standard Time:20200609T093000
+          assert.equal(topic.end.getFullYear(), 2020);
+          assert.equal(topic.end.getMonth(), 5);
+          assert.equal(topic.end.getUTCHours(), 7);
+          assert.equal(topic.end.getUTCMinutes(), 30);
+        }
+      }
+    },
+
     'url request errors': {
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);
