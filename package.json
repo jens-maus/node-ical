@@ -46,8 +46,7 @@
     "test": "xo; vows test/test.js && vows test/test-async.js && printf \"\\n\"",
     "lint": "xo",
     "lintfix": "xo --fix",
-    "precommit": "npm run lint && npm run lintfix",
-    "postinstall":"./postinstall"
+    "precommit": "npm run lint && npm run lintfix"
   },
   "readmeFilename": "README.md"
 }

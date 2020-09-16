@@ -178,14 +178,14 @@ const dateParam = function (name) {
             tz = tz1;
           }
         }
-        // timezone not confirmed yet
+        // Timezone not confirmed yet
         if (found === '') {
           // Lookup tz
           found = moment.tz.names().filter(zone => {
             return zone === tz;
           })[0];
         }
-        // timezone confirmed or forced to offset
+        // Timezone confirmed or forced to offset
         if (found) {
           newDate = moment.tz(val, 'YYYYMMDDTHHmmss' + offset, tz).toDate();
         } else {
