@@ -8,3 +8,5 @@ curl -sL https://raw.githubusercontent.com/unicode-org/cldr/master/common/supple
 node node_modules/xml-js/bin/cli.js $fn >$(basename $fn .xml).json
 # erase xml file
 rm $fn
+# convertjson file to lookup hash table in json
+node cvtToJson.js
