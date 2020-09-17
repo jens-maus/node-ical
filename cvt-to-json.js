@@ -34,7 +34,7 @@ for (const zone of v) {
     // If not set
   if (wzone === undefined) {
         // Initialize
-    wzone = {iana: [], type: zone.attributes.territory};
+    wzone = {iana: []}; // T, type: zone.attributes.territory};
   }
   for (const iana of zone.attributes.type.split(' ')) {
     // Only save the 1st IANA name, only one used in lookup
