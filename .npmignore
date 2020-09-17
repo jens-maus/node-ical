@@ -9,5 +9,7 @@ test
 .gitattributes
 .eslintrc.js
 .prettierrc.js
+cvt-to-json.js
 /node_modules
+/build
 appveyor.yml

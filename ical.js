@@ -102,9 +102,8 @@ const addTZ = function (dt, params) {
 let zoneTable = null;
 function getIanaTZFromMS(msTZName) {
   if (!zoneTable) {
-    const fs = require('fs');
     const p = require('path');
-    zoneTable = JSON.parse(fs.readFileSync(p.join(__dirname, 'windowsZones.json')));
+    zoneTable = require(p.join(__dirname, 'windowsZones.json'));
   }
   return zoneTable[msTZName].iana[0];
 }
