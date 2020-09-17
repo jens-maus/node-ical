@@ -37,7 +37,8 @@ for (const zone of v) {
     wzone = {iana: [], type: zone.attributes.territory};
   }
   for (const iana of zone.attributes.type.split(' ')) {
-    if (wzone.iana.indexOf(iana) === -1) {
+    // Only save the 1st IANA name, only one used in lookup
+    if (wzone.iana.length === 0) {
       wzone.iana.push(iana);
     }
   }
