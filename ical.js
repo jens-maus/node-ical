@@ -106,9 +106,9 @@ function getIanaTZFromMS(msTZName) {
     zoneTable = require(p.join(__dirname, 'windowsZones.json'));
   }
   // Get hash entry
-  let he = zoneTable[msTZName];
+  const he = zoneTable[msTZName];
   // If found return iana name, else null
-  return he? he.iana[0]:null;
+  return he ? he.iana[0] : null;
 }
 
 const typeParam = function (name) {
