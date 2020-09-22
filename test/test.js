@@ -606,6 +606,22 @@ vows
       }
     },
 
+    'with bad_ms_tz.ics (testing for unexpected ms timezone)': {
+      topic() {
+        return ical.parseFile('./test/bad_ms_tz.ics');
+      },
+      'event with bad TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === '[private]';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.equal(topic.start.tz, 'Customized Time Zone');
+        }
+      }
+    },
+
     'url request errors': {
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);
