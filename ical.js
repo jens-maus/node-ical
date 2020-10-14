@@ -1,6 +1,6 @@
 /* eslint-disable max-depth, max-params, no-warning-comments */
 
-const uuid = require('uuid/v4');
+const {v4: uuid} = require('uuid');
 const moment = require('moment-timezone');
 const rrule = require('rrule').RRule;
 
