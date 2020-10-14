@@ -21,73 +21,75 @@ const text = function (t) {
     .replace(/\\\\/g, '\\');
 };
 
-const parseValue = function (val) {
-  if (val === 'TRUE') {
+const parseValue = function (value) {
+  if (value === 'TRUE') {
     return true;
   }
-  if (val === 'FALSE') {
+
+  if (value === 'FALSE') {
     return false;
   }
 
-  const number = Number(val);
-  if (!isNaN(number)) {
+  const number = Number(value);
+  if (!Number.isNaN(number)) {
     return number;
   }
 
-  return val;
+  return value;
 };
 
-const parseParams = function (p) {
+const parseParameters = function (p) {
   const out = {};
-  for (let i = 0; i < p.length; i++) {
-    if (p[i].indexOf('=') > -1) {
-      const segs = p[i].split('=');
+  for (const element of p) {
+    if (element.includes('=')) {
+      const segs = element.split('=');
 
       out[segs[0]] = parseValue(segs.slice(1).join('='));
     }
   }
+
   // Sp is not defined in this scope, typo?
   // original code from peterbraden
   // return out || sp;
   return out;
 };
 
-const storeValParam = function (name) {
-  return function (val, curr) {
+const storeValueParameter = function (name) {
+  return function (value, curr) {
     const current = curr[name];
 
     if (Array.isArray(current)) {
-      current.push(val);
+      current.push(value);
       return curr;
     }
 
     if (typeof current === 'undefined') {
-      curr[name] = val;
+      curr[name] = value;
     } else {
-      curr[name] = [current, val];
+      curr[name] = [current, value];
     }
 
     return curr;
   };
 };
 
-const storeParam = function (name) {
-  return function (val, params, curr) {
+const storeParameter = function (name) {
+  return function (value, parameters, curr) {
     let data;
-    if (params && params.length > 0 && !(params.length === 1 && params[0] === 'CHARSET=utf-8')) {
-      data = {params: parseParams(params), val: text(val)};
+    if (parameters && parameters.length > 0 && !(parameters.length === 1 && parameters[0] === 'CHARSET=utf-8')) {
+      data = {params: parseParameters(parameters), val: text(value)};
     } else {
-      data = text(val);
+      data = text(value);
     }
 
-    return storeValParam(name)(data, curr);
+    return storeValueParameter(name)(data, curr);
   };
 };
 
-const addTZ = function (dt, params) {
-  const p = parseParams(params);
+const addTZ = function (dt, parameters) {
+  const p = parseParameters(parameters);
 
-  if (params && p && dt) {
+  if (parameters && p && dt) {
     dt.tz = p.TZID;
     if (dt.tz !== undefined) {
       // Remove surrouding quotes if found at the begining and at the end of the string
@@ -105,62 +107,63 @@ function getIanaTZFromMS(msTZName) {
     const p = require('path');
     zoneTable = require(p.join(__dirname, 'windowsZones.json'));
   }
+
   // Get hash entry
   const he = zoneTable[msTZName];
   // If found return iana name, else null
   return he ? he.iana[0] : null;
 }
 
-const typeParam = function (name) {
+const typeParameter = function (name) {
   // Typename is not used in this function?
-  return function (val, params, curr) {
-    let ret = 'date-time';
-    if (params && params.indexOf('VALUE=DATE') > -1 && params.indexOf('VALUE=DATE-TIME') === -1) {
-      ret = 'date';
+  return function (value, parameters, curr) {
+    let returnValue = 'date-time';
+    if (parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) {
+      returnValue = 'date';
     }
 
-    return storeValParam(name)(ret, curr);
+    return storeValueParameter(name)(returnValue, curr);
   };
 };
 
-const dateParam = function (name) {
-  return function (val, params, curr) {
-    let newDate = text(val);
+const dateParameter = function (name) {
+  return function (value, parameters, curr) {
+    let newDate = text(value);
 
-    if (params && params.indexOf('VALUE=DATE') > -1 && params.indexOf('VALUE=DATE-TIME') === -1) {
+    if (parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) {
       // Just Date
 
-      const comps = /^(\d{4})(\d{2})(\d{2}).*$/.exec(val);
+      const comps = /^(\d{4})(\d{2})(\d{2}).*$/.exec(value);
       if (comps !== null) {
         // No TZ info - assume same timezone as this computer
-        newDate = new Date(comps[1], parseInt(comps[2], 10) - 1, comps[3]);
+        newDate = new Date(comps[1], Number.parseInt(comps[2], 10) - 1, comps[3]);
 
-        newDate = addTZ(newDate, params);
+        newDate = addTZ(newDate, parameters);
         newDate.dateOnly = true;
 
         // Store as string - worst case scenario
-        return storeValParam(name)(newDate, curr);
+        return storeValueParameter(name)(newDate, curr);
       }
     }
 
     // Typical RFC date-time format
-    const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(val);
+    const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(value);
     if (comps !== null) {
       if (comps[7] === 'Z') {
         // GMT
         newDate = new Date(
           Date.UTC(
-            parseInt(comps[1], 10),
-            parseInt(comps[2], 10) - 1,
-            parseInt(comps[3], 10),
-            parseInt(comps[4], 10),
-            parseInt(comps[5], 10),
-            parseInt(comps[6], 10)
+            Number.parseInt(comps[1], 10),
+            Number.parseInt(comps[2], 10) - 1,
+            Number.parseInt(comps[3], 10),
+            Number.parseInt(comps[4], 10),
+            Number.parseInt(comps[5], 10),
+            Number.parseInt(comps[6], 10)
           )
         );
         // TODO add tz
-      } else if (params && params[0] && params[0].indexOf('TZID=') > -1 && params[0].split('=')[1]) {
-        let tz = params[0].split('=')[1];
+      } else if (parameters && parameters[0] && parameters[0].includes('TZID=') && parameters[0].split('=')[1]) {
+        let tz = parameters[0].split('=')[1];
         let found = '';
         let offset = '';
         // Remove quotes if found
@@ -173,71 +176,75 @@ const dateParam = function (name) {
           tz = null;
           found = offset;
         }
+
         // Watch out for windows timeszones
-        if (tz && !tz.startsWith('(') && tz.indexOf(' ') > -1) {
+        if (tz && !tz.startsWith('(') && tz.includes(' ')) {
           const tz1 = getIanaTZFromMS(tz);
           if (tz1) {
             tz = tz1;
           }
         }
+
         // Timezone not confirmed yet
         if (found === '') {
           // Lookup tz
-          found = moment.tz.names().filter(zone => {
+          found = moment.tz.names().find(zone => {
             return zone === tz;
-          })[0];
+          });
         }
+
         // Timezone confirmed or forced to offset
         if (found) {
-          newDate = moment.tz(val, 'YYYYMMDDTHHmmss' + offset, tz).toDate();
+          newDate = moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate();
         } else {
           // Fallback if tz not found
           newDate = new Date(
-            parseInt(comps[1], 10),
-            parseInt(comps[2], 10) - 1,
-            parseInt(comps[3], 10),
-            parseInt(comps[4], 10),
-            parseInt(comps[5], 10),
-            parseInt(comps[6], 10)
+            Number.parseInt(comps[1], 10),
+            Number.parseInt(comps[2], 10) - 1,
+            Number.parseInt(comps[3], 10),
+            Number.parseInt(comps[4], 10),
+            Number.parseInt(comps[5], 10),
+            Number.parseInt(comps[6], 10)
           );
         }
       } else {
         newDate = new Date(
-          parseInt(comps[1], 10),
-          parseInt(comps[2], 10) - 1,
-          parseInt(comps[3], 10),
-          parseInt(comps[4], 10),
-          parseInt(comps[5], 10),
-          parseInt(comps[6], 10)
+          Number.parseInt(comps[1], 10),
+          Number.parseInt(comps[2], 10) - 1,
+          Number.parseInt(comps[3], 10),
+          Number.parseInt(comps[4], 10),
+          Number.parseInt(comps[5], 10),
+          Number.parseInt(comps[6], 10)
         );
       }
 
-      newDate = addTZ(newDate, params);
+      newDate = addTZ(newDate, parameters);
     }
 
     // Store as string - worst case scenario
-    return storeValParam(name)(newDate, curr);
+    return storeValueParameter(name)(newDate, curr);
   };
 };
 
-const geoParam = function (name) {
-  return function (val, params, curr) {
-    storeParam(val, params, curr);
-    const parts = val.split(';');
+const geoParameter = function (name) {
+  return function (value, parameters, curr) {
+    storeParameter(value, parameters, curr);
+    const parts = value.split(';');
     curr[name] = {lat: Number(parts[0]), lon: Number(parts[1])};
     return curr;
   };
 };
 
-const categoriesParam = function (name) {
+const categoriesParameter = function (name) {
   const separatorPattern = /\s*,\s*/g;
-  return function (val, params, curr) {
-    storeParam(val, params, curr);
+  return function (value, parameters, curr) {
+    storeParameter(value, parameters, curr);
     if (curr[name] === undefined) {
-      curr[name] = val ? val.split(separatorPattern) : [];
-    } else if (val) {
-      curr[name] = curr[name].concat(val.split(separatorPattern));
+      curr[name] = value ? value.split(separatorPattern) : [];
+    } else if (value) {
+      curr[name] = curr[name].concat(value.split(separatorPattern));
     }
+
     return curr;
   };
 };
@@ -258,18 +265,18 @@ const categoriesParam = function (name) {
 //             EXDATE:20171219T060000
 //       Even though "T060000" doesn't match or overlap "T1400000Z", it's still supposed to be excluded?  Odd. :(
 // TODO: See if this causes any problems with events that recur multiple times a day.
-const exdateParam = function (name) {
-  return function (val, params, curr) {
+const exdateParameter = function (name) {
+  return function (value, parameters, curr) {
     const separatorPattern = /\s*,\s*/g;
     curr[name] = curr[name] || [];
-    const dates = val ? val.split(separatorPattern) : [];
+    const dates = value ? value.split(separatorPattern) : [];
     dates.forEach(entry => {
       const exdate = [];
-      dateParam(name)(entry, params, exdate);
+      dateParameter(name)(entry, parameters, exdate);
 
       if (exdate[name]) {
         if (typeof exdate[name].toISOString === 'function') {
-          curr[name][exdate[name].toISOString().substring(0, 10)] = exdate[name];
+          curr[name][exdate[name].toISOString().slice(0, 10)] = exdate[name];
         } else {
           console.error('No toISOString function in exdate[name]', exdate[name]);
         }
@@ -281,32 +288,32 @@ const exdateParam = function (name) {
 
 // RECURRENCE-ID is the ID of a specific recurrence within a recurrence rule.
 // TODO:  It's also possible for it to have a range, like "THISANDPRIOR", "THISANDFUTURE".  This isn't currently handled.
-const recurrenceParam = function (name) {
-  return dateParam(name);
+const recurrenceParameter = function (name) {
+  return dateParameter(name);
 };
 
-const addFBType = function (fb, params) {
-  const p = parseParams(params);
+const addFBType = function (fb, parameters) {
+  const p = parseParameters(parameters);
 
-  if (params && p) {
+  if (parameters && p) {
     fb.type = p.FBTYPE || 'BUSY';
   }
 
   return fb;
 };
 
-const freebusyParam = function (name) {
-  return function (val, params, curr) {
-    const fb = addFBType({}, params);
+const freebusyParameter = function (name) {
+  return function (value, parameters, curr) {
+    const fb = addFBType({}, parameters);
     curr[name] = curr[name] || [];
     curr[name].push(fb);
 
-    storeParam(val, params, fb);
+    storeParameter(value, parameters, fb);
 
-    const parts = val.split('/');
+    const parts = value.split('/');
 
     ['start', 'end'].forEach((name, index) => {
-      dateParam(name)(parts[index], params, fb);
+      dateParameter(name)(parts[index], parameters, fb);
     });
 
     return curr;
@@ -315,26 +322,27 @@ const freebusyParam = function (name) {
 
 module.exports = {
   objectHandlers: {
-    BEGIN(component, params, curr, stack) {
+    BEGIN(component, parameters, curr, stack) {
       stack.push(curr);
 
-      return {type: component, params};
+      return {type: component, params: parameters};
     },
-    END(val, params, curr, stack) {
+    END(value, parameters, curr, stack) {
       // Original end function
-      const originalEnd = function (component, params, curr, stack) {
+      const originalEnd = function (component, parameters_, curr, stack) {
         // Prevents the need to search the root of the tree for the VCALENDAR object
         if (component === 'VCALENDAR') {
           // Scan all high level object in curr and drop all strings
           let key;
-          let obj;
+          let object;
 
           for (key in curr) {
             if (!{}.hasOwnProperty.call(curr, key)) {
               continue;
             }
-            obj = curr[key];
-            if (typeof obj === 'string') {
+
+            object = curr[key];
+            if (typeof object === 'string') {
               delete curr[key];
             }
           }
@@ -383,16 +391,16 @@ module.exports = {
             // except for the case that we get the RECURRENCE-ID record before the RRULE record.  In that case, we
             // would end up with a shared reference that would cause us to overwrite *both* records at the point
             // that we try and fix up the parent record.)
-            const recurrenceObj = {};
+            const recurrenceObject = {};
             let key;
             for (key in curr) {
               if (key !== null) {
-                recurrenceObj[key] = curr[key];
+                recurrenceObject[key] = curr[key];
               }
             }
 
-            if (typeof recurrenceObj.recurrences !== 'undefined') {
-              delete recurrenceObj.recurrences;
+            if (typeof recurrenceObject.recurrences !== 'undefined') {
+              delete recurrenceObject.recurrences;
             }
 
             // If we don't have an array to store recurrences in yet, create it.
@@ -404,7 +412,7 @@ module.exports = {
             // We key by date only to avoid timezone and "floating time" problems (where the time isn't associated with a timezone).
             // TODO: See if this causes a problem with events that have multiple recurrences per day.
             if (typeof curr.recurrenceid.toISOString === 'function') {
-              par[curr.uid].recurrences[curr.recurrenceid.toISOString().substring(0, 10)] = recurrenceObj;
+              par[curr.uid].recurrences[curr.recurrenceid.toISOString().slice(0, 10)] = recurrenceObject;
             } else {
               console.error('No toISOString function in curr.recurrenceid', curr.recurrenceid);
             }
@@ -421,13 +429,14 @@ module.exports = {
 
         return par;
       };
+
       // Recurrence rules are only valid for VEVENT, VTODO, and VJOURNAL.
       // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
       // due to the subtypes.
-      if (val === 'VEVENT' || val === 'VTODO' || val === 'VJOURNAL') {
+      if (value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') {
         if (curr.rrule) {
           let rule = curr.rrule.replace('RRULE:', '');
-          if (rule.indexOf('DTSTART') === -1) {
+          if (!rule.includes('DTSTART')) {
             if (curr.start.length === 8) {
               const comps = /^(\d{4})(\d{2})(\d{2})$/.exec(curr.start);
               if (comps) {
@@ -438,62 +447,64 @@ module.exports = {
             if (typeof curr.start.toISOString === 'function') {
               try {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
-                rule = rule.replace(/\.[0-9]{3}/, '');
-              } catch (err) {
-                console.error('ERROR when trying to convert to ISOString', err);
+                rule = rule.replace(/\.\d{3}/, '');
+              } catch (error) {
+                console.error('ERROR when trying to convert to ISOString', error);
               }
             } else {
               console.error('No toISOString function in curr.start', curr.start);
             }
           }
+
           curr.rrule = rrule.fromString(rule);
         }
       }
-      return originalEnd.call(this, val, params, curr, stack);
+
+      return originalEnd.call(this, value, parameters, curr, stack);
     },
-    SUMMARY: storeParam('summary'),
-    DESCRIPTION: storeParam('description'),
-    URL: storeParam('url'),
-    UID: storeParam('uid'),
-    LOCATION: storeParam('location'),
-    DTSTART(val, params, curr) {
-      curr = dateParam('start')(val, params, curr);
-      return typeParam('datetype')(val, params, curr);
+    SUMMARY: storeParameter('summary'),
+    DESCRIPTION: storeParameter('description'),
+    URL: storeParameter('url'),
+    UID: storeParameter('uid'),
+    LOCATION: storeParameter('location'),
+    DTSTART(value, parameters, curr) {
+      curr = dateParameter('start')(value, parameters, curr);
+      return typeParameter('datetype')(value, parameters, curr);
     },
-    DTEND: dateParam('end'),
-    EXDATE: exdateParam('exdate'),
-    ' CLASS': storeParam('class'), // Should there be a space in this property?
-    TRANSP: storeParam('transparency'),
-    GEO: geoParam('geo'),
-    'PERCENT-COMPLETE': storeParam('completion'),
-    COMPLETED: dateParam('completed'),
-    CATEGORIES: categoriesParam('categories'),
-    FREEBUSY: freebusyParam('freebusy'),
-    DTSTAMP: dateParam('dtstamp'),
-    CREATED: dateParam('created'),
-    'LAST-MODIFIED': dateParam('lastmodified'),
-    'RECURRENCE-ID': recurrenceParam('recurrenceid'),
-    RRULE(val, params, curr, stack, line) {
+    DTEND: dateParameter('end'),
+    EXDATE: exdateParameter('exdate'),
+    ' CLASS': storeParameter('class'), // Should there be a space in this property?
+    TRANSP: storeParameter('transparency'),
+    GEO: geoParameter('geo'),
+    'PERCENT-COMPLETE': storeParameter('completion'),
+    COMPLETED: dateParameter('completed'),
+    CATEGORIES: categoriesParameter('categories'),
+    FREEBUSY: freebusyParameter('freebusy'),
+    DTSTAMP: dateParameter('dtstamp'),
+    CREATED: dateParameter('created'),
+    'LAST-MODIFIED': dateParameter('lastmodified'),
+    'RECURRENCE-ID': recurrenceParameter('recurrenceid'),
+    RRULE(value, parameters, curr, stack, line) {
       curr.rrule = line;
       return curr;
     }
   },
 
-  handleObject(name, val, params, ctx, stack, line) {
+  handleObject(name, value, parameters, ctx, stack, line) {
     const self = this;
 
     if (self.objectHandlers[name]) {
-      return self.objectHandlers[name](val, params, ctx, stack, line);
+      return self.objectHandlers[name](value, parameters, ctx, stack, line);
     }
 
     // Handling custom properties
     if (name.match(/X-[\w-]+/) && stack.length > 0) {
       // Trimming the leading and perform storeParam
-      name = name.substring(2);
-      return storeParam(name)(val, params, ctx, stack, line);
+      name = name.slice(2);
+      return storeParameter(name)(value, parameters, ctx, stack, line);
     }
 
-    return storeParam(name.toLowerCase())(val, params, ctx);
+    return storeParameter(name.toLowerCase())(value, parameters, ctx);
   },
 
   parseLines(lines, limit, ctx, stack, lastIndex, cb) {
@@ -503,6 +514,7 @@ module.exports = {
       cb = ctx;
       ctx = undefined;
     }
+
     ctx = ctx || {};
     stack = stack || [];
 
@@ -516,25 +528,27 @@ module.exports = {
         l += lines[i + 1].slice(1);
         i++;
       }
+
       // Remove any double quotes in any tzid statement// except around (utc+hh:mm
-      if (l.indexOf('TZID=') && l.indexOf('"(') === -1) {
+      if (l.indexOf('TZID=') && !l.includes('"(')) {
         l = l.replace(/"/g, '');
       }
 
-      const exp = /([^":;]+)((?:;(?:[^":;]+)(?:=(?:(?:"[^"]*")|(?:[^":;]+))))*):(.*)/;
+      const exp = /([^":;]+)((?:;[^":;]+=(?:(?:"[^"]*")|[^":;]+))*):(.*)/;
       let kv = l.match(exp);
 
       if (kv === null) {
         // Invalid line - must have k&v
         continue;
       }
+
       kv = kv.slice(1);
 
       const value = kv[kv.length - 1];
       const name = kv[0];
-      const params = kv[1] ? kv[1].split(';').slice(1) : [];
+      const parameters = kv[1] ? kv[1].split(';').slice(1) : [];
 
-      ctx = self.handleObject(name, value, params, ctx, stack, l) || {};
+      ctx = self.handleObject(name, value, parameters, ctx, stack, l) || {};
       if (++limitCounter > limit) {
         break;
       }
@@ -565,7 +579,7 @@ module.exports = {
     const indexOfLF = string.indexOf('\n', 1); // No need to check first-character
 
     if (indexOfLF === -1) {
-      if (string.indexOf('\r') !== -1) {
+      if (string.includes('\r')) {
         return '\r';
       }
 
@@ -579,10 +593,10 @@ module.exports = {
     return '\n';
   },
 
-  parseICS(str, cb) {
+  parseICS(string, cb) {
     const self = this;
-    const lineEndType = self.getLineBreakChar(str);
-    const lines = str.split(lineEndType === '\n' ? /\n/ : /\r?\n/);
+    const lineEndType = self.getLineBreakChar(string);
+    const lines = string.split(lineEndType === '\n' ? /\n/ : /\r?\n/);
     let ctx;
 
     if (cb) {

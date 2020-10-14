@@ -21,7 +21,7 @@ for (const k in data) {
       let endDate = moment(event.end);
 
       // Calculate the duration of the event for use with recurring events.
-      const duration = parseInt(endDate.format('x'), 10) - parseInt(startDate.format('x'), 10);
+      const duration = Number.parseInt(endDate.format('x'), 10) - Number.parseInt(startDate.format('x'), 10);
 
       // Simple case - no recurrences, just print out the calendar event.
       if (typeof event.rrule === 'undefined') {
@@ -64,14 +64,14 @@ for (const k in data) {
             startDate = moment(date);
 
             // Use just the date of the recurrence to look up overrides and exceptions (i.e. chop off time information)
-            const dateLookupKey = date.toISOString().substring(0, 10);
+            const dateLookupKey = date.toISOString().slice(0, 10);
 
             // For each date that we're checking, it's possible that there is a recurrence override for that one day.
             if (curEvent.recurrences !== undefined && curEvent.recurrences[dateLookupKey] !== undefined) {
               // We found an override, so for this recurrence, use a potentially different title, start date, and duration.
               curEvent = curEvent.recurrences[dateLookupKey];
               startDate = moment(curEvent.start);
-              curDuration = parseInt(moment(curEvent.end).format('x'), 10) - parseInt(startDate.format('x'), 10);
+              curDuration = Number.parseInt(moment(curEvent.end).format('x'), 10) - Number.parseInt(startDate.format('x'), 10);
             } else if (curEvent.exdate !== undefined && curEvent.exdate[dateLookupKey] !== undefined) {
               // If there's no recurrence override, check for an exception date.  Exception dates represent exceptions to the rule.
               // This date is an exception date, which means we should skip it in the recurrence pattern.
@@ -80,7 +80,7 @@ for (const k in data) {
 
             // Set the the title and the end date from either the regular event or the recurrence override.
             const recurrenceTitle = curEvent.summary;
-            endDate = moment(parseInt(startDate.format('x'), 10) + curDuration, 'x');
+            endDate = moment(Number.parseInt(startDate.format('x'), 10) + curDuration, 'x');
 
             // If this recurrence ends before the start of the date range, or starts after the end of the date range,
             // don't process it.
