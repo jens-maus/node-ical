@@ -126,7 +126,7 @@ function getCurrentMSTZNameFromOldName(msTZName) {
   }
   // Get hash entry
   const he1 = zoneTableOld[msTZName];
-  // If found return iana name, else null
+  // If found return current timezone name, else null
   return he1 ? he1 : null;
 }
 
