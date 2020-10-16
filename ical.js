@@ -2,7 +2,7 @@
 
 const uuid = require('uuid/v4');
 const moment = require('moment-timezone');
-const rrule = require('rrule').RRule;
+const rrule = require('rrule/dist/es5/rrule-tz').RRule;
 
 /** **************
  *  A tolerant, minimal icalendar parser
@@ -111,6 +111,25 @@ function getIanaTZFromMS(msTZName) {
   return he ? he.iana[0] : null;
 }
 
+let zoneTableOld = null;
+function getCurrentMSTZNameFromOldName(msTZName) {
+  if (!zoneTableOld) {
+    const p = require('path');
+    zoneTableOld = require(p.join(__dirname, 'windowsZonesOld.json'));
+  }
+  // Fixup very old data to new expectation
+  if (msTZName.startsWith('(UTC')) {
+    msTZName = '(GMT' + msTZName.substring(4);
+  }
+  if (msTZName.indexOf('&')) {
+    msTZName = msTZName.replace(/&/, 'and');
+  }
+  // Get hash entry
+  const he1 = zoneTableOld[msTZName];
+  // If found return iana name, else null
+  return he1 ? he1 : null;
+}
+
 const typeParam = function (name) {
   // Typename is not used in this function?
   return function (val, params, curr) {
@@ -170,14 +189,25 @@ const dateParam = function (name) {
           // Extract just the offset
           const regex = /[+|-]\d*:\d*/;
           offset = tz.match(regex);
-          tz = null;
+          // If the tz also has spaces
+          if (tz.indexOf(' ') > 0) {
+            // May be old Windows format
+            // Try to find current name from supplied
+            tz = getCurrentMSTZNameFromOldName(tz);
+          } else {
+            // Was just offset
+            tz = null;
+          }
           found = offset;
         }
         // Watch out for windows timeszones
+        // The abive got us the current Windows Timezone name (maybe)
         if (tz && !tz.startsWith('(') && tz.indexOf(' ') > -1) {
           const tz1 = getIanaTZFromMS(tz);
           if (tz1) {
             tz = tz1;
+            // We have a confirmed timezone, dont use offset, may confuse DST/STD time
+            offset = '';
           }
         }
         // Timezone not confirmed yet
