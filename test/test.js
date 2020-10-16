@@ -88,9 +88,9 @@ vows
       },
       'todo item uid4@host1.com': {
         topic(items) {
-          return _.filter(items, obj => {
-            return obj.uid === 'uid4@host1.com';
-          })[0];
+          return _.find(items, object => {
+            return object.uid === 'uid4@host1.com';
+          });
         },
         'is a VTODO'(topic) {
           assert.equal(topic.type, 'VTODO');
@@ -132,9 +132,9 @@ vows
       },
       'tzid parsing': {
         topic(events) {
-          return _.filter(events, obj => {
-            return obj.uid === 'EC9439B1-FF65-11D6-9973-003065F99D04';
-          })[0];
+          return _.find(events, object => {
+            return object.uid === 'EC9439B1-FF65-11D6-9973-003065F99D04';
+          });
         },
         'tzid offset correctly applied'(event) {
           const start = new Date('2002-10-28T22:00:00.000Z');
@@ -313,12 +313,12 @@ vows
           return _.values(t)[0];
         },
 
-        'should be a list'(e) {
-          assert(e.categories instanceof [].constructor);
+        'should be a list'(event) {
+          assert(event.categories instanceof [].constructor);
         },
 
-        'should contain individual category values'(e) {
-          assert.deepEqual(e.categories, ['cat1', 'cat2', 'cat3']);
+        'should contain individual category values'(event) {
+          assert.deepEqual(event.categories, ['cat1', 'cat2', 'cat3']);
         }
       },
 
@@ -327,8 +327,8 @@ vows
           return _.values(t)[1];
         },
 
-        'should contain individual category values without whitespace'(e) {
-          assert.deepEqual(e.categories, ['cat1', 'cat2', 'cat3']);
+        'should contain individual category values without whitespace'(event) {
+          assert.deepEqual(event.categories, ['cat1', 'cat2', 'cat3']);
         }
       },
 
@@ -337,8 +337,8 @@ vows
           return _.values(t)[2];
         },
 
-        'should be an empty list'(e) {
-          assert.deepEqual(e.categories, []);
+        'should be an empty list'(event) {
+          assert.deepEqual(event.categories, []);
         }
       },
 
@@ -347,8 +347,8 @@ vows
           return _.values(t)[3];
         },
 
-        'should be a list of single item'(e) {
-          assert.deepEqual(e.categories, ['lonely-cat']);
+        'should be a list of single item'(event) {
+          assert.deepEqual(event.categories, ['lonely-cat']);
         }
       },
 
@@ -357,8 +357,8 @@ vows
           return _.values(t)[4];
         },
 
-        'should contain the category values in an array'(e) {
-          assert.deepEqual(e.categories, ['cat1', 'cat2', 'cat3']);
+        'should contain the category values in an array'(event) {
+          assert.deepEqual(event.categories, ['cat1', 'cat2', 'cat3']);
         }
       }
     },
@@ -427,22 +427,22 @@ vows
         'Has two EXDATES'(topic) {
           assert.notEqual(topic.exdate, undefined);
           assert.notEqual(
-            topic.exdate[new Date(Date.UTC(2015, 6, 8, 19, 0, 0)).toISOString().substring(0, 10)],
+            topic.exdate[new Date(Date.UTC(2015, 6, 8, 19, 0, 0)).toISOString().slice(0, 10)],
             undefined
           );
           assert.notEqual(
-            topic.exdate[new Date(Date.UTC(2015, 6, 10, 19, 0, 0)).toISOString().substring(0, 10)],
+            topic.exdate[new Date(Date.UTC(2015, 6, 10, 19, 0, 0)).toISOString().slice(0, 10)],
             undefined
           );
         },
         'Has a RECURRENCE-ID override'(topic) {
           assert.notEqual(topic.recurrences, undefined);
           assert.notEqual(
-            topic.recurrences[new Date(Date.UTC(2015, 6, 7, 19, 0, 0)).toISOString().substring(0, 10)],
+            topic.recurrences[new Date(Date.UTC(2015, 6, 7, 19, 0, 0)).toISOString().slice(0, 10)],
             undefined
           );
           assert.equal(
-            topic.recurrences[new Date(Date.UTC(2015, 6, 7, 19, 0, 0)).toISOString().substring(0, 10)].summary,
+            topic.recurrences[new Date(Date.UTC(2015, 6, 7, 19, 0, 0)).toISOString().slice(0, 10)].summary,
             'More Treasure Hunting'
           );
         }
@@ -468,11 +468,11 @@ vows
         'Has a RECURRENCE-ID override'(topic) {
           assert.notEqual(topic.recurrences, undefined);
           assert.notEqual(
-            topic.recurrences[new Date(Date.UTC(2016, 7, 26, 11, 0, 0)).toISOString().substring(0, 10)],
+            topic.recurrences[new Date(Date.UTC(2016, 7, 26, 11, 0, 0)).toISOString().slice(0, 10)],
             undefined
           );
           assert.equal(
-            topic.recurrences[new Date(Date.UTC(2016, 7, 26, 11, 0, 0)).toISOString().substring(0, 10)].summary,
+            topic.recurrences[new Date(Date.UTC(2016, 7, 26, 11, 0, 0)).toISOString().slice(0, 10)].summary,
             'bla bla'
           );
         }
@@ -495,12 +495,12 @@ vows
         'Has four comma-separated EXDATES'(topic) {
           assert.notEqual(topic.exdate, undefined);
           // Verify the four comma-separated EXDATES are there
-          assert.notEqual(topic.exdate[new Date(2017, 6, 6, 12, 0, 0).toISOString().substring(0, 10)], undefined);
-          assert.notEqual(topic.exdate[new Date(2017, 6, 17, 12, 0, 0).toISOString().substring(0, 10)], undefined);
-          assert.notEqual(topic.exdate[new Date(2017, 6, 20, 12, 0, 0).toISOString().substring(0, 10)], undefined);
-          assert.notEqual(topic.exdate[new Date(2017, 7, 3, 12, 0, 0).toISOString().substring(0, 10)], undefined);
+          assert.notEqual(topic.exdate[new Date(2017, 6, 6, 12, 0, 0).toISOString().slice(0, 10)], undefined);
+          assert.notEqual(topic.exdate[new Date(2017, 6, 17, 12, 0, 0).toISOString().slice(0, 10)], undefined);
+          assert.notEqual(topic.exdate[new Date(2017, 6, 20, 12, 0, 0).toISOString().slice(0, 10)], undefined);
+          assert.notEqual(topic.exdate[new Date(2017, 7, 3, 12, 0, 0).toISOString().slice(0, 10)], undefined);
           // Verify an arbitrary date isn't there
-          assert.equal(topic.exdate[new Date(2017, 4, 5, 12, 0, 0).toISOString().substring(0, 10)], undefined);
+          assert.equal(topic.exdate[new Date(2017, 4, 5, 12, 0, 0).toISOString().slice(0, 10)], undefined);
         }
       }
     },
@@ -521,8 +521,8 @@ vows
         'Has two EXDATES even though they have bad times'(topic) {
           assert.notEqual(topic.exdate, undefined);
           // Verify the two EXDATES are there, even though they have bad times
-          assert.notEqual(topic.exdate[new Date(2017, 11, 18, 12, 0, 0).toISOString().substring(0, 10)], undefined);
-          assert.notEqual(topic.exdate[new Date(2017, 11, 19, 12, 0, 0).toISOString().substring(0, 10)], undefined);
+          assert.notEqual(topic.exdate[new Date(2017, 11, 18, 12, 0, 0).toISOString().slice(0, 10)], undefined);
+          assert.notEqual(topic.exdate[new Date(2017, 11, 19, 12, 0, 0).toISOString().slice(0, 10)], undefined);
         }
       }
     },
@@ -592,12 +592,12 @@ vows
           assert.equal(topic.summary, 'Log Yesterday\'s Jira time');
         },
         'Has proper start and end dates and times'(topic) {
-                  // DTSTART;TZID=W. Europe Standard Time:20200609T090000
+          // DTSTART;TZID=W. Europe Standard Time:20200609T090000
           assert.equal(topic.start.getFullYear(), 2020);
           assert.equal(topic.start.getMonth(), 5);
           assert.equal(topic.start.getUTCHours(), 7);
           assert.equal(topic.start.getUTCMinutes(), 0);
-                  // DTEND;TZID=W. Europe Standard Time:20200609T093000
+          // DTEND;TZID=W. Europe Standard Time:20200609T093000
           assert.equal(topic.end.getFullYear(), 2020);
           assert.equal(topic.end.getMonth(), 5);
           assert.equal(topic.end.getUTCHours(), 7);

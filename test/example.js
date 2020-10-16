@@ -8,6 +8,7 @@ ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, (err, data) => {
       if (!{}.hasOwnProperty.call(data, k)) {
         continue;
       }
+
       const ev = data[k];
       if (data[k].type === 'VEVENT') {
         console.log(

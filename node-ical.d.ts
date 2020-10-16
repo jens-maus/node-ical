@@ -1,121 +1,113 @@
 declare module 'node-ical' {
-    import { CoreOptions } from 'request';
+  import {CoreOptions} from 'request';
 
-    /**
+  /**
      * Methods (Sync)
      */
-    export interface NodeICalSync {
-        parseICS(body: string): CalendarResponse;
+  export interface NodeICalSync {
+    parseICS: (body: string) => CalendarResponse;
 
-        parseFile(file: string): CalendarResponse;
-    }
+    parseFile: (file: string) => CalendarResponse;
+  }
 
-    export const sync: NodeICalSync;
+  export const sync: NodeICalSync;
 
-    /**
+  /**
      * Methods (Async)
      */
-    export interface NodeICalAsync {
-        fromURL(url: string, callback: NodeIcalCallback): void;
+  export interface NodeICalAsync {
+    fromURL: ((url: string, callback: NodeIcalCallback) => void) & ((url: string, options: CoreOptions | NodeIcalCallback, callback?: NodeIcalCallback) => void) & ((url: string) => Promise<CalendarResponse>);
 
-        fromURL(url: string, options: CoreOptions | NodeIcalCallback, callback?: NodeIcalCallback): void;
+    parseICS: ((body: string, callback: NodeIcalCallback) => void) & ((body: string) => Promise<CalendarResponse>);
 
-        fromURL(url: string): Promise<CalendarResponse>;
+    parseFile: ((file: string, callback: NodeIcalCallback) => void) & ((file: string) => Promise<CalendarResponse>);
+  }
 
-        parseICS(body: string, callback: NodeIcalCallback): void;
+  export const async: NodeICalAsync;
 
-        parseICS(body: string): Promise<CalendarResponse>;
-
-        parseFile(file: string, callback: NodeIcalCallback): void;
-
-        parseFile(file: string): Promise<CalendarResponse>;
-    }
-
-    export const async: NodeICalAsync;
-
-    /**
+  /**
      * Methods (Autodetect)
      */
-    export function fromURL(url: string, callback: NodeIcalCallback): void;
+  export function fromURL(url: string, callback: NodeIcalCallback): void;
 
-    export function fromURL(url: string, options: CoreOptions | NodeIcalCallback, callback?: NodeIcalCallback): void;
+  export function fromURL(url: string, options: CoreOptions | NodeIcalCallback, callback?: NodeIcalCallback): void;
 
-    export function fromURL(url: string): Promise<CalendarResponse>;
+  export function fromURL(url: string): Promise<CalendarResponse>;
 
-    export function parseICS(body: string, callback: NodeIcalCallback): void;
+  export function parseICS(body: string, callback: NodeIcalCallback): void;
 
-    export function parseICS(body: string): CalendarResponse;
+  export function parseICS(body: string): CalendarResponse;
 
-    export function parseFile(file: string, callback: NodeIcalCallback): void;
+  export function parseFile(file: string, callback: NodeIcalCallback): void;
 
-    export function parseFile(file: string): CalendarResponse;
+  export function parseFile(file: string): CalendarResponse;
 
-    /**
+  /**
      * Response objects
      */
-    export type NodeIcalCallback = (err: any, data: CalendarResponse) => void;
+  export type NodeIcalCallback = (err: any, data: CalendarResponse) => void;
 
-    export interface CalendarResponse {
-        [key: string]: CalendarComponent;
-    }
+  export interface CalendarResponse {
+    [key: string]: CalendarComponent;
+  }
 
-    export type CalendarComponent = VTimeZone | VEvent;
+  export type CalendarComponent = VTimeZone | VEvent;
 
-    export type VTimeZone = TimeZoneProps & TimeZoneDictionary;
+  export type VTimeZone = TimeZoneProps & TimeZoneDictionary;
 
-    interface TimeZoneProps extends BaseComponent {
-        type: 'VTIMEZONE';
-        tzid: string;
-        tzurl: string;
-    }
+  interface TimeZoneProps extends BaseComponent {
+    type: 'VTIMEZONE';
+    tzid: string;
+    tzurl: string;
+  }
 
-    interface TimeZoneDictionary {
-        [key: string]: TimeZoneDef | undefined;
-    }
+  interface TimeZoneDictionary {
+    [key: string]: TimeZoneDef | undefined;
+  }
 
-    export interface VEvent extends BaseComponent {
-        type: 'VEVENT';
-        dtstamp: DateWithTimeZone;
-        uid: string;
-        sequence: string;
-        transparency: Transparency;
-        class: Class;
-        summary: string;
-        start: DateWithTimeZone;
-        datetype: DateType;
-        end: DateWithTimeZone;
-        location: string;
-        description: string;
-        url: string;
-        completion: string;
-        created: DateWithTimeZone;
-        lastmodified: DateWithTimeZone;
+  export interface VEvent extends BaseComponent {
+    type: 'VEVENT';
+    dtstamp: DateWithTimeZone;
+    uid: string;
+    sequence: string;
+    transparency: Transparency;
+    class: Class;
+    summary: string;
+    start: DateWithTimeZone;
+    datetype: DateType;
+    end: DateWithTimeZone;
+    location: string;
+    description: string;
+    url: string;
+    completion: string;
+    created: DateWithTimeZone;
+    lastmodified: DateWithTimeZone;
 
-        // I am not entirely sure about these, leave them as any for now..
-        organizer: any;
-        exdate: any;
-        geo: any;
-        recurrenceid: any;
-    }
+    // I am not entirely sure about these, leave them as any for now..
+    organizer: any;
+    exdate: any;
+    geo: any;
+    recurrenceid: any;
+  }
 
-    export interface BaseComponent {
-        params: any[];
-    }
+  export interface BaseComponent {
+    params: any[];
+  }
 
-    export interface TimeZoneDef {
-        type: 'DAYLIGHT' | 'STANDARD';
-        params: any[];
-        tzoffsetfrom: string;
-        tzoffsetto: string;
-        tzname: string;
-        start: DateWithTimeZone;
-        dateType: DateType;
-        rrule: string;
-        rdate: string | string[];
-    }
+  export interface TimeZoneDef {
+    type: 'DAYLIGHT' | 'STANDARD';
+    params: any[];
+    tzoffsetfrom: string;
+    tzoffsetto: string;
+    tzname: string;
+    start: DateWithTimeZone;
+    dateType: DateType;
+    rrule: string;
+    rdate: string | string[];
+  }
 
-    export type DateWithTimeZone = Date & { tz: string };
-    export type DateType = 'date-time' | 'date';
-    export type Transparency = 'TRANSPARENT' | 'OPAQUE';
-    export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';
+  export type DateWithTimeZone = Date & { tz: string };
+  export type DateType = 'date-time' | 'date';
+  export type Transparency = 'TRANSPARENT' | 'OPAQUE';
+  export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';
 }
