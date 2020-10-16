@@ -114,7 +114,6 @@ function getIanaTZFromMS(msTZName) {
   return he ? he.iana[0] : null;
 }
 
-
 let zoneTableOld = null;
 function getCurrentMSTZNameFromOldName(msTZName) {
   if (!zoneTableOld) {
@@ -480,8 +479,8 @@ module.exports = {
               try {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
                 rule = rule.replace(/\.\d{3}/, '');
-              } catch (error) {
-                console.error('ERROR when trying to convert to ISOString', error);
+              } catch (err) {
+                console.error('ERROR when trying to convert to ISOString', err);
               }
             } else {
               console.error('No toISOString function in curr.start', curr.start);

@@ -542,9 +542,9 @@ vows
         },
         'has a start'(topic) {
           assert.equal(topic.start.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
-          assert.equal(topic.end.toISOString().substring(0, 8), new Date(Date.UTC(2019, 3, 30, 9, 0, 0)).toISOString().substring(0, 8));
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2019, 3, 30, 9, 0, 0)).toISOString().slice(0, 8));
           assert.equal(topic.end.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
-          assert.equal(topic.end.toISOString().substring(0, 8), new Date(2019, 3, 30, 5, 0, 0).toISOString().substring(0, 8));
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(2019, 3, 30, 5, 0, 0).toISOString().slice(0, 8));
         }
       }
     },
@@ -633,7 +633,7 @@ vows
           })[0];
         },
         'is not valid timezone'(topic) {
-          assert.equal(topic.end.toISOString().substring(0, 8), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().substring(0, 8));
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().slice(0, 8));
           console.log('tz=' + topic.start.tz);
         }
       }
@@ -650,7 +650,7 @@ vows
           })[0];
         },
         'is not valid timezone'(topic) {
-          assert.equal(topic.end.toISOString().substring(0, 8), new Date(Date.UTC(2020, 10, 2, 20, 0, 0)).toISOString().substring(0, 8));
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2020, 10, 2, 20, 0, 0)).toISOString().slice(0, 8));
         }
       }
     },
