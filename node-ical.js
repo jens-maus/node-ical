@@ -67,12 +67,13 @@ function promiseCallback(fn, cb) {
   if (!cb) {
     return promise;
   }
+
   promise
-    .then(ret => {
-      cb(null, ret);
+    .then(returnValue => {
+      cb(null, returnValue);
     })
-    .catch(err => {
-      cb(err, null);
+    .catch(error => {
+      cb(error, null);
     });
 }
 
@@ -95,24 +96,27 @@ const autodetect = {};
  *
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
-async.fromURL = function (url, opts, cb) {
+async.fromURL = function (url, options, cb) {
   return promiseCallback((resolve, reject) => {
-    request(url, opts, (err, res, data) => {
+    request(url, options, (err, response, data) => {
       if (err) {
         reject(err);
         return;
       }
+
       // If (r.statusCode !== 200) {
       // all ok status codes should be accepted (any 2XX code)
-      if (Math.floor(res.statusCode / 100) !== 2) {
-        reject(new Error(`${res.statusCode} ${res.statusMessage}`));
+      if (Math.floor(response.statusCode / 100) !== 2) {
+        reject(new Error(`${response.statusCode} ${response.statusMessage}`));
         return;
       }
+
       ical.parseICS(data, (err, ics) => {
         if (err) {
           reject(err);
           return;
         }
+
         resolve(ics);
       });
     });
@@ -135,11 +139,13 @@ async.parseFile = function (filename, cb) {
         reject(err);
         return;
       }
+
       ical.parseICS(data, (err, ics) => {
         if (err) {
           reject(err);
           return;
         }
+
         resolve(ics);
       });
     });
@@ -162,6 +168,7 @@ async.parseICS = function (data, cb) {
         reject(err);
         return;
       }
+
       resolve(ics);
     });
   }, cb);
