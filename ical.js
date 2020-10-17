@@ -125,7 +125,7 @@ function getCurrentMSTZNameFromOldName(msTZName) {
     msTZName = '(GMT' + msTZName.substring(4);
   }
   if (msTZName.indexOf('&')) {
-    msTZName = msTZName.replace(/&/, 'and');
+    msTZName = msTZName.replace(/&/g, 'and');
   }
   // Get hash entry
   const he1 = zoneTableOld[msTZName];
