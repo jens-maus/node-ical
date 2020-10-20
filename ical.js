@@ -75,12 +75,7 @@ const storeValueParameter = function (name) {
 
 const storeParameter = function (name) {
   return function (value, parameters, curr) {
-    let data;
-    if (parameters && parameters.length > 0 && !(parameters.length === 1 && parameters[0] === 'CHARSET=utf-8')) {
-      data = {params: parseParameters(parameters), val: text(value)};
-    } else {
-      data = text(value);
-    }
+    const data = parameters && parameters.length > 0 && !(parameters.length === 1 && parameters[0] === 'CHARSET=utf-8') ? {params: parseParameters(parameters), val: text(value)} : text(value);
 
     return storeValueParameter(name)(data, curr);
   };
@@ -172,7 +167,7 @@ const dateParameter = function (name) {
         tz = tz.replace(/^"(.*)"$/, '$1');
 
         // Watch out for windows timezones
-        if (tz && tz.indexOf(' ') > -1) {
+        if (tz && tz.includes(' ')) {
           const tz1 = getIanaTZFromMS(tz);
           if (tz1) {
             tz = tz1;
@@ -201,19 +196,14 @@ const dateParameter = function (name) {
         }
 
         // Timezone confirmed or forced to offset
-        if (found) {
-          newDate = moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate();
-        } else {
-          // Fallback if tz not found
-          newDate = new Date(
-            Number.parseInt(comps[1], 10),
-            Number.parseInt(comps[2], 10) - 1,
-            Number.parseInt(comps[3], 10),
-            Number.parseInt(comps[4], 10),
-            Number.parseInt(comps[5], 10),
-            Number.parseInt(comps[6], 10)
-          );
-        }
+        newDate = found ? moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate() : new Date(
+          Number.parseInt(comps[1], 10),
+          Number.parseInt(comps[2], 10) - 1,
+          Number.parseInt(comps[3], 10),
+          Number.parseInt(comps[4], 10),
+          Number.parseInt(comps[5], 10),
+          Number.parseInt(comps[6], 10)
+        );
       } else {
         newDate = new Date(
           Number.parseInt(comps[1], 10),
@@ -455,8 +445,8 @@ module.exports = {
               try {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
                 rule = rule.replace(/\.\d{3}/, '');
-              } catch (err) {
-                console.error('ERROR when trying to convert to ISOString', err);
+              } catch (error) {
+                console.error('ERROR when trying to convert to ISOString', error);
               }
             } else {
               console.error('No toISOString function in curr.start', curr.start);

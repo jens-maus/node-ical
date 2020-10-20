@@ -61,18 +61,21 @@ for (const key of Object.keys(wtzOld)) {
   // Use latest name in original table to find  correct name
   let iana = zoneTable[lookup];
 
- //   Console.log(" lookup key="+key +" new ="+ lookup +"="+wzone+" iana="+(!iana? 'undefined':JSON.stringify(iana)))
+  //   Console.log(" lookup key="+key +" new ="+ lookup +"="+wzone+" iana="+(!iana? 'undefined':JSON.stringify(iana)))
   if (iana) {
     iana = iana.iana[0];
   }
+
   // If not set
   if (wzone === undefined) {
     // Initialize
     wzone = {iana: []}; // T, type: zone.attributes.territory};
   }
+
   if (wzone.iana.length === 0) {
     wzone.iana.push(iana);
   }
+
   if (iana !== null) {
   // Console.log("saving "+iana)
   // Save back new info using new key
