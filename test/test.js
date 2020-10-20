@@ -634,7 +634,6 @@ vows
         },
         'is not valid timezone'(topic) {
           assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().slice(0, 8));
-          console.log('tz=' + topic.start.tz);
         }
       }
     },

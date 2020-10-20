@@ -50,4 +50,34 @@ for (const zone of v) {
   zoneTable[zone.attributes.other] = wzone;
 }
 
+const wtzOld = require(p.join(__dirname, 'build/windowsZonesOld.json'));
+// Loop thru the old zones table
+for (const key of Object.keys(wtzOld)) {
+  // Get the new zone and look it up on the iana table
+  // Look in new table for existing entry
+  let wzone = zoneTable[key];
+  // Look in old table for latest name
+  const lookup = wtzOld[key];
+  // Use latest name in original table to find  correct name
+  let iana = zoneTable[lookup];
+
+ //   Console.log(" lookup key="+key +" new ="+ lookup +"="+wzone+" iana="+(!iana? 'undefined':JSON.stringify(iana)))
+  if (iana) {
+    iana = iana.iana[0];
+  }
+  // If not set
+  if (wzone === undefined) {
+    // Initialize
+    wzone = {iana: []}; // T, type: zone.attributes.territory};
+  }
+  if (wzone.iana.length === 0) {
+    wzone.iana.push(iana);
+  }
+  if (iana !== null) {
+  // Console.log("saving "+iana)
+  // Save back new info using new key
+    zoneTable[key] = wzone;
+  }
+}
+
 fs.writeFileSync('windowsZones.json', JSON.stringify(zoneTable));
