@@ -2,7 +2,7 @@
 
 const {v4: uuid} = require('uuid');
 const moment = require('moment-timezone');
-const rrule = require('rrule').RRule;
+const rrule = require('rrule/dist/es5/rrule-tz').RRule;
 
 /** **************
  *  A tolerant, minimal icalendar parser
@@ -163,26 +163,33 @@ const dateParameter = function (name) {
         );
         // TODO add tz
       } else if (parameters && parameters[0] && parameters[0].includes('TZID=') && parameters[0].split('=')[1]) {
+        // Get the timeozone from trhe parameters TZID value
         let tz = parameters[0].split('=')[1];
         let found = '';
         let offset = '';
+
         // Remove quotes if found
         tz = tz.replace(/^"(.*)"$/, '$1');
+
+        // Watch out for windows timezones
+        if (tz && tz.indexOf(' ') > -1) {
+          const tz1 = getIanaTZFromMS(tz);
+          if (tz1) {
+            tz = tz1;
+            // We have a confirmed timezone, dont use offset, may confuse DST/STD time
+            offset = '';
+          }
+        }
+
         // Watch out for offset timezones
+        // If the conversion above didn't find any matching IANA tz
+        // And oiffset is still present
         if (tz && tz.startsWith('(')) {
           // Extract just the offset
           const regex = /[+|-]\d*:\d*/;
           offset = tz.match(regex);
           tz = null;
           found = offset;
-        }
-
-        // Watch out for windows timeszones
-        if (tz && !tz.startsWith('(') && tz.includes(' ')) {
-          const tz1 = getIanaTZFromMS(tz);
-          if (tz1) {
-            tz = tz1;
-          }
         }
 
         // Timezone not confirmed yet
@@ -448,8 +455,8 @@ module.exports = {
               try {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
                 rule = rule.replace(/\.\d{3}/, '');
-              } catch (error) {
-                console.error('ERROR when trying to convert to ISOString', error);
+              } catch (err) {
+                console.error('ERROR when trying to convert to ISOString', err);
               }
             } else {
               console.error('No toISOString function in curr.start', curr.start);

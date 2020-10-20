@@ -559,9 +559,9 @@ vows
         },
         'has a start'(topic) {
           assert.equal(topic.start.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
-          assert.equal(topic.start.toISOString(), new Date(2019, 3, 30, 9, 0, 0).toISOString());
+          assert.equal(topic.start.toISOString(), new Date(2019, 3, 30, 2, 0, 0).toISOString());
           assert.equal(topic.end.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
-          assert.equal(topic.end.toISOString(), new Date(2019, 3, 30, 12, 0, 0).toISOString());
+          assert.equal(topic.end.toISOString(), new Date(2019, 3, 30, 5, 0, 0).toISOString());
         }
       }
     },
@@ -601,6 +601,82 @@ vows
         'is not string'(topic) {
           assert.notEqual(typeof topic.start, 'string');
           assert.notEqual(typeof topic.end, 'string');
+        }
+      }
+    },
+
+    'with ms_timezones.ics (testing time conversions)': {
+      'topic'() {
+        return ical.parseFile('./test/ms_timezones.ics');
+      },
+      'event with time in CET': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'Log Yesterday\'s Jira time';
+          })[0];
+        },
+        'Has summary \'Log Yesterday\'s Jira time\''(topic) {
+          assert.equal(topic.summary, 'Log Yesterday\'s Jira time');
+        },
+        'Has proper start and end dates and times'(topic) {
+                  // DTSTART;TZID=W. Europe Standard Time:20200609T090000
+          assert.equal(topic.start.getFullYear(), 2020);
+          assert.equal(topic.start.getMonth(), 5);
+          assert.equal(topic.start.getUTCHours(), 7);
+          assert.equal(topic.start.getUTCMinutes(), 0);
+                  // DTEND;TZID=W. Europe Standard Time:20200609T093000
+          assert.equal(topic.end.getFullYear(), 2020);
+          assert.equal(topic.end.getMonth(), 5);
+          assert.equal(topic.end.getUTCHours(), 7);
+          assert.equal(topic.end.getUTCMinutes(), 30);
+        }
+      }
+    },
+
+    'with bad_ms_tz.ics (testing for unexpected ms timezone)': {
+      topic() {
+        return ical.parseFile('./test/bad_ms_tz.ics');
+      },
+      'event with bad TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === '[private]';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.equal(topic.start.tz, 'Customized Time Zone');
+        }
+      }
+    },
+
+    'with bad_ms_tz.ics (testing for old ms timezones before DST)': {
+      topic() {
+        return ical.parseFile('./test/Office-2012-owa.ics');
+      },
+      'event with old TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === ' TEST';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.equal(topic.end.toISOString().substring(0, 8), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().substring(0, 8));
+        }
+      }
+    },
+
+    'with bad_ms_tz.ics (testing for old ms timezones after DST )': {
+      topic() {
+        return ical.parseFile('./test/Office-2012-owa.ics');
+      },
+      'event with old TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === ' TEST 3';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.equal(topic.end.toISOString().substring(0, 8), new Date(Date.UTC(2020, 10, 2, 20, 0, 0)).toISOString().substring(0, 8));
         }
       }
     },

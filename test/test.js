@@ -542,9 +542,9 @@ vows
         },
         'has a start'(topic) {
           assert.equal(topic.start.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
-          assert.equal(topic.start.toISOString(), new Date(2019, 3, 30, 9, 0, 0).toISOString());
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2019, 3, 30, 9, 0, 0)).toISOString().slice(0, 8));
           assert.equal(topic.end.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
-          assert.equal(topic.end.toISOString(), new Date(2019, 3, 30, 12, 0, 0).toISOString());
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(2019, 3, 30, 5, 0, 0).toISOString().slice(0, 8));
         }
       }
     },
@@ -578,7 +578,7 @@ vows
       }
     },
 
-    'with ms_timezones.ics (testing tiem conversions)': {
+    'with ms_timezones.ics (testing time conversions)': {
       'topic'() {
         return ical.parseFile('./test/ms_timezones.ics');
       },
@@ -618,6 +618,38 @@ vows
         },
         'is not valid timezone'(topic) {
           assert.equal(topic.start.tz, 'Customized Time Zone');
+        }
+      }
+    },
+
+    'with bad_ms_tz.ics (testing for old ms timezones before DST)': {
+      topic() {
+        return ical.parseFile('./test/Office-2012-owa.ics');
+      },
+      'event with old TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === ' TEST';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().slice(0, 8));
+        }
+      }
+    },
+
+    'with bad_ms_tz.ics (testing for old ms timezones after DST )': {
+      topic() {
+        return ical.parseFile('./test/Office-2012-owa.ics');
+      },
+      'event with old TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === ' TEST 3';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2020, 10, 2, 20, 0, 0)).toISOString().slice(0, 8));
         }
       }
     },
