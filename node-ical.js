@@ -72,8 +72,8 @@ function promiseCallback(fn, cb) {
     .then(returnValue => {
       cb(null, returnValue);
     })
-    .catch(err => {
-      cb(err, null);
+    .catch(error => {
+      cb(error, null);
     });
 }
 

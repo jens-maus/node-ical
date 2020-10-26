@@ -64,14 +64,17 @@ for (const key of Object.keys(wtzOld)) {
   if (iana) {
     iana = iana.iana[0];
   }
+
   // If not set
   if (wzone === undefined) {
     // Initialize
     wzone = {iana: []}; // T, type: zone.attributes.territory};
   }
+
   if (wzone.iana.length === 0) {
     wzone.iana.push(iana);
   }
+
   if (iana !== null) {
   // Console.log("saving "+iana)
   // Save back new info using new key

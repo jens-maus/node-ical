@@ -167,7 +167,7 @@ const dateParameter = function (name) {
         tz = tz.replace(/^"(.*)"$/, '$1');
 
         // Watch out for windows timezones
-        if (tz && tz.indexOf(' ') > -1) {
+        if (tz && tz.includes(' ') > -1) {
           const tz1 = getIanaTZFromMS(tz);
           if (tz1) {
             tz = tz1;
@@ -435,7 +435,7 @@ module.exports = {
         if (curr.rrule) {
           let rule = curr.rrule.replace('RRULE:', '');
           // If no rule start date
-          if (rule.indexOf('DTSTART') === -1) {
+          if (rule.includes('DTSTART') === -1) {
             // Get date/time into a specific format for comapare
             let x = moment(curr.start).format('MMMM/Do/YYYY, h:mm:ss a');
             // If the local time value is midnight
@@ -465,8 +465,8 @@ module.exports = {
               try {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
                 rule = rule.replace(/\.\d{3}/, '');
-              } catch (err) {
-                console.error('ERROR when trying to convert to ISOString', err);
+              } catch (error) {
+                console.error('ERROR when trying to convert to ISOString', error);
               }
             } else {
               console.error('No toISOString function in curr.start', curr.start);
