@@ -2,7 +2,7 @@
 
 const {v4: uuid} = require('uuid');
 const moment = require('moment-timezone');
-const rrule = require('rrule').RRule;
+const rrule = require('rrule/dist/es5/rrule-tz').RRule;
 
 /** **************
  *  A tolerant, minimal icalendar parser
@@ -75,12 +75,7 @@ const storeValueParameter = function (name) {
 
 const storeParameter = function (name) {
   return function (value, parameters, curr) {
-    let data;
-    if (parameters && parameters.length > 0 && !(parameters.length === 1 && parameters[0] === 'CHARSET=utf-8')) {
-      data = {params: parseParameters(parameters), val: text(value)};
-    } else {
-      data = text(value);
-    }
+    const data = parameters && parameters.length > 0 && !(parameters.length === 1 && parameters[0] === 'CHARSET=utf-8') ? {params: parseParameters(parameters), val: text(value)} : text(value);
 
     return storeValueParameter(name)(data, curr);
   };
@@ -201,19 +196,14 @@ const dateParameter = function (name) {
         }
 
         // Timezone confirmed or forced to offset
-        if (found) {
-          newDate = moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate();
-        } else {
-          // Fallback if tz not found
-          newDate = new Date(
-            Number.parseInt(comps[1], 10),
-            Number.parseInt(comps[2], 10) - 1,
-            Number.parseInt(comps[3], 10),
-            Number.parseInt(comps[4], 10),
-            Number.parseInt(comps[5], 10),
-            Number.parseInt(comps[6], 10)
-          );
-        }
+        newDate = found ? moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate() : new Date(
+          Number.parseInt(comps[1], 10),
+          Number.parseInt(comps[2], 10) - 1,
+          Number.parseInt(comps[3], 10),
+          Number.parseInt(comps[4], 10),
+          Number.parseInt(comps[5], 10),
+          Number.parseInt(comps[6], 10)
+        );
       } else {
         newDate = new Date(
           Number.parseInt(comps[1], 10),
