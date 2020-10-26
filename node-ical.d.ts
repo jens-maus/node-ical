@@ -47,9 +47,7 @@ declare module 'node-ical' {
      */
   export type NodeIcalCallback = (err: any, data: CalendarResponse) => void;
 
-  export interface CalendarResponse {
-    [key: string]: CalendarComponent;
-  }
+  export type CalendarResponse = Record<string, CalendarComponent>;
 
   export type CalendarComponent = VTimeZone | VEvent;
 
@@ -61,9 +59,7 @@ declare module 'node-ical' {
     tzurl: string;
   }
 
-  interface TimeZoneDictionary {
-    [key: string]: TimeZoneDef | undefined;
-  }
+  type TimeZoneDictionary = Record<string, TimeZoneDef | undefined>;
 
   export interface VEvent extends BaseComponent {
     type: 'VEVENT';
