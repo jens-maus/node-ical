@@ -3,12 +3,13 @@
  *
  *
  ** */
-process.env.TZ = 'Europe/Zurich';
+process.env.TZ = 'America/San_Francisco';
 
 const assert = require('assert');
 const vows = require('vows');
 const _ = require('underscore');
 const ical = require('../node-ical');
+const moment = require('moment-timezone');
 
 console.log('START Async Tests');
 vows
@@ -682,6 +683,7 @@ vows
     },
     'with forward.ics (testing for full day forward of UTC )': {
       topic() {
+        moment.tz.setDefault('Europe/Berlin');
         return ical.parseFile('./test/test_with_forward_TZ.ics');
       },
       'event with east TZ': {
