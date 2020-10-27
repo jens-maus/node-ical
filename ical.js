@@ -167,7 +167,7 @@ const dateParameter = function (name) {
         tz = tz.replace(/^"(.*)"$/, '$1');
 
         // Watch out for windows timezones
-        if (tz && tz.includes(' ')) {
+        if (tz && tz.includes(' ') > -1) {
           const tz1 = getIanaTZFromMS(tz);
           if (tz1) {
             tz = tz1;
@@ -430,17 +430,40 @@ module.exports = {
       // Recurrence rules are only valid for VEVENT, VTODO, and VJOURNAL.
       // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
       // due to the subtypes.
+
       if (value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') {
         if (curr.rrule) {
           let rule = curr.rrule.replace('RRULE:', '');
-          if (!rule.includes('DTSTART')) {
-            if (curr.start.length === 8) {
-              const comps = /^(\d{4})(\d{2})(\d{2})$/.exec(curr.start);
-              if (comps) {
-                curr.start = new Date(comps[1], comps[2] - 1, comps[3]);
+          // If no rule start date
+          if (rule.includes('DTSTART') === -1) {
+            // Get date/time into a specific format for comapare
+            let x = moment(curr.start).format('MMMM/Do/YYYY, h:mm:ss a');
+            // If the local time value is midnight
+            console.log('no rule date start, format=' + x);
+            // This a whole day event
+            if (x.slice(-11) === '12:00:00 am') {
+              console.log('full date');
+              // Get the timezone offset
+              // The internal date is stored in UTC format
+              const offset = curr.start.getTimezoneOffset();
+              // Only east of gmt is a problem
+              if (offset < 0) {
+                // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
+                // Make the internally stored DATE the actual date (not UTC offseted)
+                // Luxon expects local time, not utc, so gets start date wrong if not adjusted
+                curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60000));
+              } else {
+                // Get rid of any time (shouldn't be any, but be sure)
+                x = moment(curr.start).format('MMMM/Do/YYYY');
+                console.log('new date=' + x);
+                const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
+                if (comps) {
+                  curr.start = new Date(comps[3], comps[1] - 1, comps[2]);
+                }
               }
             }
 
+            // If the date has an toISOString function
             if (typeof curr.start.toISOString === 'function') {
               try {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
