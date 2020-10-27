@@ -9,6 +9,7 @@ const assert = require('assert');
 const vows = require('vows');
 const _ = require('underscore');
 const ical = require('../node-ical');
+const moment = require('moment-timezone');
 
 console.log('START Async Tests');
 vows
@@ -559,9 +560,9 @@ vows
         },
         'has a start'(topic) {
           assert.equal(topic.start.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
-          assert.equal(topic.start.toISOString(), new Date(2019, 3, 30, 2, 0, 0).toISOString());
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2019, 3, 30, 9, 0, 0)).toISOString().slice(0, 8));
           assert.equal(topic.end.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
-          assert.equal(topic.end.toISOString(), new Date(2019, 3, 30, 5, 0, 0).toISOString());
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(2019, 3, 30, 5, 0, 0).toISOString().slice(0, 8));
         }
       }
     },
@@ -680,7 +681,22 @@ vows
         }
       }
     },
-
+    'with forward.ics (testing for full day forward of UTC )': {
+      topic() {
+        moment.tz.setDefault('Europe/Berlin');
+        return ical.parseFile('./test/test_with_forward_TZ.ics');
+      },
+      'event with east TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'Fear TWD';
+          })[0];
+        },
+        'time not adjusted to local time'(topic) {
+          assert.equal(topic.start.toISOString().slice(11), '00:00:00.000Z');
+        }
+      }
+    },
     'url request errors': {
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);

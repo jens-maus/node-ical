@@ -9,6 +9,7 @@ const assert = require('assert');
 const vows = require('vows');
 const _ = require('underscore');
 const ical = require('../node-ical');
+const moment = require('moment-timezone');
 
 vows
   .describe('node-ical')
@@ -654,6 +655,22 @@ vows
       }
     },
 
+    'with forward.ics (testing for full day forward of UTC )': {
+      topic() {
+        moment.tz.setDefault('Europe/Berlin');
+        return ical.parseFile('./test/test_with_forward_TZ.ics');
+      },
+      'event with east TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'Fear TWD';
+          })[0];
+        },
+        'is not valid date'(topic) {
+          assert.equal(topic.start.toISOString().slice(11), '00:00:00.000Z');
+        }
+      }
+    },
     'url request errors': {
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);
