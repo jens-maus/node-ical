@@ -2,7 +2,7 @@
 
 const {v4: uuid} = require('uuid');
 const moment = require('moment-timezone');
-const rrule = require('rrule/dist/es5/rrule-tz').RRule;
+const rrule = require('rrule').RRule;
 
 /** **************
  *  A tolerant, minimal icalendar parser
@@ -167,7 +167,7 @@ const dateParameter = function (name) {
         tz = tz.replace(/^"(.*)"$/, '$1');
 
         // Watch out for windows timezones
-        if (tz && tz.includes(' ') > -1) {
+        if (tz && tz.includes(' ')) {
           const tz1 = getIanaTZFromMS(tz);
           if (tz1) {
             tz = tz1;
@@ -435,14 +435,12 @@ module.exports = {
         if (curr.rrule) {
           let rule = curr.rrule.replace('RRULE:', '');
           // If no rule start date
-          if (rule.includes('DTSTART') === -1) {
+          if (rule.includes('DTSTART') === false) {
             // Get date/time into a specific format for comapare
             let x = moment(curr.start).format('MMMM/Do/YYYY, h:mm:ss a');
             // If the local time value is midnight
-            console.log('no rule date start, format=' + x);
             // This a whole day event
             if (x.slice(-11) === '12:00:00 am') {
-              console.log('full date');
               // Get the timezone offset
               // The internal date is stored in UTC format
               const offset = curr.start.getTimezoneOffset();
@@ -455,7 +453,6 @@ module.exports = {
               } else {
                 // Get rid of any time (shouldn't be any, but be sure)
                 x = moment(curr.start).format('MMMM/Do/YYYY');
-                console.log('new date=' + x);
                 const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
                 if (comps) {
                   curr.start = new Date(comps[3], comps[1] - 1, comps[2]);
