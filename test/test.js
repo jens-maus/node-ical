@@ -3,7 +3,7 @@
  *
  *
  ** */
-process.env.TZ = 'America/San_Francisco';
+process.env.TZ = 'Europe/Zurich'; //
 
 const assert = require('assert');
 const vows = require('vows');
@@ -654,6 +654,21 @@ vows
       }
     },
 
+    'with forward.ics (testing for full day forward of UTC )': {
+      topic() {
+        return ical.parseFile('./test/test_with_forward_TZ.ics');
+      },
+      'event with east TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'Fear TWD';
+          })[0];
+        },
+        'is not valid date'(topic) {
+          assert.equal(topic.start.toISOString().slice(11), '00:00:00.000Z');
+        }
+      }
+    },
     'url request errors': {
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);
