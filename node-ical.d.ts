@@ -1,5 +1,6 @@
 declare module 'node-ical' {
   import {CoreOptions} from 'request';
+  import {RRule} from 'rrule';
 
   /**
      * Methods (Sync)
@@ -78,6 +79,7 @@ declare module 'node-ical' {
     completion: string;
     created: DateWithTimeZone;
     lastmodified: DateWithTimeZone;
+    rrule?: RRule;
 
     // I am not entirely sure about these, leave them as any for now..
     organizer: any;
