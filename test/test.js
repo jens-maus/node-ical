@@ -655,6 +655,22 @@ vows
       }
     },
 
+    'bad rrule': {
+      topic() {
+        return ical.parseFile('./test/badRRULE.ics');
+      },
+      'is valid time': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'Academic Time';
+          })[0];
+        },
+        'is not valid date'(topic) {
+          assert.equal(topic.start.toISOString().slice(11), '15:50:00.000Z');
+        }
+      }
+    },
+
     'with forward.ics (testing for full day forward of UTC )': {
       topic() {
         moment.tz.setDefault('Europe/Berlin');
@@ -671,6 +687,7 @@ vows
         }
       }
     },
+
     'url request errors': {
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);
