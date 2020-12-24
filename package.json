@@ -1,6 +1,6 @@
 {
   "name": "node-ical",
-  "version": "0.12.2",
+  "version": "0.12.4",
   "main": "node-ical.js",
   "types": "node-ical.d.ts",
   "description": "NodeJS class for parsing iCalendar/ICS files",
@@ -27,11 +27,11 @@
     "@types/request": "^2.48.3",
     "diff": ">=3.5.0",
     "eslint": "^7.11.0",
-    "eslint-config-prettier": "^6.3.0",
+    "eslint-config-prettier": "^7.1.0",
     "eslint-plugin-import": "^2.18.2",
-    "underscore": "1.11.0",
+    "underscore": "1.12.0",
     "vows": "^0.8.2",
-    "xo": "^0.35.0",
+    "xo": "^0.36.1",
     "pre-commit": "^1.2.2",
     "dot-prop": ">=4.2.1",
     "xml-js": "^1.6.11"

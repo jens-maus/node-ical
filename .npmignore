@@ -2,6 +2,7 @@ Gruntfile.js
 tasks
 test
 *.tgz
+.DS_Store
 .idea
 .git
 .github
