@@ -435,13 +435,13 @@ module.exports = {
         if (curr.rrule) {
           let rule = curr.rrule.replace('RRULE:', '');
           // If the rule  includess the RRULE= clause remove it
-          if (rule.includes('RRULE=')) {
+          if (rule.includes('RRULE')) {
             // Make an array
             const x = [];
             // Loop thru the parts of the rule
             for (const c of rule.split(';')) {
               // If its NOT the bad clause
-              if (!c.includes('RRULE=')) {
+              if (!c.includes('RRULE')) {
                 // Save it
                 x.push(c);
               }
