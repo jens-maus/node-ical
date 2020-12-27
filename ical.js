@@ -478,7 +478,7 @@ module.exports = {
             }
 
             // If the date has an toISOString function
-            if (typeof curr.start.toISOString === 'function') {
+            if (curr.start && typeof curr.start.toISOString === 'function') {
               try {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
                 rule = rule.replace(/\.\d{3}/, '');
