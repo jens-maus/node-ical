@@ -434,23 +434,8 @@ module.exports = {
       if (value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') {
         if (curr.rrule) {
           let rule = curr.rrule.replace('RRULE:', '');
-          // If the rule  includess the RRULE= clause remove it
-          if (rule.includes('RRULE')) {
-            // Make an array
-            const x = [];
-            // Loop thru the parts of the rule
-            for (const c of rule.split(';')) {
-              // If its NOT the bad clause
-              if (!c.includes('RRULE')) {
-                // Save it
-                x.push(c);
-              }
-            }
-            // Reconstruct the rule
-
-            rule = x.join(';');
-          }
-
+          // Make sure the rrule starts with FREQ=
+          // rule = rule.substring(rule.lastIndexOf('FREQ='));
           // If no rule start date
           if (rule.includes('DTSTART') === false) {
             // Get date/time into a specific format for comapare
@@ -490,7 +475,11 @@ module.exports = {
             }
           }
 
-          curr.rrule = rrule.fromString(rule);
+          // Make sure to catch error from rrule.fromString()
+          try {
+            curr.rrule = rrule.fromString(rule);
+          } catch {
+          }
         }
       }
 
