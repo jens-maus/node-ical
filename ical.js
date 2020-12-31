@@ -435,7 +435,7 @@ module.exports = {
         if (curr.rrule) {
           let rule = curr.rrule.replace('RRULE:', '');
           // Make sure the rrule starts with FREQ=
-          rule = rule.substring(rule.lastIndexOf('FREQ='));
+          rule = rule.slice(rule.lastIndexOf('FREQ='));
           // If no rule start date
           if (rule.includes('DTSTART') === false) {
             // Get date/time into a specific format for comapare
