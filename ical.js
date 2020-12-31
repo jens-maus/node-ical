@@ -275,7 +275,7 @@ const exdateParameter = function (name) {
         if (typeof exdate[name].toISOString === 'function') {
           curr[name][exdate[name].toISOString().slice(0, 10)] = exdate[name];
         } else {
-          console.error('No toISOString function in exdate[name]', exdate[name]);
+          throw new TypeError('No toISOString function in exdate[name]', exdate[name]);
         }
       }
     });
@@ -411,7 +411,7 @@ module.exports = {
             if (typeof curr.recurrenceid.toISOString === 'function') {
               par[curr.uid].recurrences[curr.recurrenceid.toISOString().slice(0, 10)] = recurrenceObject;
             } else {
-              console.error('No toISOString function in curr.recurrenceid', curr.recurrenceid);
+              throw new TypeError('No toISOString function in curr.recurrenceid', curr.recurrenceid);
             }
           }
 
@@ -468,17 +468,18 @@ module.exports = {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
                 rule = rule.replace(/\.\d{3}/, '');
               } catch (error) {
-                console.error('ERROR when trying to convert to ISOString', error);
+                throw new Error('ERROR when trying to convert to ISOString', error);
               }
             } else {
-              console.error('No toISOString function in curr.start', curr.start);
+              throw new Error('No toISOString function in curr.start', curr.start);
             }
           }
 
           // Make sure to catch error from rrule.fromString()
           try {
             curr.rrule = rrule.fromString(rule);
-          } catch {
+          } catch (error) {
+            throw error;
           }
         }
       }
