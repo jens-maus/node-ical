@@ -18,8 +18,8 @@ vows
     'when parsing test1.ics (node conferences schedule from lanyrd.com, modified)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test1.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test1.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -86,8 +86,8 @@ vows
     'with test2.ics (testing ical features)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test2.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test2.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -151,8 +151,8 @@ vows
     'with test3.ics (testing tvcountdown.com)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test3.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test3.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -180,8 +180,8 @@ vows
     'with test4.ics (testing tripit.com)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test4.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test4.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -227,8 +227,8 @@ vows
     'with test5.ics (testing meetup.com)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test5.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test5.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -249,8 +249,8 @@ vows
     'with test6.ics (testing assembly.org)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test6.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test6.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -282,8 +282,8 @@ vows
     'with test7.ics (testing dtstart of rrule)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test7.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test7.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -301,8 +301,8 @@ vows
     'with test 8.ics (VTODO completion)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test8.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test8.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -320,8 +320,8 @@ vows
     'with test 9.ics (VEVENT with VALARM)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test9.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test9.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -338,8 +338,8 @@ vows
     'with test 11.ics (VEVENT with custom properties)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test10.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test10.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -352,8 +352,8 @@ vows
     'with test10.ics': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test10.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test10.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -417,8 +417,8 @@ vows
     'with test11.ics (testing zimbra freebusy)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test11.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test11.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -467,8 +467,8 @@ vows
     'with test12.ics (testing recurrences and exdates)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test12.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test12.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -513,8 +513,8 @@ vows
     'with test13.ics (testing recurrence-id before rrule)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test13.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test13.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -570,8 +570,8 @@ vows
     'with test16.ics (testing quoted parameter values)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test16.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test16.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -589,8 +589,8 @@ vows
     'with test17.ics (testing for non-stringified start/end time)': {
       topic() {
         const self = this;
-        ical.parseFile('./test/test17.ics', (err, ctx) => {
-          if (!err) {
+        ical.parseFile('./test/test17.ics', (error, ctx) => {
+          if (!error) {
             self.callback(null, ctx);
           }
         });
@@ -717,10 +717,10 @@ vows
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);
       },
-      'are passed back to the callback'(err, result) {
-        assert.instanceOf(err, Error);
-        if (!err) {
-          console.log('>E:', err, result);
+      'are passed back to the callback'(error, result) {
+        assert.instanceOf(error, Error);
+        if (!error) {
+          console.log('>E:', error, result);
         }
       }
     }

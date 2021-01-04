@@ -12,8 +12,7 @@ const rrule = require('rrule').RRule;
  * ************* */
 
 // Unescape Text re RFC 4.3.11
-const text = function (t) {
-  t = t || '';
+const text = function (t = '') {
   return t
     .replace(/\\,/g, ',')
     .replace(/\\;/g, ';')
@@ -431,56 +430,54 @@ module.exports = {
       // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
       // due to the subtypes.
 
-      if (value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') {
-        if (curr.rrule) {
-          let rule = curr.rrule.replace('RRULE:', '');
-          // Make sure the rrule starts with FREQ=
-          rule = rule.slice(rule.lastIndexOf('FREQ='));
-          // If no rule start date
-          if (rule.includes('DTSTART') === false) {
-            // Get date/time into a specific format for comapare
-            let x = moment(curr.start).format('MMMM/Do/YYYY, h:mm:ss a');
-            // If the local time value is midnight
-            // This a whole day event
-            if (x.slice(-11) === '12:00:00 am') {
-              // Get the timezone offset
-              // The internal date is stored in UTC format
-              const offset = curr.start.getTimezoneOffset();
-              // Only east of gmt is a problem
-              if (offset < 0) {
-                // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
-                // Make the internally stored DATE the actual date (not UTC offseted)
-                // Luxon expects local time, not utc, so gets start date wrong if not adjusted
-                curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60000));
-              } else {
-                // Get rid of any time (shouldn't be any, but be sure)
-                x = moment(curr.start).format('MMMM/Do/YYYY');
-                const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
-                if (comps) {
-                  curr.start = new Date(comps[3], comps[1] - 1, comps[2]);
-                }
-              }
-            }
-
-            // If the date has an toISOString function
-            if (curr.start && typeof curr.start.toISOString === 'function') {
-              try {
-                rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
-                rule = rule.replace(/\.\d{3}/, '');
-              } catch (error) {
-                throw new Error('ERROR when trying to convert to ISOString', error);
-              }
+      if ((value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') && curr.rrule) {
+        let rule = curr.rrule.replace('RRULE:', '');
+        // Make sure the rrule starts with FREQ=
+        rule = rule.slice(rule.lastIndexOf('FREQ='));
+        // If no rule start date
+        if (rule.includes('DTSTART') === false) {
+          // Get date/time into a specific format for comapare
+          let x = moment(curr.start).format('MMMM/Do/YYYY, h:mm:ss a');
+          // If the local time value is midnight
+          // This a whole day event
+          if (x.slice(-11) === '12:00:00 am') {
+            // Get the timezone offset
+            // The internal date is stored in UTC format
+            const offset = curr.start.getTimezoneOffset();
+            // Only east of gmt is a problem
+            if (offset < 0) {
+              // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
+              // Make the internally stored DATE the actual date (not UTC offseted)
+              // Luxon expects local time, not utc, so gets start date wrong if not adjusted
+              curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60000));
             } else {
-              throw new Error('No toISOString function in curr.start', curr.start);
+              // Get rid of any time (shouldn't be any, but be sure)
+              x = moment(curr.start).format('MMMM/Do/YYYY');
+              const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
+              if (comps) {
+                curr.start = new Date(comps[3], comps[1] - 1, comps[2]);
+              }
             }
           }
 
-          // Make sure to catch error from rrule.fromString()
-          try {
-            curr.rrule = rrule.fromString(rule);
-          } catch (error) {
-            throw error;
+          // If the date has an toISOString function
+          if (curr.start && typeof curr.start.toISOString === 'function') {
+            try {
+              rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
+              rule = rule.replace(/\.\d{3}/, '');
+            } catch (error) {
+              throw new Error('ERROR when trying to convert to ISOString', error);
+            }
+          } else {
+            throw new Error('No toISOString function in curr.start', curr.start);
           }
+        }
+
+        // Make sure to catch error from rrule.fromString()
+        try {
+          curr.rrule = rrule.fromString(rule);
+        } catch (error) {
+          throw error;
         }
       }
 

@@ -692,10 +692,10 @@ vows
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);
       },
-      'are passed back to the callback'(err, result) {
-        assert.instanceOf(err, Error);
-        if (!err) {
-          console.log('>E:', err, result);
+      'are passed back to the callback'(error, result) {
+        assert.instanceOf(error, Error);
+        if (!error) {
+          console.log('>E:', error, result);
         }
       }
     }

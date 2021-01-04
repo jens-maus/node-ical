@@ -98,9 +98,9 @@ const autodetect = {};
  */
 async.fromURL = function (url, options, cb) {
   return promiseCallback((resolve, reject) => {
-    request(url, options, (err, response, data) => {
-      if (err) {
-        reject(err);
+    request(url, options, (error, response, data) => {
+      if (error) {
+        reject(error);
         return;
       }
 
@@ -111,9 +111,9 @@ async.fromURL = function (url, options, cb) {
         return;
       }
 
-      ical.parseICS(data, (err, ics) => {
-        if (err) {
-          reject(err);
+      ical.parseICS(data, (error, ics) => {
+        if (error) {
+          reject(error);
           return;
         }
 
@@ -134,15 +134,15 @@ async.fromURL = function (url, options, cb) {
  */
 async.parseFile = function (filename, cb) {
   return promiseCallback((resolve, reject) => {
-    fs.readFile(filename, 'utf8', (err, data) => {
-      if (err) {
-        reject(err);
+    fs.readFile(filename, 'utf8', (error, data) => {
+      if (error) {
+        reject(error);
         return;
       }
 
-      ical.parseICS(data, (err, ics) => {
-        if (err) {
-          reject(err);
+      ical.parseICS(data, (error, ics) => {
+        if (error) {
+          reject(error);
           return;
         }
 
@@ -163,9 +163,9 @@ async.parseFile = function (filename, cb) {
  */
 async.parseICS = function (data, cb) {
   return promiseCallback((resolve, reject) => {
-    ical.parseICS(data, (err, ics) => {
-      if (err) {
-        reject(err);
+    ical.parseICS(data, (error, ics) => {
+      if (error) {
+        reject(error);
         return;
       }
 
