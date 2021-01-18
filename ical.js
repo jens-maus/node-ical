@@ -125,7 +125,7 @@ const dateParameter = function (name) {
     let newDate = text(value);
 
     // Process 'VALUE=DATE' and EXDATE
-    if ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || newDate.length === 8) {
+    if ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/.test(value) === true) {
       // Just Date
 
       const comps = /^(\d{4})(\d{2})(\d{2}).*$/.exec(value);
