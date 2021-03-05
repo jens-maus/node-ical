@@ -267,7 +267,7 @@ const exdateParameter = function (name) {
     const separatorPattern = /\s*,\s*/g;
     curr[name] = curr[name] || [];
     const dates = value ? value.split(separatorPattern) : [];
-    dates.forEach(entry => {
+    for (const entry of dates) {
       const exdate = [];
       dateParameter(name)(entry, parameters, exdate);
 
@@ -278,7 +278,8 @@ const exdateParameter = function (name) {
           throw new TypeError('No toISOString function in exdate[name]', exdate[name]);
         }
       }
-    });
+    }
+
     return curr;
   };
 };
@@ -309,9 +310,9 @@ const freebusyParameter = function (name) {
 
     const parts = value.split('/');
 
-    ['start', 'end'].forEach((name, index) => {
+    for (const [index, name] of ['start', 'end'].entries()) {
       dateParameter(name)(parts[index], parameters, fb);
-    });
+    }
 
     return curr;
   };
@@ -513,14 +514,12 @@ module.exports = {
   },
 
   handleObject(name, value, parameters, ctx, stack, line) {
-    const self = this;
-
-    if (self.objectHandlers[name]) {
-      return self.objectHandlers[name](value, parameters, ctx, stack, line);
+    if (this.objectHandlers[name]) {
+      return this.objectHandlers[name](value, parameters, ctx, stack, line);
     }
 
     // Handling custom properties
-    if (name.match(/X-[\w-]+/) && stack.length > 0) {
+    if (/X-[\w-]+/.test(name) && stack.length > 0) {
       // Trimming the leading and perform storeParam
       name = name.slice(2);
       return storeParameter(name)(value, parameters, ctx, stack, line);
@@ -530,8 +529,6 @@ module.exports = {
   },
 
   parseLines(lines, limit, ctx, stack, lastIndex, cb) {
-    const self = this;
-
     if (!cb && typeof ctx === 'function') {
       cb = ctx;
       ctx = undefined;
@@ -570,7 +567,7 @@ module.exports = {
       const name = kv[0];
       const parameters = kv[1] ? kv[1].split(';').slice(1) : [];
 
-      ctx = self.handleObject(name, value, parameters, ctx, stack, l) || {};
+      ctx = this.handleObject(name, value, parameters, ctx, stack, l) || {};
       if (++limitCounter > limit) {
         break;
       }
@@ -585,7 +582,7 @@ module.exports = {
     if (cb) {
       if (i < lines.length) {
         setImmediate(() => {
-          self.parseLines(lines, limit, ctx, stack, i + 1, cb);
+          this.parseLines(lines, limit, ctx, stack, i + 1, cb);
         });
       } else {
         setImmediate(() => {
@@ -616,17 +613,16 @@ module.exports = {
   },
 
   parseICS(string, cb) {
-    const self = this;
-    const lineEndType = self.getLineBreakChar(string);
+    const lineEndType = this.getLineBreakChar(string);
     const lines = string.split(lineEndType === '\n' ? /\n/ : /\r?\n/);
     let ctx;
 
     if (cb) {
       // Asynchronous execution
-      self.parseLines(lines, 2000, cb);
+      this.parseLines(lines, 2000, cb);
     } else {
       // Synchronous execution
-      ctx = self.parseLines(lines, lines.length);
+      ctx = this.parseLines(lines, lines.length);
       return ctx;
     }
   }

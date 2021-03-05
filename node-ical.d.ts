@@ -104,7 +104,7 @@ declare module 'node-ical' {
     rdate: string | string[];
   }
 
-  export type DateWithTimeZone = Date & { tz: string };
+  export type DateWithTimeZone = Date & {tz: string};
   export type DateType = 'date-time' | 'date';
   export type Transparency = 'TRANSPARENT' | 'OPAQUE';
   export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';
