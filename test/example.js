@@ -2,8 +2,8 @@ const ical = require('../node-ical');
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, (err, data) => {
-  if (!err) {
+ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, (error, data) => {
+  if (!error) {
     for (const k in data) {
       if (!{}.hasOwnProperty.call(data, k)) {
         continue;
