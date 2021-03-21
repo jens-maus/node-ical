@@ -46,7 +46,7 @@ declare module 'node-ical' {
   /**
      * Response objects
      */
-  export type NodeIcalCallback = (err: any, data: CalendarResponse) => void;
+  export type NodeIcalCallback = (error: any, data: CalendarResponse) => void;
 
   export type CalendarResponse = Record<string, CalendarComponent>;
 
@@ -104,7 +104,7 @@ declare module 'node-ical' {
     rdate: string | string[];
   }
 
-  export type DateWithTimeZone = Date & { tz: string };
+  export type DateWithTimeZone = Date & {tz: string};
   export type DateType = 'date-time' | 'date';
   export type Transparency = 'TRANSPARENT' | 'OPAQUE';
   export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';

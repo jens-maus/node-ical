@@ -19,11 +19,8 @@ function getObjects(object, key, value) {
     } else if ((i === key && object[i] === value) || (i === key && value === '')) {
       // If key matches and value matches or if key matches and value is not passed (eliminating the case where key matches but passed value does not)
       objects.push(object);
-    } else if (object[i] === value && key === '') {
-      // Only add if the object is not already in the array
-      if (objects.lastIndexOf(object) === -1) {
-        objects.push(object);
-      }
+    } else if (object[i] === value && key === '' && objects.lastIndexOf(object) === -1) {
+      objects.push(object);
     }
   }
 

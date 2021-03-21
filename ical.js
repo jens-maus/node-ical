@@ -12,8 +12,7 @@ const rrule = require('rrule').RRule;
  * ************* */
 
 // Unescape Text re RFC 4.3.11
-const text = function (t) {
-  t = t || '';
+const text = function (t = '') {
   return t
     .replace(/\\,/g, ',')
     .replace(/\\;/g, ';')
@@ -125,7 +124,8 @@ const dateParameter = function (name) {
   return function (value, parameters, curr) {
     let newDate = text(value);
 
-    if (parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) {
+    // Process 'VALUE=DATE' and EXDATE
+    if ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/.test(value) === true) {
       // Just Date
 
       const comps = /^(\d{4})(\d{2})(\d{2}).*$/.exec(value);
@@ -267,7 +267,7 @@ const exdateParameter = function (name) {
     const separatorPattern = /\s*,\s*/g;
     curr[name] = curr[name] || [];
     const dates = value ? value.split(separatorPattern) : [];
-    dates.forEach(entry => {
+    for (const entry of dates) {
       const exdate = [];
       dateParameter(name)(entry, parameters, exdate);
 
@@ -278,7 +278,8 @@ const exdateParameter = function (name) {
           throw new TypeError('No toISOString function in exdate[name]', exdate[name]);
         }
       }
-    });
+    }
+
     return curr;
   };
 };
@@ -309,9 +310,9 @@ const freebusyParameter = function (name) {
 
     const parts = value.split('/');
 
-    ['start', 'end'].forEach((name, index) => {
+    for (const [index, name] of ['start', 'end'].entries()) {
       dateParameter(name)(parts[index], parameters, fb);
-    });
+    }
 
     return curr;
   };
@@ -431,56 +432,54 @@ module.exports = {
       // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
       // due to the subtypes.
 
-      if (value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') {
-        if (curr.rrule) {
-          let rule = curr.rrule.replace('RRULE:', '');
-          // Make sure the rrule starts with FREQ=
-          rule = rule.slice(rule.lastIndexOf('FREQ='));
-          // If no rule start date
-          if (rule.includes('DTSTART') === false) {
-            // Get date/time into a specific format for comapare
-            let x = moment(curr.start).format('MMMM/Do/YYYY, h:mm:ss a');
-            // If the local time value is midnight
-            // This a whole day event
-            if (x.slice(-11) === '12:00:00 am') {
-              // Get the timezone offset
-              // The internal date is stored in UTC format
-              const offset = curr.start.getTimezoneOffset();
-              // Only east of gmt is a problem
-              if (offset < 0) {
-                // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
-                // Make the internally stored DATE the actual date (not UTC offseted)
-                // Luxon expects local time, not utc, so gets start date wrong if not adjusted
-                curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60000));
-              } else {
-                // Get rid of any time (shouldn't be any, but be sure)
-                x = moment(curr.start).format('MMMM/Do/YYYY');
-                const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
-                if (comps) {
-                  curr.start = new Date(comps[3], comps[1] - 1, comps[2]);
-                }
-              }
-            }
-
-            // If the date has an toISOString function
-            if (curr.start && typeof curr.start.toISOString === 'function') {
-              try {
-                rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
-                rule = rule.replace(/\.\d{3}/, '');
-              } catch (error) {
-                throw new Error('ERROR when trying to convert to ISOString', error);
-              }
+      if ((value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') && curr.rrule) {
+        let rule = curr.rrule.replace('RRULE:', '');
+        // Make sure the rrule starts with FREQ=
+        rule = rule.slice(rule.lastIndexOf('FREQ='));
+        // If no rule start date
+        if (rule.includes('DTSTART') === false) {
+          // Get date/time into a specific format for comapare
+          let x = moment(curr.start).format('MMMM/Do/YYYY, h:mm:ss a');
+          // If the local time value is midnight
+          // This a whole day event
+          if (x.slice(-11) === '12:00:00 am') {
+            // Get the timezone offset
+            // The internal date is stored in UTC format
+            const offset = curr.start.getTimezoneOffset();
+            // Only east of gmt is a problem
+            if (offset < 0) {
+              // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
+              // Make the internally stored DATE the actual date (not UTC offseted)
+              // Luxon expects local time, not utc, so gets start date wrong if not adjusted
+              curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60000));
             } else {
-              throw new Error('No toISOString function in curr.start', curr.start);
+              // Get rid of any time (shouldn't be any, but be sure)
+              x = moment(curr.start).format('MMMM/Do/YYYY');
+              const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
+              if (comps) {
+                curr.start = new Date(comps[3], comps[1] - 1, comps[2]);
+              }
             }
           }
 
-          // Make sure to catch error from rrule.fromString()
-          try {
-            curr.rrule = rrule.fromString(rule);
-          } catch (error) {
-            throw error;
+          // If the date has an toISOString function
+          if (curr.start && typeof curr.start.toISOString === 'function') {
+            try {
+              rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
+              rule = rule.replace(/\.\d{3}/, '');
+            } catch (error) {
+              throw new Error('ERROR when trying to convert to ISOString', error);
+            }
+          } else {
+            throw new Error('No toISOString function in curr.start', curr.start);
           }
+        }
+
+        // Make sure to catch error from rrule.fromString()
+        try {
+          curr.rrule = rrule.fromString(rule);
+        } catch (error) {
+          throw error;
         }
       }
 
@@ -515,14 +514,12 @@ module.exports = {
   },
 
   handleObject(name, value, parameters, ctx, stack, line) {
-    const self = this;
-
-    if (self.objectHandlers[name]) {
-      return self.objectHandlers[name](value, parameters, ctx, stack, line);
+    if (this.objectHandlers[name]) {
+      return this.objectHandlers[name](value, parameters, ctx, stack, line);
     }
 
     // Handling custom properties
-    if (name.match(/X-[\w-]+/) && stack.length > 0) {
+    if (/X-[\w-]+/.test(name) && stack.length > 0) {
       // Trimming the leading and perform storeParam
       name = name.slice(2);
       return storeParameter(name)(value, parameters, ctx, stack, line);
@@ -532,8 +529,6 @@ module.exports = {
   },
 
   parseLines(lines, limit, ctx, stack, lastIndex, cb) {
-    const self = this;
-
     if (!cb && typeof ctx === 'function') {
       cb = ctx;
       ctx = undefined;
@@ -572,7 +567,7 @@ module.exports = {
       const name = kv[0];
       const parameters = kv[1] ? kv[1].split(';').slice(1) : [];
 
-      ctx = self.handleObject(name, value, parameters, ctx, stack, l) || {};
+      ctx = this.handleObject(name, value, parameters, ctx, stack, l) || {};
       if (++limitCounter > limit) {
         break;
       }
@@ -587,7 +582,7 @@ module.exports = {
     if (cb) {
       if (i < lines.length) {
         setImmediate(() => {
-          self.parseLines(lines, limit, ctx, stack, i + 1, cb);
+          this.parseLines(lines, limit, ctx, stack, i + 1, cb);
         });
       } else {
         setImmediate(() => {
@@ -618,17 +613,16 @@ module.exports = {
   },
 
   parseICS(string, cb) {
-    const self = this;
-    const lineEndType = self.getLineBreakChar(string);
+    const lineEndType = this.getLineBreakChar(string);
     const lines = string.split(lineEndType === '\n' ? /\n/ : /\r?\n/);
     let ctx;
 
     if (cb) {
       // Asynchronous execution
-      self.parseLines(lines, 2000, cb);
+      this.parseLines(lines, 2000, cb);
     } else {
       // Synchronous execution
-      ctx = self.parseLines(lines, lines.length);
+      ctx = this.parseLines(lines, lines.length);
       return ctx;
     }
   }
