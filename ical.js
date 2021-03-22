@@ -139,7 +139,6 @@ const dateParameter = function (name) {
         // No TZ info - assume same timezone as this computer
         newDate = new Date(comps[1], Number.parseInt(comps[2], 10) - 1, comps[3]);
 
-        newDate = addTZ(newDate, parameters);
         newDate.dateOnly = true;
 
         // Store as string - worst case scenario
@@ -210,6 +209,8 @@ const dateParameter = function (name) {
           Number.parseInt(comps[5], 10),
           Number.parseInt(comps[6], 10)
         );
+
+        newDate = addTZ(newDate, parameters);
       } else {
         newDate = new Date(
           Number.parseInt(comps[1], 10),
@@ -220,8 +221,6 @@ const dateParameter = function (name) {
           Number.parseInt(comps[6], 10)
         );
       }
-
-      newDate = addTZ(newDate, parameters);
     }
 
     // Store as string - worst case scenario
