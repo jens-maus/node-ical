@@ -579,6 +579,103 @@ vows
       }
     },
 
+    'with test18.ics (testing for detecting timezones)': {
+      topic() {
+        return ical.parseFile('./test/test18.ics');
+      },
+      'we get 5 events'(topic) {
+        const events = _.select(_.values(topic), x => {
+          return x.type === 'VEVENT';
+        });
+        assert.equal(events.length, 5);
+      },
+
+      'event 1c943': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '1C9439B1-FF65-11D6-9973-003065F99D04';
+          })[0];
+        },
+        'datetype is date-time'(topic) {
+          assert.equal(topic.datetype, 'date-time');
+        },
+        'has no timezone'(topic) {
+          assert.equal(topic.start.tz, undefined);
+        },
+        'starts 28 Oct 2002 @ 01:20:30 (Local Time)'(topic) {
+          assert.equal(topic.start.toISOString(), new Date(2002, 9, 28, 1, 20, 30).toISOString());
+        }
+      },
+
+      'event 2c943': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '2C9439B1-FF65-11D6-9973-003065F99D04';
+          })[0];
+        },
+        'datetype is date-time'(topic) {
+          assert.equal(topic.datetype, 'date-time');
+        },
+        'has UTC timezone'(topic) {
+          assert.equal(topic.start.tz, 'Etc/UTC');
+        },
+        'starts 28 Oct 2002 @ 01:20:30 (UTC)'(topic) {
+          assert.equal(topic.start.toISOString(), '2002-10-28T01:20:30.000Z');
+        }
+      },
+
+      'event 3c943': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '3C9439B1-FF65-11D6-9973-003065F99D04';
+          })[0];
+        },
+        'datetype is date-time'(topic) {
+          assert.equal(topic.datetype, 'date-time');
+        },
+        'has New_York timezone'(topic) {
+          assert.equal(topic.start.tz, 'America/New_York');
+        },
+        'starts 28 Oct 2002 @ 06:20:30 (UTC)'(topic) {
+          assert.equal(topic.start.toISOString(), '2002-10-28T06:20:30.000Z');
+        }
+      },
+
+      'event 4c943': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '4C9439B1-FF65-11D6-9973-003065F99D04';
+          })[0];
+        },
+        'datetype is date'(topic) {
+          assert.equal(topic.datetype, 'date');
+        },
+        'has no timezone'(topic) {
+          assert.equal(topic.start.tz, undefined);
+        },
+        'starts 28 Oct 2002 @ 00:00:00 (Local Time)'(topic) {
+          assert.equal(topic.start.toISOString(), new Date(2002, 9, 28).toISOString());
+        }
+      },
+
+      'event 5c943': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '5C9439B1-FF65-11D6-9973-003065F99D04';
+          })[0];
+        },
+        'datetype is date'(topic) {
+          assert.equal(topic.datetype, 'date');
+        },
+        'has no timezone'(topic) {
+          assert.equal(topic.start.tz, undefined);
+        },
+        'starts 28 Oct 2002 @ 00:00:00 (Local Time)'(topic) {
+          assert.equal(topic.start.toISOString(), new Date(2002, 9, 28).toISOString());
+        }
+      }
+    },
+
     'with ms_timezones.ics (testing time conversions)': {
       'topic'() {
         return ical.parseFile('./test/ms_timezones.ics');

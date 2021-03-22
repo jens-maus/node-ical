@@ -83,6 +83,11 @@ const storeParameter = function (name) {
 const addTZ = function (dt, parameters) {
   const p = parseParameters(parameters);
 
+  if (dt.tz) {
+    // Date already has a timezone property
+    return dt;
+  }
+
   if (parameters && p && dt) {
     dt.tz = p.TZID;
     if (dt.tz !== undefined) {
@@ -108,14 +113,15 @@ function getIanaTZFromMS(msTZName) {
   return he ? he.iana[0] : null;
 }
 
+function isDateOnly(value, parameters) {
+  const dateOnly = ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/.test(value) === true);
+  return dateOnly;
+}
+
 const typeParameter = function (name) {
   // Typename is not used in this function?
   return function (value, parameters, curr) {
-    let returnValue = 'date-time';
-    if (parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) {
-      returnValue = 'date';
-    }
-
+    const returnValue = isDateOnly(value, parameters) ? 'date' : 'date-time';
     return storeValueParameter(name)(returnValue, curr);
   };
 };
@@ -125,7 +131,7 @@ const dateParameter = function (name) {
     let newDate = text(value);
 
     // Process 'VALUE=DATE' and EXDATE
-    if ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/.test(value) === true) {
+    if (isDateOnly(value, parameters)) {
       // Just Date
 
       const comps = /^(\d{4})(\d{2})(\d{2}).*$/.exec(value);
@@ -156,7 +162,7 @@ const dateParameter = function (name) {
             Number.parseInt(comps[6], 10)
           )
         );
-        // TODO add tz
+        newDate.tz = 'Etc/UTC';
       } else if (parameters && parameters[0] && parameters[0].includes('TZID=') && parameters[0].split('=')[1]) {
         // Get the timeozone from trhe parameters TZID value
         let tz = parameters[0].split('=')[1];
