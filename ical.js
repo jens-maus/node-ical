@@ -122,6 +122,15 @@ const typeParameter = function (name) {
 
 const dateParameter = function (name) {
   return function (value, parameters, curr) {
+    // The regex from main gets confued by extra :
+    const pi = parameters.indexOf('TZID=tzone');
+    if (pi >= 0) {
+      // Correct the parameters with the part on the value
+      parameters[pi] = parameters[pi] + ':' + value.split(':')[0];
+      // Get the date from the field, other code uses the value parameter
+      value = value.split(':')[1];
+    }
+
     let newDate = text(value);
 
     // Process 'VALUE=DATE' and EXDATE
@@ -162,6 +171,13 @@ const dateParameter = function (name) {
         let tz = parameters[0].split('=')[1];
         let found = '';
         let offset = '';
+
+        // If this is the custom timezone from MS Outlook
+        if (tz === 'tzone://Microsoft/Custom') {
+          // Set it to the local timezone, cause we can't tell
+          tz = moment.tz.guess();
+          parameters[0] = 'TZID=' + tz;
+        }
 
         // Remove quotes if found
         tz = tz.replace(/^"(.*)"$/, '$1');
@@ -350,6 +366,38 @@ module.exports = {
 
         const par = stack.pop();
 
+        if (!curr.end) { // RFC5545, 3.6.1
+          if (curr.datetype === 'date-time') {
+            curr.end = curr.start;
+            // If the duration is not set
+          } else if (curr.duration === undefined) {
+            // Set the end to the start plus one day RFC5545, 3.6.1
+            curr.end = moment.utc(curr.start).add(1, 'days').toDate(); // New Date(moment(curr.start).add(1, 'days'));
+          } else {
+            const durationUnits =
+              {
+                // Y: 'years',
+                // M: 'months',
+                W: 'weeks',
+                D: 'days',
+                H: 'hours',
+                M: 'minutes',
+                S: 'seconds'
+              };
+            // Get the list of duration elements
+            const r = curr.duration.match(/-?\d+[YMWDHS]/g);
+            let newend = moment.utc(curr.start);
+            // Is the 1st character a negative sign?
+            const indicator = curr.duration.startsWith('-') ? -1 : 1;
+            // Process each element
+            for (const d of r) {
+              newend = newend.add(Number.parseInt(d, 10) * indicator, durationUnits[d.slice(-1)]);
+            }
+
+            curr.end = newend.toDate();
+          }
+        }
+
         if (curr.uid) {
           // If this is the first time we run into this UID, just save it.
           if (par[curr.uid] === undefined) {
@@ -411,7 +459,7 @@ module.exports = {
             // TODO: See if this causes a problem with events that have multiple recurrences per day.
             if (typeof curr.recurrenceid.toISOString === 'function') {
               par[curr.uid].recurrences[curr.recurrenceid.toISOString().slice(0, 10)] = recurrenceObject;
-            } else {
+            } else { // Removed issue 56
               throw new TypeError('No toISOString function in curr.recurrenceid', curr.recurrenceid);
             }
           }
@@ -467,7 +515,7 @@ module.exports = {
             try {
               rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
               rule = rule.replace(/\.\d{3}/, '');
-            } catch (error) {
+            } catch (error) { // This should not happen, issue 56
               throw new Error('ERROR when trying to convert to ISOString', error);
             }
           } else {
