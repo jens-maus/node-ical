@@ -720,7 +720,7 @@ vows
       }
     },
 
-    'with bad_ms_tz.ics (testing for old ms timezones before DST)': {
+    'with Office-2012-owa.ics (testing for old ms timezones before DST)': {
       topic() {
         return ical.parseFile('./test/Office-2012-owa.ics');
       },
@@ -736,7 +736,7 @@ vows
       }
     },
 
-    'with bad_ms_tz.ics (testing for old ms timezones after DST )': {
+    'with Office-2012-owa.ics (testing for old ms timezones after DST )': {
       topic() {
         return ical.parseFile('./test/Office-2012-owa.ics');
       },
@@ -752,6 +752,51 @@ vows
       }
     },
 
+    'with bad_custom_ms_tz.ics (TZID="tzone://Microsoft/Custom")': {
+      topic() {
+        return ical.parseFile('./test/bad_custom_ms_tz.ics');
+      },
+      'event with old TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === '[private]';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.equal(topic.start.toISOString().slice(0, 8), new Date(Date.UTC(2021, 2, 25, 10, 35, 0)).toISOString().slice(0, 8));
+        }
+      }
+    },
+    'with bad_custom_ms_tz.ics-no-end (testing for no end, but set same as start )': {
+      topic() {
+        return ical.parseFile('./test/bad_custom_ms_tz.ics');
+      },
+      'event with old TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === '*masked-away*';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.equal(topic.end.toISOString().slice(0, 8), topic.start.toISOString().slice(0, 8));
+        }
+      }
+    },
+    'with bad_custom_ms_tz.ics-duration (testing for no end, but negative duration)': {
+      topic() {
+        return ical.parseFile('./test/bad_custom_ms_tz.ics');
+      },
+      'event with old TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === '*masked-away2*';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2021, 2, 23, 21, 56, 56)).toISOString().slice(0, 8));
+        }
+      }
+    },
     'bad rrule': {
       topic() {
         return ical.parseFile('./test/badRRULE.ics');
