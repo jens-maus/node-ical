@@ -29,7 +29,7 @@
     "eslint": "^7.11.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-plugin-import": "^2.18.2",
-    "underscore": "1.12.1",
+    "underscore": "1.13.1",
     "vows": "^0.8.2",
     "xo": "^0.38.2",
     "pre-commit": "^1.2.2",
