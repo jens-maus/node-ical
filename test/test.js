@@ -8,8 +8,8 @@ process.env.TZ = 'America/San_Francisco';
 const assert = require('assert');
 const vows = require('vows');
 const _ = require('underscore');
-const ical = require('../node-ical');
 const moment = require('moment-timezone');
+const ical = require('../node-ical');
 
 vows
   .describe('node-ical')
@@ -199,8 +199,8 @@ vows
 
         'has a geolocation'(topic) {
           assert.ok(topic.geo, 'no geo param');
-          assert.equal(topic.geo.lat, 37.654656);
-          assert.equal(topic.geo.lon, -122.40775);
+          assert.equal(topic.geo.lat, 37.654_656);
+          assert.equal(topic.geo.lon, -122.407_75);
         },
 
         'has transparency'(topic) {

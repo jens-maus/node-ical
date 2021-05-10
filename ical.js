@@ -504,7 +504,7 @@ module.exports = {
               // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
               // Make the internally stored DATE the actual date (not UTC offseted)
               // Luxon expects local time, not utc, so gets start date wrong if not adjusted
-              curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60000));
+              curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60_000));
             } else {
               // Get rid of any time (shouldn't be any, but be sure)
               x = moment(curr.start).format('MMMM/Do/YYYY');
