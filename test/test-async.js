@@ -210,8 +210,8 @@ vows
 
         'has a geolocation'(topic) {
           assert.ok(topic.geo, 'no geo param');
-          assert.equal(topic.geo.lat, 37.654_656);
-          assert.equal(topic.geo.lon, -122.407_75);
+          assert.equal(topic.geo.lat, 37.654656);
+          assert.equal(topic.geo.lon, -122.40775);
         },
 
         'has transparency'(topic) {
