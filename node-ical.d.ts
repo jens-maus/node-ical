@@ -81,9 +81,10 @@ declare module 'node-ical' {
     created: DateWithTimeZone;
     lastmodified: DateWithTimeZone;
     rrule?: RRule;
+    attendee?: Attendee[] | Attendee;
 
     // I am not entirely sure about these, leave them as any for now..
-    organizer: any;
+    organizer: Organizer;
     exdate: any;
     geo: any;
     recurrenceid: any;
@@ -104,6 +105,26 @@ declare module 'node-ical' {
     rrule: string;
     rdate: string | string[];
   }
+
+  type Property<A> = PropertyWithArgs<A> | string;
+
+  interface PropertyWithArgs<A> {
+    val: string;
+    params: A & Record<string, unknown>;
+  }
+
+  export type Organizer = Property<{
+    CN?: string;
+  }>;
+
+  export type Attendee = Property<{
+    CUTYPE?: 'INDIVIDUAL' | 'UNKNOWN' | 'GROUP' | 'ROOM' | string;
+    ROLE?: 'CHAIR' | 'REQ-PARTICIPANT' | 'NON-PARTICIPANT' | string;
+    PARTSTAT?: 'NEEDS-ACTION' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'DELEGATED';
+    RSVP?: boolean;
+    CN?: string;
+    'X-NUM-GUESTS'?: number;
+  }>;
 
   export type DateWithTimeZone = Date & {tz: string};
   export type DateType = 'date-time' | 'date';

@@ -873,6 +873,23 @@ vows
           console.log('>E:', error, result);
         }
       }
+    },
+
+    'with test 19.ics (complex organizer)': {
+      topic() {
+        return ical.parseFile('./test/test19.ics');
+      },
+      'grabbing VEVENT task': {
+        topic(topic) {
+          return _.values(topic)[0];
+        },
+        'organizer parms'(task) {
+          assert.equal(task.organizer.params.CN, 'stomlinson@mozilla.com');
+        },
+        'organizer value'(task) {
+          assert.equal(task.organizer.val, 'mailto:stomlinson@mozilla.com');
+        }
+      }
     }
   })
   .export(module);
