@@ -64,6 +64,7 @@ declare module 'node-ical' {
 
   export interface VEvent extends BaseComponent {
     type: 'VEVENT';
+    method: Method;
     dtstamp: DateWithTimeZone;
     uid: string;
     sequence: string;
@@ -108,4 +109,5 @@ declare module 'node-ical' {
   export type DateType = 'date-time' | 'date';
   export type Transparency = 'TRANSPARENT' | 'OPAQUE';
   export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';
+  export type Method = 'PUBLISH' | 'REQUEST' | 'REPLY' | 'ADD' | 'CANCEL' | 'REFRESH' | 'COUNTER' | 'DECLINECOUNTER'
 }
