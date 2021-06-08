@@ -407,6 +407,10 @@ module.exports = {
           // If this is the first time we run into this UID, just save it.
           if (par[curr.uid] === undefined) {
             par[curr.uid] = curr;
+
+            if (par.method) { // RFC5545, 3.2
+              par[curr.uid].method = par.method
+            }
           } else if (curr.recurrenceid === undefined) {
             // If we have multiple ical entries with the same UID, it's either going to be a
             // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
@@ -475,7 +479,12 @@ module.exports = {
             delete par[curr.uid].recurrenceid;
           }
         } else {
-          par[uuid()] = curr;
+          const id = uuid()
+          par[id] = curr;
+
+          if (par.method) { // RFC5545, 3.2
+            par[id].method = par.method
+          }
         }
 
         return par;
