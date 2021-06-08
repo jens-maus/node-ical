@@ -409,7 +409,7 @@ module.exports = {
             par[curr.uid] = curr;
 
             if (par.method) { // RFC5545, 3.2
-              par[curr.uid].method = par.method
+              par[curr.uid].method = par.method;
             }
           } else if (curr.recurrenceid === undefined) {
             // If we have multiple ical entries with the same UID, it's either going to be a
@@ -479,11 +479,11 @@ module.exports = {
             delete par[curr.uid].recurrenceid;
           }
         } else {
-          const id = uuid()
+          const id = uuid();
           par[id] = curr;
 
           if (par.method) { // RFC5545, 3.2
-            par[id].method = par.method
+            par[id].method = par.method;
           }
         }
 
