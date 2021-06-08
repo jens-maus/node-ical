@@ -109,5 +109,5 @@ declare module 'node-ical' {
   export type DateType = 'date-time' | 'date';
   export type Transparency = 'TRANSPARENT' | 'OPAQUE';
   export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';
-  export type Method = 'PUBLISH' | 'REQUEST' | 'REPLY' | 'ADD' | 'CANCEL' | 'REFRESH' | 'COUNTER' | 'DECLINECOUNTER'
+  export type Method = 'PUBLISH' | 'REQUEST' | 'REPLY' | 'ADD' | 'CANCEL' | 'REFRESH' | 'COUNTER' | 'DECLINECOUNTER';
 }
