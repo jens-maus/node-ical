@@ -81,7 +81,7 @@ declare module 'node-ical' {
     created: DateWithTimeZone;
     lastmodified: DateWithTimeZone;
     rrule?: RRule;
-    attendee?: Attendee[];
+    attendee?: Attendee[] | Attendee;
 
     // I am not entirely sure about these, leave them as any for now..
     organizer: Organizer;
