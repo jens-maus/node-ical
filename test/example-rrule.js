@@ -1,7 +1,7 @@
 /* eslint-disable max-depth */
 
 const moment = require('moment-timezone');
-const ical = require('../node-ical'); // Require('node-ical');
+const ical = require('../node-ical.js'); // Require('node-ical');
 
 const data = ical.parseFile('./example-rrule.ics');
 

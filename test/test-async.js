@@ -9,7 +9,7 @@ const assert = require('assert');
 const vows = require('vows');
 const _ = require('underscore');
 const moment = require('moment-timezone');
-const ical = require('../node-ical');
+const ical = require('../node-ical.js');
 
 console.log('START Async Tests');
 vows
