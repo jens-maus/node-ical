@@ -20,7 +20,7 @@
   "dependencies": {
     "node-fetch": "^2.6.1",
     "moment-timezone": "^0.5.31",
-    "rrule": "2.6.8",
+    "rrule": "2.6.4",
     "uuid": "^8.3.1"
   },
   "devDependencies": {
