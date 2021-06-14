@@ -40,6 +40,9 @@ vows
         },
         'datetype is date'(topic) {
           assert.equal(topic.datetype, 'date');
+        },
+        'method is PUBLISH'(topic) {
+          assert.equal(topic.method, 'PUBLISH');
         }
       },
       'event 480a': {
@@ -56,6 +59,9 @@ vows
         },
         'has a date only end datetime'(topic) {
           assert.equal(topic.end.dateOnly, true);
+        },
+        'method is PUBLISH'(topic) {
+          assert.equal(topic.method, 'PUBLISH');
         }
       },
       'event d4c8': {
@@ -69,6 +75,9 @@ vows
         },
         'datetype is date-time'(topic) {
           assert.equal(topic.datetype, 'date-time');
+        },
+        'method is PUBLISH'(topic) {
+          assert.equal(topic.method, 'PUBLISH');
         }
       },
 
@@ -80,6 +89,9 @@ vows
         },
         'has a start datetime'(topic) {
           assert.equal(topic.start, 'Next Year');
+        },
+        'method is PUBLISH'(topic) {
+          assert.equal(topic.method, 'PUBLISH');
         }
       }
     },
@@ -163,6 +175,9 @@ vows
         },
         'datetype is date-time'(topic) {
           assert.equal(topic.datetype, 'date-time');
+        },
+        'method is PUBLISH'(topic) {
+          assert.equal(topic.method, 'PUBLISH');
         }
       }
     },
@@ -222,6 +237,9 @@ vows
         'has a start'(topic) {
           assert.equal(topic.start.tz, 'America/Phoenix');
           assert.equal(topic.start.toISOString(), new Date(Date.UTC(2011, 10, 10, 2, 0, 0)).toISOString());
+        },
+        'method is PUBLISH'(topic) {
+          assert.equal(topic.method, 'PUBLISH');
         }
       }
     },
@@ -604,6 +622,9 @@ vows
         },
         'starts 28 Oct 2002 @ 01:20:30 (Local Time)'(topic) {
           assert.equal(topic.start.toISOString(), new Date(2002, 9, 28, 1, 20, 30).toISOString());
+        },
+        'method is REQUEST'(topic) {
+          assert.equal(topic.method, 'REQUEST');
         }
       },
 
@@ -621,6 +642,9 @@ vows
         },
         'starts 28 Oct 2002 @ 01:20:30 (UTC)'(topic) {
           assert.equal(topic.start.toISOString(), '2002-10-28T01:20:30.000Z');
+        },
+        'method is REQUEST'(topic) {
+          assert.equal(topic.method, 'REQUEST');
         }
       },
 
@@ -638,6 +662,9 @@ vows
         },
         'starts 28 Oct 2002 @ 06:20:30 (UTC)'(topic) {
           assert.equal(topic.start.toISOString(), '2002-10-28T06:20:30.000Z');
+        },
+        'method is REQUEST'(topic) {
+          assert.equal(topic.method, 'REQUEST');
         }
       },
 
@@ -655,6 +682,9 @@ vows
         },
         'starts 28 Oct 2002 @ 00:00:00 (Local Time)'(topic) {
           assert.equal(topic.start.toISOString(), new Date(2002, 9, 28).toISOString());
+        },
+        'method is REQUEST'(topic) {
+          assert.equal(topic.method, 'REQUEST');
         }
       },
 
@@ -672,6 +702,9 @@ vows
         },
         'starts 28 Oct 2002 @ 00:00:00 (Local Time)'(topic) {
           assert.equal(topic.start.toISOString(), new Date(2002, 9, 28).toISOString());
+        },
+        'method is REQUEST'(topic) {
+          assert.equal(topic.method, 'REQUEST');
         }
       }
     },
@@ -838,6 +871,23 @@ vows
         assert.instanceOf(error, Error);
         if (!error) {
           console.log('>E:', error, result);
+        }
+      }
+    },
+
+    'with test 19.ics (complex organizer)': {
+      topic() {
+        return ical.parseFile('./test/test19.ics');
+      },
+      'grabbing VEVENT task': {
+        topic(topic) {
+          return _.values(topic)[0];
+        },
+        'organizer parms'(task) {
+          assert.equal(task.organizer.params.CN, 'stomlinson@mozilla.com');
+        },
+        'organizer value'(task) {
+          assert.equal(task.organizer.val, 'mailto:stomlinson@mozilla.com');
         }
       }
     }
