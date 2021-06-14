@@ -180,7 +180,10 @@ const dateParameter = function (name) {
 
     let newDate = text(value);
 
-    curr[`orig${name}`] = value;
+    // Save original DTSTART to use in RRule creation
+    if (name === 'start' && !curr.origStart) {
+      curr.origStart = value;
+    }
 
     // Process 'VALUE=DATE' and EXDATE
     if (isDateOnly(value, parameters)) {
@@ -570,7 +573,7 @@ module.exports = {
           // If the original date has a TZID, create rrule with original date with timezone set
           if (curr.start.tz) {
             const tz = getTimeZone(curr.start.tz);
-            rule += `;DTSTART;TZID=${tz}:${curr.origstart}`;
+            rule += `;DTSTART;TZID=${tz}:${curr.origStart}`;
           } else if (curr.start && typeof curr.start.toISOString === 'function') {
             // If the date has an toISOString function
             try {

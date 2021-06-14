@@ -71,6 +71,7 @@ declare module 'node-ical' {
     transparency: Transparency;
     class: Class;
     summary: string;
+    origStart: string;
     start: DateWithTimeZone;
     datetype: DateType;
     end: DateWithTimeZone;
