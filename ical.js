@@ -113,6 +113,47 @@ function getIanaTZFromMS(msTZName) {
   return he ? he.iana[0] : null;
 }
 
+function getTimeZone(value) {
+  let tz = value;
+  let found = '';
+  // If this is the custom timezone from MS Outlook
+  if (tz === 'tzone://Microsoft/Custom') {
+    // Set it to the local timezone, cause we can't tell
+    tz = moment.tz.guess();
+  }
+
+  // Remove quotes if found
+  tz = tz.replace(/^"(.*)"$/, '$1');
+
+  // Watch out for windows timezones
+  if (tz && tz.includes(' ')) {
+    const tz1 = getIanaTZFromMS(tz);
+    if (tz1) {
+      tz = tz1;
+    }
+  }
+
+  // Watch out for offset timezones
+  // If the conversion above didn't find any matching IANA tz
+  // And offset is still present
+  if (tz && tz.startsWith('(')) {
+    // Extract just the offset
+    const regex = /[+|-]\d*:\d*/;
+    tz = null;
+    found = tz.match(regex);
+  }
+
+  // Timezone not confirmed yet
+  if (found === '') {
+    // Lookup tz
+    found = moment.tz.names().find(zone => {
+      return zone === tz;
+    });
+  }
+
+  return found === '' ? tz : found;
+}
+
 function isDateOnly(value, parameters) {
   const dateOnly = ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/.test(value) === true);
   return dateOnly;
@@ -138,6 +179,11 @@ const dateParameter = function (name) {
     }
 
     let newDate = text(value);
+
+    // Save original DTSTART to use in RRule creation
+    if (name === 'start' && !curr.origStart) {
+      curr.origStart = value;
+    }
 
     // Process 'VALUE=DATE' and EXDATE
     if (isDateOnly(value, parameters)) {
@@ -524,17 +570,22 @@ module.exports = {
             }
           }
 
-          // If the date has an toISOString function
-          if (curr.start && typeof curr.start.toISOString === 'function') {
+          // If the original date has a TZID, create rrule with original date with timezone set
+          if (curr.start.tz) {
+            const tz = getTimeZone(curr.start.tz);
+            rule += `;DTSTART;TZID=${tz}:${curr.origStart}`;
+          } else if (curr.start && typeof curr.start.toISOString === 'function') {
+            // If the date has an toISOString function
             try {
               rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
-              rule = rule.replace(/\.\d{3}/, '');
             } catch (error) { // This should not happen, issue 56
               throw new Error('ERROR when trying to convert to ISOString', error);
             }
-          } else {
+          } else if (curr.start && typeof curr.start.toISOString !== 'function') {
             throw new Error('No toISOString function in curr.start', curr.start);
           }
+
+          rule = rule.replace(/\.\d{3}/, '');
         }
 
         // Make sure to catch error from rrule.fromString()

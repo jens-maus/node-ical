@@ -200,3 +200,52 @@ ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, function (err, da
     }
 });
 ```
+
+### Recurrence rule (RRule)
+
+Recurrence rule will be created with timezone **if present in `DTSTART`**
+
+To get correct date from recurrences in the recurrence rule, you need to take the original timezone and your local timezone into account
+
+If no timezone were provided when recurrence rule were created, recurrence dates should take original start timezoneoffset and the current dates timezoneoffset into account
+
+```javascript
+const ical = require('node-ical');
+const moment = require('moment-timezone');
+
+ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, function (err, data) {
+    for (let k in data) {
+        if (!Object.prototype.hasOwnProperty.call(data, k)) continue;
+
+        const event = data[k];
+        if (event.type !== 'VEVENT' || !event.rrule) continue;
+        
+        const dates = event.rrule.between(new Date(2021, 0, 1, 0, 0, 0, 0), new Date(2021, 11, 31, 0, 0, 0, 0))
+        if (dates.length === 0) continue;
+
+        console.log('Summary:', event.summary);
+        console.log('Original start:', event.start);
+        console.log('RRule start:', `${event.rrule.origOptions.dtstart} [${event.rrule.origOptions.tzid}]`)
+
+        dates.forEach(date => {
+            let newDate
+            if (event.rrule.origOptions.tzid) {
+                // tzid present (calculate offset from recurrence start)
+                const dateTimezone = moment.tz.zone('UTC')
+                const localTimezone = moment.tz.guess()
+                const tz = event.rrule.origOptions.tzid === localTimezone ? event.rrule.origOptions.tzid : localTimezone
+                const timezone = moment.tz.zone(tz)
+                const offset = timezone.utcOffset(date) - dateTimezone.utcOffset(date)
+                newDate = moment(date).add(offset, 'minutes').toDate()
+            } else {
+                // tzid not present (calculate offset from original start)
+                newDate = new Date(date.setHours(date.getHours() - ((event.start.getTimezoneOffset() - date.getTimezoneOffset()) / 60)))
+            }
+            const start = moment(newDate)
+            console.log('Recurrence start:', start)
+        })
+
+        console.log('-----------------------------------------------------------------------------------------');
+    }
+});
+```
