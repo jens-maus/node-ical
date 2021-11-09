@@ -1,6 +1,5 @@
 const fs = require('fs');
-const fetch = require('node-fetch');
-
+const axios = require('axios');
 const ical = require('./ical.js');
 
 /**
@@ -88,7 +87,7 @@ const autodetect = {};
  * Download an iCal file from the web and parse it.
  *
  * @param {string} url                - URL of file to request.
- * @param {Object|icsCallback} [opts] - Options to pass to fetch() from npm:node-fetch.
+ * @param {Object|icsCallback} [opts] - Options to pass to axios.get() from npm:axios.
  *                                      Alternatively you can pass the callback function directly.
  *                                      If no callback is provided a promise will be returned.
  * @param {icsCallback} [cb]          - Callback function.
@@ -98,7 +97,7 @@ const autodetect = {};
  */
 async.fromURL = function (url, options, cb) {
   return promiseCallback((resolve, reject) => {
-    fetch(url, options)
+    axios.get(url, options)
       .then(response => {
         // If (response.status !== 200) {
         // all ok status codes should be accepted (any 2XX code)
@@ -107,9 +106,8 @@ async.fromURL = function (url, options, cb) {
           return;
         }
 
-        return response;
+        return response.data;
       })
-      .then(response => response.text())
       .then(data => {
         ical.parseICS(data, (error, ics) => {
           if (error) {

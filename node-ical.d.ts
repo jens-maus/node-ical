@@ -1,5 +1,5 @@
 declare module 'node-ical' {
-  import {RequestInit} from 'node-fetch';
+  import {AxiosRequestConfig} from 'axios';
   import {RRule} from 'rrule';
 
   /**
@@ -17,7 +17,7 @@ declare module 'node-ical' {
      * Methods (Async)
      */
   export interface NodeICalAsync {
-    fromURL: ((url: string, callback: NodeIcalCallback) => void) & ((url: string, options: RequestInit | NodeIcalCallback, callback?: NodeIcalCallback) => void) & ((url: string) => Promise<CalendarResponse>);
+    fromURL: ((url: string, callback: NodeIcalCallback) => void) & ((url: string, options: AxiosRequestConfig | NodeIcalCallback, callback?: NodeIcalCallback) => void) & ((url: string) => Promise<CalendarResponse>);
 
     parseICS: ((body: string, callback: NodeIcalCallback) => void) & ((body: string) => Promise<CalendarResponse>);
 
@@ -31,7 +31,7 @@ declare module 'node-ical' {
      */
   export function fromURL(url: string, callback: NodeIcalCallback): void;
 
-  export function fromURL(url: string, options: RequestInit | NodeIcalCallback, callback?: NodeIcalCallback): void;
+  export function fromURL(url: string, options: AxiosRequestConfig | NodeIcalCallback, callback?: NodeIcalCallback): void;
 
   export function fromURL(url: string): Promise<CalendarResponse>;
 
@@ -83,6 +83,8 @@ declare module 'node-ical' {
     lastmodified: DateWithTimeZone;
     rrule?: RRule;
     attendee?: Attendee[] | Attendee;
+    /* eslint-disable-next-line @typescript-eslint/ban-types */
+    recurrences?: Record<string, Omit<VEvent, 'recurrences'>>;
 
     // I am not entirely sure about these, leave them as any for now..
     organizer: Organizer;
