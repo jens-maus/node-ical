@@ -82,6 +82,7 @@ declare module 'node-ical' {
     lastmodified: DateWithTimeZone;
     rrule?: RRule;
     attendee?: Attendee[] | Attendee;
+    recurrences?: {[dateKey: string]: Omit<VEvent, 'recurrences'>};
 
     // I am not entirely sure about these, leave them as any for now..
     organizer: Organizer;
