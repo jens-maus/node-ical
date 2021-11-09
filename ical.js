@@ -180,11 +180,6 @@ const dateParameter = function (name) {
 
     let newDate = text(value);
 
-    // Save original DTSTART to use in RRule creation
-    if (name === 'start' && !curr.origStart) {
-      curr.origStart = value;
-    }
-
     // Process 'VALUE=DATE' and EXDATE
     if (isDateOnly(value, parameters)) {
       // Just Date
@@ -570,22 +565,24 @@ module.exports = {
             }
           }
 
-          // If the original date has a TZID, create rrule with original date with timezone set
-          if (curr.start.tz) {
-            const tz = getTimeZone(curr.start.tz);
-            rule += `;DTSTART;TZID=${tz}:${curr.origStart}`;
-          } else if (curr.start && typeof curr.start.toISOString === 'function') {
-            // If the date has an toISOString function
+          // If the date has an toISOString function
+          if (curr.start && typeof curr.start.toISOString === 'function') {
             try {
-              rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
-            } catch (error) { // This should not happen, issue 56
+              // If the original date has a TZID, add it
+              if (curr.start.tz) {
+                const tz = getTimeZone(curr.start.tz);
+                rule += `;DTSTART;TZID=${tz}:${curr.start.toISOString().replace(/[-:]/g, '')}`;
+              } else {
+                rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
+              }
+
+              rule = rule.replace(/\.\d{3}/, '');
+            } catch (error) { // This should not happen, issue #56
               throw new Error('ERROR when trying to convert to ISOString', error);
             }
-          } else if (curr.start && typeof curr.start.toISOString !== 'function') {
+          } else {
             throw new Error('No toISOString function in curr.start', curr.start);
           }
-
-          rule = rule.replace(/\.\d{3}/, '');
         }
 
         // Make sure to catch error from rrule.fromString()
