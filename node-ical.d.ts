@@ -1,4 +1,4 @@
-declare module 'node-ical' {
+declare module '@flowr-es/node-ical' {
   import {AxiosRequestConfig} from 'axios';
   import {RRule} from 'rrule';
 
@@ -100,7 +100,7 @@ declare module 'node-ical' {
     prodid?: string;
     version?: string;
     calscale?: 'GREGORIAN' | string;
-    method?: Class;
+    method?: Method;
     'WR-CALNAME'?: string;
     'WR-TIMEZONE'?: string;
   }
