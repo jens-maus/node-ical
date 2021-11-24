@@ -21,7 +21,7 @@
     "axios": "^0.24.0",
     "moment-timezone": "^0.5.31",
     "rrule": "2.6.4",
-    "nanoid": "^3.1.30"
+    "uuid": "^8.3.1"
   },
   "devDependencies": {
     "diff": ">=3.5.0",

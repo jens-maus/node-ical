@@ -1,6 +1,6 @@
 /* eslint-disable max-depth, max-params, no-warning-comments, complexity */
 
-const {nanoid} = require('nanoid');
+const {v4: uuid} = require('uuid');
 const moment = require('moment-timezone');
 const rrule = require('rrule').RRule;
 
@@ -526,7 +526,7 @@ module.exports = {
             delete par[curr.uid].recurrenceid;
           }
         } else {
-          const id = nanoid();
+          const id = uuid();
           par[id] = curr;
 
           if (par.method) { // RFC5545, 3.2
