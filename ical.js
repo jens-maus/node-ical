@@ -1,6 +1,6 @@
 /* eslint-disable max-depth, max-params, no-warning-comments, complexity */
 
-const {v4: uuid} = require('uuid');
+const {nanoid} = require('nanoid');
 const moment = require('moment-timezone');
 const rrule = require('rrule').RRule;
 
@@ -395,6 +395,7 @@ module.exports = {
           // Scan all high level object in curr and drop all strings
           let key;
           let object;
+          const highLevel = {};
 
           for (key in curr) {
             if (!{}.hasOwnProperty.call(curr, key)) {
@@ -403,8 +404,13 @@ module.exports = {
 
             object = curr[key];
             if (typeof object === 'string') {
+              highLevel[key] = object;
               delete curr[key];
             }
+          }
+
+          if (highLevel.type) {
+            curr[highLevel.type.toLowerCase()] = highLevel;
           }
 
           return curr;
@@ -520,7 +526,7 @@ module.exports = {
             delete par[curr.uid].recurrenceid;
           }
         } else {
-          const id = uuid();
+          const id = nanoid();
           par[id] = curr;
 
           if (par.method) { // RFC5545, 3.2
