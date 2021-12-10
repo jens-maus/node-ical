@@ -74,7 +74,7 @@ const storeValueParameter = function (name) {
 
 const storeParameter = function (name) {
   return function (value, parameters, curr) {
-    const data = parameters && parameters.length > 0 && !(parameters.length === 1 && parameters[0] === 'CHARSET=utf-8') ? {params: parseParameters(parameters), val: text(value)} : text(value);
+    const data = parameters && parameters.length > 0 && !(parameters.length === 1 && (parameters[0] === 'CHARSET=utf-8' || parameters[0] === 'VALUE=TEXT')) ? {params: parseParameters(parameters), val: text(value)} : text(value);
 
     return storeValueParameter(name)(data, curr);
   };
