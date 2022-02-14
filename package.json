@@ -18,7 +18,7 @@
     "url": "git://github.com/jens-maus/node-ical.git"
   },
   "dependencies": {
-    "axios": "^0.24.0",
+    "axios": "^0.26.0",
     "moment-timezone": "^0.5.31",
     "rrule": "2.6.4",
     "uuid": "^8.3.1"
