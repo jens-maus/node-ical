@@ -20,10 +20,6 @@ const text = function (t = '') {
     .replace(/\\\\/g, '\\');
 };
 
-const normalizeLineEndings = function (string, normalized = '\r\n') {
-  return string.replace(/\r?\n/g, normalized);
-};
-
 const parseValue = function (value) {
   if (value === 'TRUE') {
     return true;
@@ -709,7 +705,7 @@ module.exports = {
   },
 
   parseICS(string, cb) {
-    const lines = normalizeLineEndings(string);
+    const lines = string.split(/\r?\n/);
     let ctx;
 
     if (cb) {
