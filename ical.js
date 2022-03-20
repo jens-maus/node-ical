@@ -704,27 +704,8 @@ module.exports = {
     }
   },
 
-  getLineBreakChar(string) {
-    const indexOfLF = string.indexOf('\n', 1); // No need to check first-character
-
-    if (indexOfLF === -1) {
-      if (string.includes('\r')) {
-        return '\r';
-      }
-
-      return '\n';
-    }
-
-    if (string[indexOfLF - 1] === '\r') {
-      return '\r?\n';
-    }
-
-    return '\n';
-  },
-
   parseICS(string, cb) {
-    const lineEndType = this.getLineBreakChar(string);
-    const lines = string.split(lineEndType === '\n' ? /\n/ : /\r?\n/);
+    const lines = string.split(/\r?\n/);
     let ctx;
 
     if (cb) {
