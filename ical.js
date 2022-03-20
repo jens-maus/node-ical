@@ -20,9 +20,9 @@ const text = function (t = '') {
     .replace(/\\\\/g, '\\');
 };
 
-const normalizeLineEndings = function (str, normalized = '\r\n') {
-  return str.replace(/\r?\n/g, normalized);
-}
+const normalizeLineEndings = function (string, normalized = '\r\n') {
+  return string.replace(/\r?\n/g, normalized);
+};
 
 const parseValue = function (value) {
   if (value === 'TRUE') {
