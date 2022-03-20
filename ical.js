@@ -20,6 +20,10 @@ const text = function (t = '') {
     .replace(/\\\\/g, '\\');
 };
 
+const normalizeLineEndings = function (str, normalized = '\r\n') {
+  return str.replace(/\r?\n/g, normalized);
+}
+
 const parseValue = function (value) {
   if (value === 'TRUE') {
     return true;
@@ -704,27 +708,8 @@ module.exports = {
     }
   },
 
-  getLineBreakChar(string) {
-    const indexOfLF = string.indexOf('\n', 1); // No need to check first-character
-
-    if (indexOfLF === -1) {
-      if (string.includes('\r')) {
-        return '\r';
-      }
-
-      return '\n';
-    }
-
-    if (string[indexOfLF - 1] === '\r') {
-      return '\r?\n';
-    }
-
-    return '\n';
-  },
-
   parseICS(string, cb) {
-    const lineEndType = this.getLineBreakChar(string);
-    const lines = string.split(lineEndType === '\n' ? /\n/ : /\r?\n/);
+    const lines = normalizeLineEndings(string);
     let ctx;
 
     if (cb) {
