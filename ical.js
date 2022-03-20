@@ -395,6 +395,7 @@ module.exports = {
           // Scan all high level object in curr and drop all strings
           let key;
           let object;
+          const highLevel = {};
 
           for (key in curr) {
             if (!{}.hasOwnProperty.call(curr, key)) {
@@ -403,8 +404,13 @@ module.exports = {
 
             object = curr[key];
             if (typeof object === 'string') {
+              highLevel[key] = object;
               delete curr[key];
             }
+          }
+
+          if (highLevel.type) {
+            curr[highLevel.type.toLowerCase()] = highLevel;
           }
 
           return curr;

@@ -50,7 +50,7 @@ declare module 'node-ical' {
 
   export type CalendarResponse = Record<string, CalendarComponent>;
 
-  export type CalendarComponent = VTimeZone | VEvent;
+  export type CalendarComponent = VTimeZone | VEvent | VCalendar;
 
   export type VTimeZone = TimeZoneProps & TimeZoneDictionary;
 
@@ -90,6 +90,19 @@ declare module 'node-ical' {
     exdate: any;
     geo: any;
     recurrenceid: any;
+  }
+
+  /**
+   * Contains alls metadata of the Calendar
+   */
+  export interface VCalendar extends BaseComponent {
+    type: 'VCALENDAR';
+    prodid?: string;
+    version?: string;
+    calscale?: 'GREGORIAN' | string;
+    method?: Method;
+    'WR-CALNAME'?: string;
+    'WR-TIMEZONE'?: string;
   }
 
   export interface BaseComponent {
