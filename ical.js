@@ -420,7 +420,7 @@ module.exports = {
 
         if (!curr.end) { // RFC5545, 3.6.1
           if (curr.datetype === 'date-time') {
-            curr.end = curr.start;
+            curr.end = new Date(curr.start.getTime());
             // If the duration is not set
           } else if (curr.duration === undefined) {
             // Set the end to the start plus one day RFC5545, 3.6.1
