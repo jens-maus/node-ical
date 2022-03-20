@@ -1,4 +1,4 @@
-declare module '@flowr-es/node-ical' {
+declare module 'node-ical' {
   import {AxiosRequestConfig} from 'axios';
   import {RRule} from 'rrule';
 
