@@ -628,10 +628,11 @@ vows
             return x.summary === '[private]';
           })[0];
         },
-        'is not valid timezone'(topic) {
-          assert.equal(topic.start.tz, 'Customized Time Zone');
+        'timezone will not be "Customized Time Zone"'(topic) {
+          assert.notEqual(topic.start.tz, 'Customized Time Zone');
+          assert.notEqual(topic.start.tz, undefined);
         },
-        'rrule tzid is not "undefined"'(topic) {
+        'rrule tzid will not be "undefined"'(topic) {
           assert.notEqual(topic.rrule.origOptions.tzid, undefined);
         }
       }
