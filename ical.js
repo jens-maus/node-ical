@@ -116,8 +116,8 @@ function getIanaTZFromMS(msTZName) {
 function getTimeZone(value) {
   let tz = value;
   let found = '';
-  // If this is the custom timezone from MS Outlook
-  if (tz === 'tzone://Microsoft/Custom') {
+  // If this is a custom timezone from MS Outlook / Exchange
+  if (['tzone://Microsoft/Custom', 'Customized Time Zone'].includes(tz)) {
     // Set it to the local timezone, cause we can't tell
     tz = moment.tz.guess();
   }
@@ -151,7 +151,13 @@ function getTimeZone(value) {
     });
   }
 
-  return found === '' ? tz : found;
+  // If timezone not found in moment, return the timezone value we got in or the timezone value guessed by moment
+  if (!found) {
+    return tz;
+  }
+
+  // Return the timezone found through Iana
+  return found;
 }
 
 function isDateOnly(value, parameters) {
@@ -218,8 +224,8 @@ const dateParameter = function (name) {
         let found = '';
         let offset = '';
 
-        // If this is the custom timezone from MS Outlook
-        if (tz === 'tzone://Microsoft/Custom') {
+        // If this is a custom timezone from MS Outlook / Exchange
+        if (['tzone://Microsoft/Custom', 'Customized Time Zone'].includes(tz)) {
           // Set it to the local timezone, cause we can't tell
           tz = moment.tz.guess();
           parameters[0] = 'TZID=' + tz;

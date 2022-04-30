@@ -749,6 +749,9 @@ vows
         },
         'is not valid timezone'(topic) {
           assert.equal(topic.start.tz, 'Customized Time Zone');
+        },
+        'rrule tzid is not "undefined"'(topic) {
+          assert.notEqual(topic.rrule.origOptions.tzid, undefined);
         }
       }
     },
