@@ -20,7 +20,7 @@
   "dependencies": {
     "axios": "^0.27.2",
     "moment-timezone": "^0.5.31",
-    "rrule": "2.6.4",
+    "rrule": "2.7.0",
     "uuid": "^8.3.1"
   },
   "devDependencies": {
