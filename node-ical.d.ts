@@ -84,6 +84,7 @@ declare module 'node-ical' {
     attendee?: Attendee[] | Attendee;
     /* eslint-disable-next-line @typescript-eslint/ban-types */
     recurrences?: Record<string, Omit<VEvent, 'recurrences'>>;
+    status?: VEventStatus;
 
     // I am not entirely sure about these, leave them as any for now..
     organizer: Organizer;
@@ -146,4 +147,5 @@ declare module 'node-ical' {
   export type Transparency = 'TRANSPARENT' | 'OPAQUE';
   export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';
   export type Method = 'PUBLISH' | 'REQUEST' | 'REPLY' | 'ADD' | 'CANCEL' | 'REFRESH' | 'COUNTER' | 'DECLINECOUNTER';
+  export type VEventStatus = 'TENTATIVE' | 'CONFIRMED' | 'CANCELLED';
 }
