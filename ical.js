@@ -219,7 +219,7 @@ const dateParameter = function (name) {
         let offset = '';
 
         // If this is the custom timezone from MS Outlook
-        if (tz === 'tzone://Microsoft/Custom') {
+        if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)') {
           // Set it to the local timezone, cause we can't tell
           tz = moment.tz.guess();
           parameters[0] = 'TZID=' + tz;
