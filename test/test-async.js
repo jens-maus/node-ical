@@ -753,6 +753,56 @@ vows
           console.log('>E:', error, result);
         }
       }
+    },
+
+    'with test20.ics (testing for VEVENT status)': {
+      topic() {
+        ical.parseFile('./test/test20.ics', (error, ctx) => {
+          if (!error) {
+            this.callback(null, ctx);
+          }
+        });
+      },
+      'using event with tentative status': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '31a1ffc9-9b76-465b-ae4a-cadb694c9d37';
+          })[0];
+        },
+        'has tentative status'(event) {
+          assert.equal(event.status, 'TENTATIVE');
+        }
+      },
+      'using event with confirmed status': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === 'F00F3710-BF4D-46D3-9A2C-1037AB24C6AC';
+          })[0];
+        },
+        'has confirmed status'(event) {
+          assert.equal(event.status, 'CONFIRMED');
+        }
+      },
+      'using event with cancelled status': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '8CAB46C5-669F-4249-B1AD-52BFA72F4E0A';
+          })[0];
+        },
+        'has cancelled status'(event) {
+          assert.equal(event.status, 'CANCELLED');
+        }
+      },
+      'using event without status': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '99F615DE-82C6-4CEF-97B8-CD0D3E1EE0D3';
+          })[0];
+        },
+        'has no status property'(event) {
+          assert.equal(event.status, undefined);
+        }
+      }
     }
   })
   .export(module);
