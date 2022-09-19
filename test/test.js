@@ -748,7 +748,7 @@ vows
           })[0];
         },
         'is not valid timezone'(topic) {
-          assert.equal(topic.start.tz, 'Customized Time Zone');
+          assert.notEqual(topic.start.tz, 'Customized Time Zone');
         }
       }
     },
