@@ -117,7 +117,7 @@ function getTimeZone(value) {
   let tz = value;
   let found = '';
   // If this is the custom timezone from MS Outlook
-  if (tz === 'tzone://Microsoft/Custom' || tz === 'Customized Time Zone' || tz.startsWith('tzone://Microsoft/')) {
+  if (tz === 'tzone://Microsoft/Custom' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
     // Set it to the local timezone, cause we can't tell
     tz = moment.tz.guess();
   }
@@ -219,7 +219,7 @@ const dateParameter = function (name) {
         let offset = '';
 
         // If this is the custom timezone from MS Outlook
-        if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz === 'Customized Time Zone' || tz.startsWith('tzone://Microsoft/')) {
+        if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
           // Set it to the local timezone, cause we can't tell
           tz = moment.tz.guess();
           parameters[0] = 'TZID=' + tz;

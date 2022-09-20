@@ -753,6 +753,22 @@ vows
       }
     },
 
+    'with bad_custom_ms_tz2.ics (testing for unexpected ms timezone)': {
+      topic() {
+        return ical.parseFile('./test/bad_custom_ms_tz2.ics');
+      },
+      'event with bad TZ': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === '[private]';
+          })[0];
+        },
+        'is not valid timezone'(topic) {
+          assert.notEqual(topic.start.tz, 'Customized Time Zone 1');
+        }
+      }
+    },
+
     'with Office-2012-owa.ics (testing for old ms timezones before DST)': {
       topic() {
         return ical.parseFile('./test/Office-2012-owa.ics');
