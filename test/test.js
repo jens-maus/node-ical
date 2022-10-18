@@ -952,6 +952,21 @@ vows
           assert.equal(event.status, undefined);
         }
       }
+    },
+
+    'with test21.ics (testing dtstart of rrule with old timezone)': {
+      topic() {
+        return ical.parseFile('./test/test21.ics');
+      },
+      'recurring yearly event (14 july)': {
+        topic(events) {
+          const ev = _.values(events)[0];
+          return ev.rrule.between(new Date(2013, 0, 1), new Date(2014, 0, 1));
+        },
+        'dt start well set'(topic) {
+          assert.equal(topic[0].toDateString(), new Date(2013, 6, 14).toDateString());
+        }
+      }
     }
   })
   .export(module);
