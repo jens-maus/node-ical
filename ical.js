@@ -540,7 +540,6 @@ module.exports = {
       // Recurrence rules are only valid for VEVENT, VTODO, and VJOURNAL.
       // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
       // due to the subtypes.
-
       if ((value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') && curr.rrule) {
         let rule = curr.rrule.replace('RRULE:', '');
         // Make sure the rrule starts with FREQ=
@@ -577,7 +576,9 @@ module.exports = {
               // If the original date has a TZID, add it
               if (curr.start.tz) {
                 const tz = getTimeZone(curr.start.tz);
-                rule += `;DTSTART;TZID=${tz}:${curr.start.toISOString().replace(/[-:]/g, '')}`;
+                const tzoffset = moment.tz(tz).utcOffset() * -60000;
+                const localISOTime = (new Date(curr.start - tzoffset)).toISOString().slice(0, -1);
+                rule += `;DTSTART;TZID=${tz}:${localISOTime.replace(/[-:]/g, '')}`;
               } else {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
               }

@@ -954,17 +954,68 @@ vows
       }
     },
 
-    'with test21.ics (testing dtstart of rrule with old timezone)': {
+    'with test21.ics (testing dtstart of rrule with timezones)': {
       topic() {
         return ical.parseFile('./test/test21.ics');
       },
-      'recurring yearly event (14 july)': {
+      'first event': {
         topic(events) {
-          const ev = _.values(events)[0];
-          return ev.rrule.between(new Date(2013, 0, 1), new Date(2014, 0, 1));
+          return _.select(_.values(events), x => {
+            return x.uid === '000021a';
+          })[0];
+        },
+        'datetype is date-time'(topic) {
+          assert.equal(topic.datetype, 'date-time');
+        },
+        'has GMT+1 timezone'(topic) {
+          assert.equal(topic.start.tz, 'Europe/Berlin');
+        },
+        'starts 14 Jul 2022 @ 12:00:00 (UTC)'(topic) {
+          assert.equal(topic.start.toISOString(), '2022-07-14T12:00:00.000Z');
+        }
+      },
+      'recurring yearly frist event (14 july)': {
+        topic(events) {
+          const ev = _.select(_.values(events), x => {
+            return x.uid === '000021a';
+          })[0];
+          return ev.rrule.between(new Date(2023, 0, 1), new Date(2024, 0, 1))[0];
         },
         'dt start well set'(topic) {
-          assert.equal(topic[0].toDateString(), new Date(2013, 6, 14).toDateString());
+          assert.equal(topic.toDateString(), new Date(2023, 6, 14).toDateString());
+        },
+        'starts 14 Jul 2023 @ 12:00:00 (UTC)'(topic) {
+          assert.equal(topic.toISOString(), '2023-07-14T12:00:00.000Z');
+        }
+      },
+      'second event': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '000021b';
+          })[0];
+        },
+        'datetype is date-time'(topic) {
+          assert.equal(topic.datetype, 'date-time');
+        },
+        'has GMT+1 timezone'(topic) {
+          assert.equal(topic.start.tz, '(GMT +01:00)');
+        },
+        'starts 15 Jul 2022 @ 12:00:00 (UTC)'(topic) {
+          assert.equal(topic.start.toISOString(), '2022-07-15T12:00:00.000Z');
+        }
+      },
+      'recurring yearly second event (15 july)': {
+        topic(events) {
+          const ev = _.select(_.values(events), x => {
+            return x.uid === '000021b';
+          })[0];
+          return ev.rrule.between(new Date(2023, 0, 1), new Date(2024, 0, 1))[0];
+        },
+        'dt start well set'(topic) {
+          assert.equal(topic.toDateString(), new Date(2023, 6, 15).toDateString());
+        },
+        'starts 15 Jul 2023 @ 12:00:00 (UTC)'(topic) {
+          assert.equal(topic.toISOString(), '2023-07-15T12:00:00.000Z');
         }
       }
     }
