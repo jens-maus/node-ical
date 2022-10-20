@@ -138,8 +138,8 @@ function getTimeZone(value) {
   // And offset is still present
   if (tz && tz.startsWith('(')) {
     // Extract just the offset
-    const regex = /[+|-]\d*/;
-    found = 'Etc/GMT' + String(tz.match(regex));
+    const regex = /[+|-]\d+/;
+    found = 'Etc/GMT' + String(tz.match(regex)).replace(/\b0+/g, '');
     tz = null;
   }
 
@@ -216,7 +216,6 @@ const dateParameter = function (name) {
         // Get the timeozone from trhe parameters TZID value
         let tz = parameters[0].split('=')[1];
         let found = '';
-        let offset = '';
 
         // If this is the custom timezone from MS Outlook
         if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
@@ -233,20 +232,16 @@ const dateParameter = function (name) {
           const tz1 = getIanaTZFromMS(tz);
           if (tz1) {
             tz = tz1;
-            // We have a confirmed timezone, dont use offset, may confuse DST/STD time
-            offset = '';
           }
         }
 
         // Watch out for offset timezones
         // If the conversion above didn't find any matching IANA tz
-        // And oiffset is still present
         if (tz && tz.startsWith('(')) {
           // Extract just the offset
-          const regex = /[+|-]\d*:\d*/;
-          offset = tz.match(regex);
+          const regex = /[+|-]\d*/;
+          found = 'Etc/GMT' + String(tz.match(regex)).replace(/\b0+/g, '');
           tz = null;
-          found = offset;
         }
 
         // Timezone not confirmed yet
@@ -258,7 +253,8 @@ const dateParameter = function (name) {
         }
 
         // Timezone confirmed or forced to offset
-        newDate = found ? moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate() : new Date(
+        console.log('   v ' + value + ', ' + found);
+        newDate = found ? moment(value, 'YYYYMMDDTHHmmss').tz(found).toDate() : new Date(
           Number.parseInt(comps[1], 10),
           Number.parseInt(comps[2], 10) - 1,
           Number.parseInt(comps[3], 10),
@@ -266,8 +262,8 @@ const dateParameter = function (name) {
           Number.parseInt(comps[5], 10),
           Number.parseInt(comps[6], 10)
         );
-
         newDate = addTZ(newDate, parameters);
+        console.log('   n ' + newDate);
       } else {
         newDate = new Date(
           Number.parseInt(comps[1], 10),

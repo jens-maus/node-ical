@@ -150,8 +150,11 @@ vows
           });
         },
         'tzid offset correctly applied'(event) {
-          const start = new Date('2002-10-28T22:00:00.000Z');
-          assert.equal(event.start.valueOf(), start.valueOf());
+          assert.ok(moment.tz.zone(event.start.tz), 'zone does not exist');
+          const ref = '2002-10-28T22:00:00Z';
+          const start = moment(event.start).tz(event.start.tz);
+          console.log('   s ' + event.start + ', ' + event.start.tz);
+          assert.equal(start.utc().format(), ref);
         }
       }
     },
@@ -998,7 +1001,7 @@ vows
           assert.equal(topic.datetype, 'date-time');
         },
         'has GMT+1 timezone'(topic) {
-          assert.equal(topic.start.tz, '(GMT +01:00)');
+          assert.equal(topic.start.tz, '(GMT +02:00)');
         },
         'starts 15 Jul 2022 @ 12:00:00 (UTC)'(topic) {
           assert.equal(topic.start.toISOString(), '2022-07-15T12:00:00.000Z');
