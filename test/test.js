@@ -153,7 +153,6 @@ vows
           assert.ok(moment.tz.zone(event.start.tz), 'zone does not exist');
           const ref = '2002-10-28T22:00:00Z';
           const start = moment(event.start).tz(event.start.tz);
-          console.log('   s ' + event.start + ', ' + event.start.tz);
           assert.equal(start.utc().format(), ref);
         }
       }
@@ -997,28 +996,41 @@ vows
             return x.uid === '000021b';
           })[0];
         },
-        'datetype is date-time'(topic) {
-          assert.equal(topic.datetype, 'date-time');
+        'datetype is date-time'(event) {
+          assert.equal(event.datetype, 'date-time');
         },
-        'has GMT+1 timezone'(topic) {
-          assert.equal(topic.start.tz, '(GMT +02:00)');
+        'start date': {
+          topic(event) {
+            return event.start;
+          },
+          'has correct timezone'(start) {
+            assert.equal(start.tz, '(GMT +02:00)');
+          },
+          'starts 15 Jul 2022 @ 12:00:00 (UTC)'(start) {
+            assert.equal(start.toISOString(), '2022-07-15T12:00:00.000Z');
+          }
         },
-        'starts 15 Jul 2022 @ 12:00:00 (UTC)'(topic) {
-          assert.equal(topic.start.toISOString(), '2022-07-15T12:00:00.000Z');
-        }
-      },
-      'recurring yearly second event (15 july)': {
-        topic(events) {
-          const ev = _.select(_.values(events), x => {
-            return x.uid === '000021b';
-          })[0];
-          return ev.rrule.between(new Date(2023, 0, 1), new Date(2024, 0, 1))[0];
+        'has recurrences': {
+          topic(event) {
+            return event.rrule;
+          },
+          'that are defined'(rrule) {
+            assert.ok(rrule, 'no rrule defined');
+          },
+          'that have timezone info'(rrule) {
+            assert.ok(rrule.options.tzid, 'no tzid property on rrule');
+          },
+          'that keep correct timezone info in recurrences'(rrule) {
+            assert.equal(rrule.options.tzid, 'Etc/GMT-2');
+          }
         },
-        'dt start well set'(topic) {
-          assert.equal(topic.toDateString(), new Date(2023, 6, 15).toDateString());
-        },
-        'starts 15 Jul 2023 @ 12:00:00 (UTC)'(topic) {
-          assert.equal(topic.toISOString(), '2023-07-15T12:00:00.000Z');
+        'has a first recurrence': {
+          topic(event) {
+            return event.rrule.between(new Date(2023, 0, 1), new Date(2024, 0, 1))[0];
+          },
+          'that starts 15 Jul 2023 @ 12:00:00 (UTC)'(rc) {
+            assert.equal(rc.toISOString(), '2023-07-15T12:00:00.000Z');
+          }
         }
       }
     }

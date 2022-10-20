@@ -138,8 +138,18 @@ function getTimeZone(value) {
   // And offset is still present
   if (tz && tz.startsWith('(')) {
     // Extract just the offset
-    const regex = /[+|-]\d+/;
-    found = 'Etc/GMT' + String(tz.match(regex)).replace(/\b0+/g, '');
+    const offsetcomps = tz.match(/([+|-]\d+):?(\d+)/);
+    if (offsetcomps && offsetcomps[0]) {
+      if (offsetcomps[3] && offsetcomps[3] !== '00') {
+        // Unpack sub-hour offsets, even if they cannot be mapped
+        found = String(offsetcomps[0]);
+      } else {
+        // Map full-hour offsets to IANA Etc zones
+        const intoffset = -1 * Number.parseInt(offsetcomps[1], 10);
+        found = 'Etc/GMT' + (intoffset < 0 ? '' : '+') + intoffset;
+      }
+    }
+
     tz = null;
   }
 
@@ -213,9 +223,10 @@ const dateParameter = function (name) {
         );
         newDate.tz = 'Etc/UTC';
       } else if (parameters && parameters[0] && parameters[0].includes('TZID=') && parameters[0].split('=')[1]) {
-        // Get the timeozone from trhe parameters TZID value
+        // Get the timezone from the parameters TZID value
         let tz = parameters[0].split('=')[1];
         let found = '';
+        let offset = '';
 
         // If this is the custom timezone from MS Outlook
         if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
@@ -239,8 +250,17 @@ const dateParameter = function (name) {
         // If the conversion above didn't find any matching IANA tz
         if (tz && tz.startsWith('(')) {
           // Extract just the offset
-          const regex = /[+|-]\d*/;
-          found = 'Etc/GMT' + String(tz.match(regex)).replace(/\b0+/g, '');
+          const offsetcomps = tz.match(/([+|-]\d+):?(\d+)/);
+          if (offsetcomps && offsetcomps[0]) {
+            if (offsetcomps[3] && offsetcomps[3] !== '00') {
+              offset = String(offsetcomps[0]);
+              found = offset;
+            } else {
+              const intoffset = -1 * Number.parseInt(offsetcomps[1], 10);
+              found = 'Etc/GMT' + (intoffset < 0 ? '' : '+') + intoffset;
+            }
+          }
+
           tz = null;
         }
 
@@ -253,8 +273,7 @@ const dateParameter = function (name) {
         }
 
         // Timezone confirmed or forced to offset
-        console.log('   v ' + value + ', ' + found);
-        newDate = found ? moment(value, 'YYYYMMDDTHHmmss').tz(found).toDate() : new Date(
+        newDate = found ? moment.tz(value, 'YYYYMMDDTHHmmss' + offset, found).toDate() : new Date(
           Number.parseInt(comps[1], 10),
           Number.parseInt(comps[2], 10) - 1,
           Number.parseInt(comps[3], 10),
@@ -262,8 +281,8 @@ const dateParameter = function (name) {
           Number.parseInt(comps[5], 10),
           Number.parseInt(comps[6], 10)
         );
+
         newDate = addTZ(newDate, parameters);
-        console.log('   n ' + newDate);
       } else {
         newDate = new Date(
           Number.parseInt(comps[1], 10),
