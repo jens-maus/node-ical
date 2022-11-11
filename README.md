@@ -7,8 +7,6 @@
 [![Donate](https://img.shields.io/badge/donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=RAQSDY9YNZVCL)
 [![GitHub stars](https://img.shields.io/github/stars/jens-maus/node-ical.svg?style=social&label=Star)](https://github.com/jens-maus/node-ical/stargazers/)
 
-[![NPM](https://nodei.co/npm/node-ical.png?downloads=true)](https://nodei.co/npm/node-ical/)
-
 A minimal iCalendar/ICS (http://tools.ietf.org/html/rfc5545) parser for Node.js. This module is a direct fork
 of the ical.js module by Peter Braden (https://github.com/peterbraden/ical.js) which is primarily targeted
 for parsing iCalender/ICS files in a pure JavaScript environment. (ex. within the browser itself) This node-ical
