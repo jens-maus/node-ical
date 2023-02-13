@@ -952,6 +952,22 @@ vows
           assert.equal(event.status, undefined);
         }
       }
+    },
+    'with test21.ics': {
+      topic() {
+        return ical.parseFile('./test/test21.ics');
+      },
+      'using an event containing a start date without time zone': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === 'f683404f-aede-43eb-8774-27f62bb27c92';
+          })[0];
+        },
+        'it uses the timezone of the VTIMEZONE'(event) {
+          assert.equal(event.start.toJSON(), '2022-10-09T08:00:00.000Z');
+          assert.equal(event.end.toJSON(), '2022-10-09T09:00:00.000Z');
+        }
+      }
     }
   })
   .export(module);
