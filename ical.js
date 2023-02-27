@@ -91,7 +91,7 @@ const addTZ = function (dt, parameters) {
   if (parameters && p && dt) {
     dt.tz = p.TZID;
     if (dt.tz !== undefined) {
-      // Remove surrouding quotes if found at the begining and at the end of the string
+      // Remove surrounding quotes if found at the beginning and at the end of the string
       // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
       dt.tz = dt.tz.replace(/^"(.*)"$/, '$1');
     }
@@ -118,7 +118,7 @@ function getTimeZone(value) {
   let found = '';
   // If this is the custom timezone from MS Outlook
   if (tz === 'tzone://Microsoft/Custom' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-    // Set it to the local timezone, cause we can't tell
+    // Set it to the local timezone, because we can't tell
     tz = moment.tz.guess();
   }
 
@@ -168,8 +168,8 @@ const typeParameter = function (name) {
 };
 
 const dateParameter = function (name) {
-  return function (value, parameters, curr) {
-    // The regex from main gets confued by extra :
+  return function (value, parameters, curr, stack) {
+    // The regex from main gets confused by extra :
     const pi = parameters.indexOf('TZID=tzone');
     if (pi >= 0) {
       // Correct the parameters with the part on the value
@@ -213,14 +213,14 @@ const dateParameter = function (name) {
         );
         newDate.tz = 'Etc/UTC';
       } else if (parameters && parameters[0] && parameters[0].includes('TZID=') && parameters[0].split('=')[1]) {
-        // Get the timeozone from trhe parameters TZID value
+        // Get the timezone from the parameters TZID value
         let tz = parameters[0].split('=')[1];
         let found = '';
         let offset = '';
 
         // If this is the custom timezone from MS Outlook
         if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-          // Set it to the local timezone, cause we can't tell
+          // Set it to the local timezone, because we can't tell
           tz = moment.tz.guess();
           parameters[0] = 'TZID=' + tz;
         }
@@ -233,14 +233,14 @@ const dateParameter = function (name) {
           const tz1 = getIanaTZFromMS(tz);
           if (tz1) {
             tz = tz1;
-            // We have a confirmed timezone, dont use offset, may confuse DST/STD time
+            // We have a confirmed timezone, don't use offset, may confuse DST/STD time
             offset = '';
           }
         }
 
         // Watch out for offset timezones
         // If the conversion above didn't find any matching IANA tz
-        // And oiffset is still present
+        // And offset is still present
         if (tz && tz.startsWith('(')) {
           // Extract just the offset
           const regex = /[+|-]\d*:\d*/;
@@ -269,14 +269,24 @@ const dateParameter = function (name) {
 
         newDate = addTZ(newDate, parameters);
       } else {
-        newDate = new Date(
-          Number.parseInt(comps[1], 10),
-          Number.parseInt(comps[2], 10) - 1,
-          Number.parseInt(comps[3], 10),
-          Number.parseInt(comps[4], 10),
-          Number.parseInt(comps[5], 10),
-          Number.parseInt(comps[6], 10)
-        );
+        // Get the time zone from the stack
+        const stackItemWithTimeZone =
+          (stack || []).find(item => {
+            return Object.values(item).find(subItem => subItem.type === 'VTIMEZONE');
+          }) || {};
+        const vTimezone =
+          Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
+
+        newDate = vTimezone && moment.tz.zone(vTimezone.tzid) ?
+          moment.tz(value, 'YYYYMMDDTHHmmss', vTimezone.tzid).toDate() :
+          new Date(
+            Number.parseInt(comps[1], 10),
+            Number.parseInt(comps[2], 10) - 1,
+            Number.parseInt(comps[3], 10),
+            Number.parseInt(comps[4], 10),
+            Number.parseInt(comps[5], 10),
+            Number.parseInt(comps[6], 10)
+          );
       }
     }
 
@@ -606,8 +616,8 @@ module.exports = {
     URL: storeParameter('url'),
     UID: storeParameter('uid'),
     LOCATION: storeParameter('location'),
-    DTSTART(value, parameters, curr) {
-      curr = dateParameter('start')(value, parameters, curr);
+    DTSTART(value, parameters, curr, stack) {
+      curr = dateParameter('start')(value, parameters, curr, stack);
       return typeParameter('datetype')(value, parameters, curr);
     },
     DTEND: dateParameter('end'),
