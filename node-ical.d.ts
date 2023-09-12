@@ -134,13 +134,17 @@ declare module 'node-ical' {
   }>;
 
   export type Attendee = Property<{
-    CUTYPE?: 'INDIVIDUAL' | 'UNKNOWN' | 'GROUP' | 'ROOM' | string;
-    ROLE?: 'CHAIR' | 'REQ-PARTICIPANT' | 'NON-PARTICIPANT' | string;
-    PARTSTAT?: 'NEEDS-ACTION' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'DELEGATED';
+    CUTYPE?: AttendeeCUType;
+    ROLE?: AttendeeRole;
+    PARTSTAT?: AttendeePartStat;
     RSVP?: boolean;
     CN?: string;
     'X-NUM-GUESTS'?: number;
   }>;
+
+  export type AttendeeCUType = 'INDIVIDUAL' | 'UNKNOWN' | 'GROUP' | 'ROOM' | string;
+  export type AttendeeRole = 'CHAIR' | 'REQ-PARTICIPANT' | 'NON-PARTICIPANT' | string;
+  export type AttendeePartStat = 'NEEDS-ACTION' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'DELEGATED';
 
   export type DateWithTimeZone = Date & {tz: string};
   export type DateType = 'date-time' | 'date';
