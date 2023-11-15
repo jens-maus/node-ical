@@ -560,9 +560,9 @@ vows
           })[0];
         },
         'has a start'(topic) {
-          assert.equal(topic.start.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+          assert.equal(topic.start.tz, 'Asia/Bangkok');
           assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2019, 3, 30, 9, 0, 0)).toISOString().slice(0, 8));
-          assert.equal(topic.end.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+          assert.equal(topic.end.tz, 'Asia/Bangkok');
           assert.equal(topic.end.toISOString().slice(0, 8), new Date(2019, 3, 30, 5, 0, 0).toISOString().slice(0, 8));
         }
       }
@@ -966,6 +966,21 @@ vows
         'it uses the timezone of the VTIMEZONE'(event) {
           assert.equal(event.start.toJSON(), '2022-10-09T08:00:00.000Z');
           assert.equal(event.end.toJSON(), '2022-10-09T09:00:00.000Z');
+        }
+      }
+    },
+    'with test_with_tz_list.ics': {
+      topic() {
+        return ical.parseFile('./test/test_with_tz_list.ics');
+      },
+      'using an event containing a start date a list of locations for time zone': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === 'E689AEB8C02C4E2CADD8C7D3D303CEAD0';
+          })[0];
+        },
+        'has a start'(topic) {
+          assert.equal(topic.start.tz, 'Europe/Berlin');
         }
       }
     }
