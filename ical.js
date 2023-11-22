@@ -107,7 +107,26 @@ function getIanaTZFromMS(msTZName) {
   }
 
   // Get hash entry
-  const he = zoneTable[msTZName];
+  let he = zoneTable[msTZName];
+  // Handle comma separated list, if we still don't have a match
+  if (!he && msTZName.includes(',')) {
+    // Just use the first string in name list
+    const firstLocationName = msTZName.split(',')[0];
+    // Loop thru the zonetable entries, save all that match
+    const temporaryLookup = Object.keys(zoneTable).filter(tzEntry => {
+      if (tzEntry.includes(firstLocationName)) {
+        return true;
+      }
+
+      return false;
+    });
+    // If we found any
+    if (temporaryLookup.length > 0) {
+      // Use the first or only
+      he = zoneTable[temporaryLookup[0]];
+    }
+  }
+
   // If found return iana name, else null
   return he ? he.iana[0] : null;
 }
@@ -124,8 +143,8 @@ function getTimeZone(value) {
   // Remove quotes if found
   tz = tz.replace(/^"(.*)"$/, '$1');
 
-  // Watch out for windows timezones
-  if (tz && tz.includes(' ')) {
+  // Watch out for windows timezones, or multiple with comma separatos
+  if (tz && (tz.includes(' ') || tz.includes(','))) {
     const tz1 = getIanaTZFromMS(tz);
     if (tz1) {
       tz = tz1;
@@ -228,12 +247,14 @@ const dateParameter = function (name) {
         tz = tz.replace(/^"(.*)"$/, '$1');
 
         // Watch out for windows timezones
-        if (tz && tz.includes(' ')) {
-          const tz1 = getIanaTZFromMS(tz);
+        if (tz && (tz.includes(' ') || tz.includes(','))) {
+          const tz1 = getTimeZone(tz);
           if (tz1) {
             tz = tz1;
             // We have a confirmed timezone, don't use offset, may confuse DST/STD time
             offset = '';
+            // Fix the parameters for later use
+            parameters[0] = 'TZID=' + tz;
           }
         }
 
@@ -266,6 +287,7 @@ const dateParameter = function (name) {
           Number.parseInt(comps[6], 10)
         );
 
+        // Make sure to correct the parameters if the TZID= is changed
         newDate = addTZ(newDate, parameters);
       } else {
         // Get the time zone from the stack
