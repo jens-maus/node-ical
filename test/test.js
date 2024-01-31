@@ -311,10 +311,10 @@ vows
         'task completed'(task) {
           assert.equal(task.summary, 'Event with an alarm');
           assert.equal(task.alarms?.length, 1);
-          const alarm = task.alarms[0]
-          assert.equal(alarm.description, "Reminder")
-          assert.equal(alarm.action, "DISPLAY")
-          assert.equal(alarm.trigger.val, "-PT5M")
+          const alarm = task.alarms[0];
+          assert.equal(alarm.description, 'Reminder');
+          assert.equal(alarm.action, 'DISPLAY');
+          assert.equal(alarm.trigger.val, '-PT5M');
         }
       }
     },
@@ -892,7 +892,7 @@ vows
       },
       'are passed back to the callback': (error, result) => {
         assert.instanceOf(error, Error);
-        if(!error) {
+        if (!error) {
           console.log('>E:', error, result);
         }
       }
