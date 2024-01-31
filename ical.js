@@ -556,7 +556,7 @@ module.exports = {
           if (typeof par[curr.uid].rrule !== 'undefined' && typeof par[curr.uid].recurrenceid !== 'undefined') {
             delete par[curr.uid].recurrenceid;
           }
-        } else if (component === 'VALARM' && par.type === 'VEVENT') {
+        } else if (component === 'VALARM' && (par.type === 'VEVENT' || par.type === 'VTODO')) {
           par.alarms ??= [];
           par.alarms.push(curr);
         } else {
