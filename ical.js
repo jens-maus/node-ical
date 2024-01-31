@@ -458,15 +458,15 @@ module.exports = {
             curr.end = moment.utc(curr.start).add(1, 'days').toDate(); // New Date(moment(curr.start).add(1, 'days'));
           } else {
             const durationUnits =
-              {
-                // Y: 'years',
-                // M: 'months',
-                W: 'weeks',
-                D: 'days',
-                H: 'hours',
-                M: 'minutes',
-                S: 'seconds'
-              };
+            {
+              // Y: 'years',
+              // M: 'months',
+              W: 'weeks',
+              D: 'days',
+              H: 'hours',
+              M: 'minutes',
+              S: 'seconds'
+            };
             // Get the list of duration elements
             const r = curr.duration.match(/-?\d+[YMWDHS]/g);
             let newend = moment.utc(curr.start);
@@ -556,6 +556,9 @@ module.exports = {
           if (typeof par[curr.uid].rrule !== 'undefined' && typeof par[curr.uid].recurrenceid !== 'undefined') {
             delete par[curr.uid].recurrenceid;
           }
+        } else if (component === 'VALARM' && par.type === 'VEVENT') {
+          par.alarms ??= [];
+          par.alarms.push(curr);
         } else {
           const id = uuid();
           par[id] = curr;
