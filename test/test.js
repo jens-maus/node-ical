@@ -983,6 +983,22 @@ vows
           assert.equal(topic.start.tz, 'Europe/Berlin');
         }
       }
+    },
+    'with test_with_multiple_tzids_in_vtimezone.ics': {
+      topic() {
+        return ical.parseFile('./test/test_with_multiple_tzids_in_vtimezone.ics');
+      },
+      'using a vtimezone with multiple timezone': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '1891-1709856000-1709942399@www.washougal.k12.wa.us';
+          })[0];
+        },
+        'has a start'(topic) {
+          assert.equal(topic.start.toJSON(), '2024-06-27T07:00:00.000Z');
+          assert.equal(topic.end.toJSON(), '2024-06-28T06:00:00.000Z');
+        }
+      }
     }
   })
   .export(module);

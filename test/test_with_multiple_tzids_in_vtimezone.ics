@@ -1,0 +1,46 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Hathaway Elementary School - ECPv6.3.3//NONSGML v1.0//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Hathaway Elementary School
+X-ORIGINAL-URL:https://www.washougal.k12.wa.us/hathaway
+X-WR-CALDESC:Events for Hathaway Elementary School
+REFRESH-INTERVAL;VALUE=DURATION:PT1H
+X-Robots-Tag:noindex
+X-PUBLISHED-TTL:PT1H
+BEGIN:VTIMEZONE
+TZID:Africa/Abidjan
+BEGIN:STANDARD
+TZOFFSETFROM:+0000
+TZOFFSETTO:+0000
+TZNAME:GMT
+DTSTART:20240101T000000
+END:STANDARD
+TZID:America/Los_Angeles
+BEGIN:DAYLIGHT
+TZOFFSETFROM:-0800
+TZOFFSETTO:-0700
+TZNAME:PDT
+DTSTART:20240310T100000
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:-0700
+TZOFFSETTO:-0800
+TZNAME:PST
+DTSTART:20241103T090000
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART:20240627T000000
+DTEND:20240627T230000
+DTSTAMP:20240222T162327
+CREATED:20231129T014844Z
+LAST-MODIFIED:20240222T184259Z
+UID:1891-1709856000-1709942399@www.washougal.k12.wa.us
+SUMMARY:Possible Snow Makeup Day
+DESCRIPTION:This day is a snow makeup day\, and will be added back to the calendar if needed. If we do not have any snow closure\, this is a non-attendance day for students.  \nFor a list of all calendar related closures and important dates\, please visit our calendar page at https://www.washougal.k12.wa.us/calendar/
+URL:https://www.washougal.k12.wa.us/hathaway/event/possible-snow-makeup-day/
+CATEGORIES:School Events
+END:VEVENT
+END:VCALENDAR
