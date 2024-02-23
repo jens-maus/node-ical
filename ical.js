@@ -300,7 +300,7 @@ const dateParameter = function (name) {
 
         // if the VTIMEZONE contains multiple TZIDs, use the last one in order
         const normalizedTzId = vTimezone ? 
-          typeof vTimezone.tzid == 'object' ? vTimezone.tzid[vTimezone.tzid.length - 1] : vTimezone.tzid :
+          Array.isArray(vTimezone.tzid) ? vTimezone.tzid[vTimezone.tzid.length - 1] : vTimezone.tzid :
           null;
 
         newDate = normalizedTzId && moment.tz.zone(normalizedTzId) ?
