@@ -298,8 +298,13 @@ const dateParameter = function (name) {
         const vTimezone =
           Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
 
-        newDate = vTimezone && moment.tz.zone(vTimezone.tzid) ?
-          moment.tz(value, 'YYYYMMDDTHHmmss', vTimezone.tzid).toDate() :
+        // if the VTIMEZONE contains multiple TZIDs, use the last one in order
+        const normalizedTzId = vTimezone ? 
+          typeof vTimezone.tzid == 'object' ? vTimezone.tzid[vTimezone.tzid.length - 1] : vTimezone.tzid :
+          null;
+
+        newDate = normalizedTzId && moment.tz.zone(normalizedTzId) ?
+          moment.tz(value, 'YYYYMMDDTHHmmss', normalizedTzId).toDate() :
           new Date(
             Number.parseInt(comps[1], 10),
             Number.parseInt(comps[2], 10) - 1,
