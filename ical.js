@@ -298,9 +298,9 @@ const dateParameter = function (name) {
         const vTimezone =
           Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
 
-        // If the VTIMEZONE contains multiple TZIDs, use the last one in order
+        // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
         const normalizedTzId = vTimezone ?
-          (Array.isArray(vTimezone.tzid) ? vTimezone.tzid[vTimezone.tzid.length - 1] : vTimezone.tzid) :
+          (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.slice(-1)[0] : vTimezone.tzid) :
           null;
 
         newDate = normalizedTzId && moment.tz.zone(normalizedTzId) ?
