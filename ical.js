@@ -326,13 +326,12 @@ const geoParameter = function (name) {
 };
 
 const categoriesParameter = function (name) {
-  const separatorPattern = /\s*,\s*/g;
   return function (value, parameters, curr) {
     storeParameter(value, parameters, curr);
     if (curr[name] === undefined) {
-      curr[name] = value ? value.split(separatorPattern) : [];
+      curr[name] = value ? value.split(',').map(s => s.trim()) : [];
     } else if (value) {
-      curr[name] = curr[name].concat(value.split(separatorPattern));
+      curr[name] = curr[name].concat(value.split(',').map(s => s.trim()));
     }
 
     return curr;
@@ -357,9 +356,8 @@ const categoriesParameter = function (name) {
 // TODO: See if this causes any problems with events that recur multiple times a day.
 const exdateParameter = function (name) {
   return function (value, parameters, curr) {
-    const separatorPattern = /\s*,\s*/g;
     curr[name] = curr[name] || [];
-    const dates = value ? value.split(separatorPattern) : [];
+    const dates = value ? value.split(',').map(s => s.trim()) : [];
     for (const entry of dates) {
       const exdate = [];
       dateParameter(name)(entry, parameters, exdate);
@@ -466,7 +464,7 @@ module.exports = {
               S: 'seconds'
             };
             // Get the list of duration elements
-            const r = curr.duration.match(/-?\d+[YMWDHS]/g);
+            const r = curr.duration.match(/-?\d{1,10}[YMWDHS]/g);
 
             // Use the duration to create the end value, from the start
             let newend = moment.utc(curr.start);
