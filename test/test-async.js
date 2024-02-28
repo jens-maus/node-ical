@@ -834,7 +834,38 @@ vows
           }
         }
       }
-
+    },
+    'with test_date_time_duration.ics': {
+      topic() {
+        return ical.parseFile('./test/test_date_time_duration.ics');
+      },
+      'using an event containing a start date but no end, only duration': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'period test2';
+          })[0];
+        },
+        'it uses the start/end of the event'(event) {
+          assert.equal(event.start.toJSON(), '2024-02-15T09:00:00.000Z');
+          assert.equal(event.end.toJSON(), '2024-02-15T09:15:00.000Z');
+        }
+      }
+    },
+    'with test_date_duration.ics': {
+      topic() {
+        return ical.parseFile('./test/test_date_duration.ics');
+      },
+      'using an event containing a start date but no end, only duration': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'period test2';
+          })[0];
+        },
+        'ends one week later'(event) {
+          assert.equal(event.start.toDateString(), new Date(2024, 1, 15).toDateString());
+          assert.equal(event.end.toDateString(), new Date(2024, 1, 22).toDateString());
+        }
+      }
     }
   })
   .export(module);

@@ -310,6 +310,11 @@ vows
         },
         'task completed'(task) {
           assert.equal(task.summary, 'Event with an alarm');
+          assert.equal(task.alarms?.length, 1);
+          const alarm = task.alarms[0];
+          assert.equal(alarm.description, 'Reminder');
+          assert.equal(alarm.action, 'DISPLAY');
+          assert.equal(alarm.trigger.val, '-PT5M');
         }
       }
     },
@@ -318,7 +323,9 @@ vows
         return ical.parseFile('./test10.ics');
       },
       'grabbing custom properties': {
-        topic() {}
+        topic() {
+          //
+        }
       }
     },
 
@@ -883,7 +890,7 @@ vows
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);
       },
-      'are passed back to the callback'(error, result) {
+      'are passed back to the callback': (error, result) => {
         assert.instanceOf(error, Error);
         if (!error) {
           console.log('>E:', error, result);
@@ -997,6 +1004,38 @@ vows
         'has a start'(topic) {
           assert.equal(topic.start.toJSON(), '2024-06-27T07:00:00.000Z');
           assert.equal(topic.end.toJSON(), '2024-06-28T06:00:00.000Z');
+        }
+      }
+    },
+    'with test_date_time_duration.ics': {
+      topic() {
+        return ical.parseFile('./test/test_date_time_duration.ics');
+      },
+      'using an event containing a start date but no end, only duration': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'period test2';
+          })[0];
+        },
+        'it uses the start/end of the event'(event) {
+          assert.equal(event.start.toJSON(), '2024-02-15T09:00:00.000Z');
+          assert.equal(event.end.toJSON(), '2024-02-15T09:15:00.000Z');
+        }
+      }
+    },
+    'with test_date_duration.ics': {
+      topic() {
+        return ical.parseFile('./test/test_date_duration.ics');
+      },
+      'using an event containing a start date but no end, only duration': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'period test2';
+          })[0];
+        },
+        'ends one week later'(event) {
+          assert.equal(event.start.toDateString(), new Date(2024, 1, 15).toDateString());
+          assert.equal(event.end.toDateString(), new Date(2024, 1, 22).toDateString());
         }
       }
     }

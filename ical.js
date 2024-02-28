@@ -331,13 +331,12 @@ const geoParameter = function (name) {
 };
 
 const categoriesParameter = function (name) {
-  const separatorPattern = /\s*,\s*/g;
   return function (value, parameters, curr) {
     storeParameter(value, parameters, curr);
     if (curr[name] === undefined) {
-      curr[name] = value ? value.split(separatorPattern) : [];
+      curr[name] = value ? value.split(',').map(s => s.trim()) : [];
     } else if (value) {
-      curr[name] = curr[name].concat(value.split(separatorPattern));
+      curr[name] = curr[name].concat(value.split(',').map(s => s.trim()));
     }
 
     return curr;
@@ -362,9 +361,8 @@ const categoriesParameter = function (name) {
 // TODO: See if this causes any problems with events that recur multiple times a day.
 const exdateParameter = function (name) {
   return function (value, parameters, curr) {
-    const separatorPattern = /\s*,\s*/g;
     curr[name] = curr[name] || [];
-    const dates = value ? value.split(separatorPattern) : [];
+    const dates = value ? value.split(',').map(s => s.trim()) : [];
     for (const entry of dates) {
       const exdate = [];
       dateParameter(name)(entry, parameters, exdate);
@@ -455,33 +453,30 @@ module.exports = {
         const par = stack.pop();
 
         if (!curr.end) { // RFC5545, 3.6.1
-          if (curr.datetype === 'date-time') {
-            curr.end = new Date(curr.start.getTime());
-            // If the duration is not set
-          } else if (curr.duration === undefined) {
-            // Set the end to the start plus one day RFC5545, 3.6.1
-            curr.end = moment.utc(curr.start).add(1, 'days').toDate(); // New Date(moment(curr.start).add(1, 'days'));
-          } else {
+          // Set the end according to the datetype of event
+          curr.end = (curr.datetype === 'date-time') ? new Date(curr.start.getTime()) : moment.utc(curr.start).add(1, 'days').toDate();
+
+          // If there was a duration specified
+          if (curr.duration !== undefined) {
             const durationUnits =
-              {
-                // Y: 'years',
-                // M: 'months',
-                W: 'weeks',
-                D: 'days',
-                H: 'hours',
-                M: 'minutes',
-                S: 'seconds'
-              };
+            {
+              // Y: 'years',
+              // M: 'months',
+              W: 'weeks',
+              D: 'days',
+              H: 'hours',
+              M: 'minutes',
+              S: 'seconds'
+            };
             // Get the list of duration elements
-            const r = curr.duration.match(/-?\d+[YMWDHS]/g);
+            const r = curr.duration.match(/-?\d{1,10}[YMWDHS]/g);
+
+            // Use the duration to create the end value, from the start
             let newend = moment.utc(curr.start);
             // Is the 1st character a negative sign?
             const indicator = curr.duration.startsWith('-') ? -1 : 1;
-            // Process each element
-            for (const d of r) {
-              newend = newend.add(Number.parseInt(d, 10) * indicator, durationUnits[d.slice(-1)]);
-            }
-
+            newend = newend.add(Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
+            // End is a Date type, not moment
             curr.end = newend.toDate();
           }
         }
@@ -558,9 +553,14 @@ module.exports = {
 
           // One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
           // let's make sure to clear the recurrenceid off the parent field.
-          if (typeof par[curr.uid].rrule !== 'undefined' && typeof par[curr.uid].recurrenceid !== 'undefined') {
+          if (curr.uid !== '__proto__' &&
+              typeof par[curr.uid].rrule !== 'undefined' &&
+              typeof par[curr.uid].recurrenceid !== 'undefined') {
             delete par[curr.uid].recurrenceid;
           }
+        } else if (component === 'VALARM' && (par.type === 'VEVENT' || par.type === 'VTODO')) {
+          par.alarms ??= [];
+          par.alarms.push(curr);
         } else {
           const id = uuid();
           par[id] = curr;
