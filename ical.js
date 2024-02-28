@@ -91,7 +91,7 @@ const addTZ = function (dt, parameters) {
   if (parameters && p && dt) {
     dt.tz = p.TZID;
     if (dt.tz !== undefined) {
-      // Remove surrouding quotes if found at the begining and at the end of the string
+      // Remove surrounding quotes if found at the beginning and at the end of the string
       // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
       dt.tz = dt.tz.replace(/^"(.*)"$/, '$1');
     }
@@ -103,12 +103,30 @@ const addTZ = function (dt, parameters) {
 let zoneTable = null;
 function getIanaTZFromMS(msTZName) {
   if (!zoneTable) {
-    const p = require('path');
-    zoneTable = require(p.join(__dirname, 'windowsZones.json'));
+    zoneTable = require('./windowsZones.json');
   }
 
   // Get hash entry
-  const he = zoneTable[msTZName];
+  let he = zoneTable[msTZName];
+  // Handle comma separated list, if we still don't have a match
+  if (!he && msTZName.includes(',')) {
+    // Just use the first string in name list
+    const firstLocationName = msTZName.split(',')[0];
+    // Loop thru the zonetable entries, save all that match
+    const temporaryLookup = Object.keys(zoneTable).filter(tzEntry => {
+      if (tzEntry.includes(firstLocationName)) {
+        return true;
+      }
+
+      return false;
+    });
+    // If we found any
+    if (temporaryLookup.length > 0) {
+      // Use the first or only
+      he = zoneTable[temporaryLookup[0]];
+    }
+  }
+
   // If found return iana name, else null
   return he ? he.iana[0] : null;
 }
@@ -118,15 +136,15 @@ function getTimeZone(value) {
   let found = '';
   // If this is the custom timezone from MS Outlook
   if (tz === 'tzone://Microsoft/Custom' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-    // Set it to the local timezone, cause we can't tell
+    // Set it to the local timezone, because we can't tell
     tz = moment.tz.guess();
   }
 
   // Remove quotes if found
   tz = tz.replace(/^"(.*)"$/, '$1');
 
-  // Watch out for windows timezones
-  if (tz && tz.includes(' ')) {
+  // Watch out for windows timezones, or multiple with comma separatos
+  if (tz && (tz.includes(' ') || tz.includes(','))) {
     const tz1 = getIanaTZFromMS(tz);
     if (tz1) {
       tz = tz1;
@@ -178,8 +196,8 @@ const typeParameter = function (name) {
 };
 
 const dateParameter = function (name) {
-  return function (value, parameters, curr) {
-    // The regex from main gets confued by extra :
+  return function (value, parameters, curr, stack) {
+    // The regex from main gets confused by extra :
     const pi = parameters.indexOf('TZID=tzone');
     if (pi >= 0) {
       // Correct the parameters with the part on the value
@@ -230,7 +248,7 @@ const dateParameter = function (name) {
 
         // If this is the custom timezone from MS Outlook
         if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-          // Set it to the local timezone, cause we can't tell
+          // Set it to the local timezone, because we can't tell
           tz = moment.tz.guess();
           parameters[0] = 'TZID=' + tz;
         }
@@ -239,10 +257,12 @@ const dateParameter = function (name) {
         tz = tz.replace(/^"(.*)"$/, '$1');
 
         // Watch out for windows timezones
-        if (tz && tz.includes(' ')) {
-          const tz1 = getIanaTZFromMS(tz);
+        if (tz && (tz.includes(' ') || tz.includes(','))) {
+          const tz1 = getTimeZone(tz);
           if (tz1) {
             tz = tz1;
+            // Fix the parameters for later use
+            parameters[0] = 'TZID=' + tz;
           }
         }
 
@@ -282,16 +302,32 @@ const dateParameter = function (name) {
           Number.parseInt(comps[6], 10)
         );
 
+        // Make sure to correct the parameters if the TZID= is changed
         newDate = addTZ(newDate, parameters);
       } else {
-        newDate = new Date(
-          Number.parseInt(comps[1], 10),
-          Number.parseInt(comps[2], 10) - 1,
-          Number.parseInt(comps[3], 10),
-          Number.parseInt(comps[4], 10),
-          Number.parseInt(comps[5], 10),
-          Number.parseInt(comps[6], 10)
-        );
+        // Get the time zone from the stack
+        const stackItemWithTimeZone =
+          (stack || []).find(item => {
+            return Object.values(item).find(subItem => subItem.type === 'VTIMEZONE');
+          }) || {};
+        const vTimezone =
+          Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
+
+        // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
+        const normalizedTzId = vTimezone ?
+          (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.slice(-1)[0] : vTimezone.tzid) :
+          null;
+
+        newDate = normalizedTzId && moment.tz.zone(normalizedTzId) ?
+          moment.tz(value, 'YYYYMMDDTHHmmss', normalizedTzId).toDate() :
+          new Date(
+            Number.parseInt(comps[1], 10),
+            Number.parseInt(comps[2], 10) - 1,
+            Number.parseInt(comps[3], 10),
+            Number.parseInt(comps[4], 10),
+            Number.parseInt(comps[5], 10),
+            Number.parseInt(comps[6], 10)
+          );
       }
     }
 
@@ -310,13 +346,12 @@ const geoParameter = function (name) {
 };
 
 const categoriesParameter = function (name) {
-  const separatorPattern = /\s*,\s*/g;
   return function (value, parameters, curr) {
     storeParameter(value, parameters, curr);
     if (curr[name] === undefined) {
-      curr[name] = value ? value.split(separatorPattern) : [];
+      curr[name] = value ? value.split(',').map(s => s.trim()) : [];
     } else if (value) {
-      curr[name] = curr[name].concat(value.split(separatorPattern));
+      curr[name] = curr[name].concat(value.split(',').map(s => s.trim()));
     }
 
     return curr;
@@ -341,9 +376,8 @@ const categoriesParameter = function (name) {
 // TODO: See if this causes any problems with events that recur multiple times a day.
 const exdateParameter = function (name) {
   return function (value, parameters, curr) {
-    const separatorPattern = /\s*,\s*/g;
     curr[name] = curr[name] || [];
-    const dates = value ? value.split(separatorPattern) : [];
+    const dates = value ? value.split(',').map(s => s.trim()) : [];
     for (const entry of dates) {
       const exdate = [];
       dateParameter(name)(entry, parameters, exdate);
@@ -434,33 +468,30 @@ module.exports = {
         const par = stack.pop();
 
         if (!curr.end) { // RFC5545, 3.6.1
-          if (curr.datetype === 'date-time') {
-            curr.end = new Date(curr.start.getTime());
-            // If the duration is not set
-          } else if (curr.duration === undefined) {
-            // Set the end to the start plus one day RFC5545, 3.6.1
-            curr.end = moment.utc(curr.start).add(1, 'days').toDate(); // New Date(moment(curr.start).add(1, 'days'));
-          } else {
+          // Set the end according to the datetype of event
+          curr.end = (curr.datetype === 'date-time') ? new Date(curr.start.getTime()) : moment.utc(curr.start).add(1, 'days').toDate();
+
+          // If there was a duration specified
+          if (curr.duration !== undefined) {
             const durationUnits =
-              {
-                // Y: 'years',
-                // M: 'months',
-                W: 'weeks',
-                D: 'days',
-                H: 'hours',
-                M: 'minutes',
-                S: 'seconds'
-              };
+            {
+              // Y: 'years',
+              // M: 'months',
+              W: 'weeks',
+              D: 'days',
+              H: 'hours',
+              M: 'minutes',
+              S: 'seconds'
+            };
             // Get the list of duration elements
-            const r = curr.duration.match(/-?\d+[YMWDHS]/g);
+            const r = curr.duration.match(/-?\d{1,10}[YMWDHS]/g);
+
+            // Use the duration to create the end value, from the start
             let newend = moment.utc(curr.start);
             // Is the 1st character a negative sign?
             const indicator = curr.duration.startsWith('-') ? -1 : 1;
-            // Process each element
-            for (const d of r) {
-              newend = newend.add(Number.parseInt(d, 10) * indicator, durationUnits[d.slice(-1)]);
-            }
-
+            newend = newend.add(Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
+            // End is a Date type, not moment
             curr.end = newend.toDate();
           }
         }
@@ -537,9 +568,14 @@ module.exports = {
 
           // One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
           // let's make sure to clear the recurrenceid off the parent field.
-          if (typeof par[curr.uid].rrule !== 'undefined' && typeof par[curr.uid].recurrenceid !== 'undefined') {
+          if (curr.uid !== '__proto__' &&
+              typeof par[curr.uid].rrule !== 'undefined' &&
+              typeof par[curr.uid].recurrenceid !== 'undefined') {
             delete par[curr.uid].recurrenceid;
           }
+        } else if (component === 'VALARM' && (par.type === 'VEVENT' || par.type === 'VTODO')) {
+          par.alarms ??= [];
+          par.alarms.push(curr);
         } else {
           const id = uuid();
           par[id] = curr;
@@ -622,8 +658,8 @@ module.exports = {
     URL: storeParameter('url'),
     UID: storeParameter('uid'),
     LOCATION: storeParameter('location'),
-    DTSTART(value, parameters, curr) {
-      curr = dateParameter('start')(value, parameters, curr);
+    DTSTART(value, parameters, curr, stack) {
+      curr = dateParameter('start')(value, parameters, curr, stack);
       return typeParameter('datetype')(value, parameters, curr);
     },
     DTEND: dateParameter('end'),

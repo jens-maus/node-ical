@@ -545,9 +545,9 @@ vows
           })[0];
         },
         'has a start'(topic) {
-          assert.equal(topic.start.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+          assert.equal(topic.start.tz, 'Asia/Bangkok');
           assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2019, 3, 30, 9, 0, 0)).toISOString().slice(0, 8));
-          assert.equal(topic.end.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+          assert.equal(topic.end.tz, 'Asia/Bangkok');
           assert.equal(topic.end.toISOString().slice(0, 8), new Date(2019, 3, 30, 5, 0, 0).toISOString().slice(0, 8));
         }
       }
@@ -817,6 +817,53 @@ vows
         },
         'has no status property'(event) {
           assert.equal(event.status, undefined);
+        }
+      },
+      'with test_with_tz_list.ics': {
+        topic() {
+          return ical.parseFile('./test/test_with_tz_list.ics');
+        },
+        'using an event containing a start date a list of locations for time zone': {
+          topic(events) {
+            return _.select(_.values(events), x => {
+              return x.uid === 'E689AEB8C02C4E2CADD8C7D3D303CEAD0';
+            })[0];
+          },
+          'has a start'(topic) {
+            assert.equal(topic.start.tz, 'Europe/Berlin');
+          }
+        }
+      }
+    },
+    'with test_date_time_duration.ics': {
+      topic() {
+        return ical.parseFile('./test/test_date_time_duration.ics');
+      },
+      'using an event containing a start date but no end, only duration': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'period test2';
+          })[0];
+        },
+        'it uses the start/end of the event'(event) {
+          assert.equal(event.start.toJSON(), '2024-02-15T09:00:00.000Z');
+          assert.equal(event.end.toJSON(), '2024-02-15T09:15:00.000Z');
+        }
+      }
+    },
+    'with test_date_duration.ics': {
+      topic() {
+        return ical.parseFile('./test/test_date_duration.ics');
+      },
+      'using an event containing a start date but no end, only duration': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'period test2';
+          })[0];
+        },
+        'ends one week later'(event) {
+          assert.equal(event.start.toDateString(), new Date(2024, 1, 15).toDateString());
+          assert.equal(event.end.toDateString(), new Date(2024, 1, 22).toDateString());
         }
       }
     }

@@ -62,6 +62,48 @@ declare module 'node-ical' {
 
   type TimeZoneDictionary = Record<string, TimeZoneDef | undefined>;
 
+  /**
+   * Example :
+   * TRIGGER:-P15M
+   * TRIGGER;RELATED=END:P5M
+   * TRIGGER;VALUE=DATE-TIME:19980101T050000Z
+   */
+  type Trigger = string;
+
+  /**
+   * https://www.kanzaki.com/docs/ical/valarm.html
+   */
+  export interface VAlarm extends BaseComponent {
+    type: 'VALARM';
+    action: 'AUDIO' | 'DISPLAY' | 'EMAIL' | 'PROCEDURE';
+    trigger: Trigger;
+    description?: string;
+    /**
+     * https://www.kanzaki.com/docs/ical/repeat.html
+     */
+    repeat?: number;
+    /**
+     * Time between repeated alarms (if repeat is set)
+     * DURATION:PT15M
+     */
+    duration?;
+    /**
+     * Everything except DISPLAY
+     * https://www.kanzaki.com/docs/ical/attach.html
+     */
+    attach;
+    /**
+     * For action = email
+     */
+    summary?: string;
+
+    /**
+     * For action = email
+     */
+    attendee?: Attendee;
+
+  }
+
   export interface VEvent extends BaseComponent {
     type: 'VEVENT';
     method: Method;
@@ -91,6 +133,8 @@ declare module 'node-ical' {
     exdate: any;
     geo: any;
     recurrenceid: any;
+
+    alarms?: VAlarm[];
   }
 
   /**
@@ -134,13 +178,17 @@ declare module 'node-ical' {
   }>;
 
   export type Attendee = Property<{
-    CUTYPE?: 'INDIVIDUAL' | 'UNKNOWN' | 'GROUP' | 'ROOM' | string;
-    ROLE?: 'CHAIR' | 'REQ-PARTICIPANT' | 'NON-PARTICIPANT' | string;
-    PARTSTAT?: 'NEEDS-ACTION' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'DELEGATED';
+    CUTYPE?: AttendeeCUType;
+    ROLE?: AttendeeRole;
+    PARTSTAT?: AttendeePartStat;
     RSVP?: boolean;
     CN?: string;
     'X-NUM-GUESTS'?: number;
   }>;
+
+  export type AttendeeCUType = 'INDIVIDUAL' | 'UNKNOWN' | 'GROUP' | 'ROOM' | string;
+  export type AttendeeRole = 'CHAIR' | 'REQ-PARTICIPANT' | 'NON-PARTICIPANT' | string;
+  export type AttendeePartStat = 'NEEDS-ACTION' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'DELEGATED';
 
   export type DateWithTimeZone = Date & {tz: string};
   export type DateType = 'date-time' | 'date';

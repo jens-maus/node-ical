@@ -312,6 +312,11 @@ vows
         },
         'task completed'(task) {
           assert.equal(task.summary, 'Event with an alarm');
+          assert.equal(task.alarms?.length, 1);
+          const alarm = task.alarms[0];
+          assert.equal(alarm.description, 'Reminder');
+          assert.equal(alarm.action, 'DISPLAY');
+          assert.equal(alarm.trigger.val, '-PT5M');
         }
       }
     },
@@ -320,7 +325,9 @@ vows
         return ical.parseFile('./test10.ics');
       },
       'grabbing custom properties': {
-        topic() {}
+        topic() {
+          //
+        }
       }
     },
 
@@ -562,9 +569,9 @@ vows
           })[0];
         },
         'has a start'(topic) {
-          assert.equal(topic.start.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+          assert.equal(topic.start.tz, 'Asia/Bangkok');
           assert.equal(topic.end.toISOString().slice(0, 8), new Date(Date.UTC(2019, 3, 30, 9, 0, 0)).toISOString().slice(0, 8));
-          assert.equal(topic.end.tz, '(UTC+07:00) Bangkok, Hanoi, Jakarta');
+          assert.equal(topic.end.tz, 'Asia/Bangkok');
           assert.equal(topic.end.toISOString().slice(0, 8), new Date(2019, 3, 30, 5, 0, 0).toISOString().slice(0, 8));
         }
       }
@@ -885,7 +892,7 @@ vows
       topic() {
         ical.fromURL('http://255.255.255.255/', {}, this.callback);
       },
-      'are passed back to the callback'(error, result) {
+      'are passed back to the callback': (error, result) => {
         assert.instanceOf(error, Error);
         if (!error) {
           console.log('>E:', error, result);
@@ -955,10 +962,88 @@ vows
         }
       }
     },
-
-    'with test21.ics (testing dtstart of rrule with timezones)': {
+    'with test21.ics': {
       topic() {
         return ical.parseFile('./test/test21.ics');
+      },
+      'using an event containing a start date without time zone': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === 'f683404f-aede-43eb-8774-27f62bb27c92';
+          })[0];
+        },
+        'it uses the timezone of the VTIMEZONE'(event) {
+          assert.equal(event.start.toJSON(), '2022-10-09T08:00:00.000Z');
+          assert.equal(event.end.toJSON(), '2022-10-09T09:00:00.000Z');
+        }
+      }
+    },
+    'with test_with_tz_list.ics': {
+      topic() {
+        return ical.parseFile('./test/test_with_tz_list.ics');
+      },
+      'using an event containing a start date a list of locations for time zone': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === 'E689AEB8C02C4E2CADD8C7D3D303CEAD0';
+          })[0];
+        },
+        'has a start'(topic) {
+          assert.equal(topic.start.tz, 'Europe/Berlin');
+        }
+      }
+    },
+    'with test_with_multiple_tzids_in_vtimezone.ics': {
+      topic() {
+        return ical.parseFile('./test/test_with_multiple_tzids_in_vtimezone.ics');
+      },
+      'using a vtimezone with multiple timezone': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '1891-1709856000-1709942399@www.washougal.k12.wa.us';
+          })[0];
+        },
+        'has a start'(topic) {
+          assert.equal(topic.start.toJSON(), '2024-06-27T07:00:00.000Z');
+          assert.equal(topic.end.toJSON(), '2024-06-28T06:00:00.000Z');
+        }
+      }
+    },
+    'with test_date_time_duration.ics': {
+      topic() {
+        return ical.parseFile('./test/test_date_time_duration.ics');
+      },
+      'using an event containing a start date but no end, only duration': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'period test2';
+          })[0];
+        },
+        'it uses the start/end of the event'(event) {
+          assert.equal(event.start.toJSON(), '2024-02-15T09:00:00.000Z');
+          assert.equal(event.end.toJSON(), '2024-02-15T09:15:00.000Z');
+        }
+      }
+    },
+    'with test_date_duration.ics': {
+      topic() {
+        return ical.parseFile('./test/test_date_duration.ics');
+      },
+      'using an event containing a start date but no end, only duration': {
+        'topic'(events) {
+          return _.select(_.values(events), x => {
+            return x.summary === 'period test2';
+          })[0];
+        },
+        'ends one week later'(event) {
+          assert.equal(event.start.toDateString(), new Date(2024, 1, 15).toDateString());
+          assert.equal(event.end.toDateString(), new Date(2024, 1, 22).toDateString());
+        }
+      }
+    },
+    'with test22.ics (testing dtstart of rrule with timezones)': {
+      topic() {
+        return ical.parseFile('./test/test22.ics');
       },
       'first event': {
         topic(events) {
