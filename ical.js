@@ -156,9 +156,19 @@ function getTimeZone(value) {
   // And offset is still present
   if (tz && tz.startsWith('(')) {
     // Extract just the offset
-    const regex = /[+|-]\d*:\d*/;
+    const offsetcomps = tz.match(/([+|-]\d+):?(\d+)/);
+    if (offsetcomps && offsetcomps[0]) {
+      if (offsetcomps[3] && offsetcomps[3] !== '00') {
+        // Unpack sub-hour offsets, even if they cannot be mapped
+        found = String(offsetcomps[0]);
+      } else {
+        // Map full-hour offsets to IANA Etc zones
+        const intoffset = -1 * Number.parseInt(offsetcomps[1], 10);
+        found = 'Etc/GMT' + (intoffset < 0 ? '' : '+') + intoffset;
+      }
+    }
+
     tz = null;
-    found = tz.match(regex);
   }
 
   // Timezone not confirmed yet
@@ -251,8 +261,6 @@ const dateParameter = function (name) {
           const tz1 = getTimeZone(tz);
           if (tz1) {
             tz = tz1;
-            // We have a confirmed timezone, don't use offset, may confuse DST/STD time
-            offset = '';
             // Fix the parameters for later use
             parameters[0] = 'TZID=' + tz;
           }
@@ -260,13 +268,20 @@ const dateParameter = function (name) {
 
         // Watch out for offset timezones
         // If the conversion above didn't find any matching IANA tz
-        // And offset is still present
         if (tz && tz.startsWith('(')) {
           // Extract just the offset
-          const regex = /[+|-]\d*:\d*/;
-          offset = tz.match(regex);
+          const offsetcomps = tz.match(/([+|-]\d+):?(\d+)/);
+          if (offsetcomps && offsetcomps[0]) {
+            if (offsetcomps[3] && offsetcomps[3] !== '00') {
+              offset = String(offsetcomps[0]);
+              found = offset;
+            } else {
+              const intoffset = -1 * Number.parseInt(offsetcomps[1], 10);
+              found = 'Etc/GMT' + (intoffset < 0 ? '' : '+') + intoffset;
+            }
+          }
+
           tz = null;
-          found = offset;
         }
 
         // Timezone not confirmed yet
@@ -278,7 +293,7 @@ const dateParameter = function (name) {
         }
 
         // Timezone confirmed or forced to offset
-        newDate = found ? moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate() : new Date(
+        newDate = found ? moment.tz(value, 'YYYYMMDDTHHmmss' + offset, found).toDate() : new Date(
           Number.parseInt(comps[1], 10),
           Number.parseInt(comps[2], 10) - 1,
           Number.parseInt(comps[3], 10),
@@ -576,7 +591,6 @@ module.exports = {
       // Recurrence rules are only valid for VEVENT, VTODO, and VJOURNAL.
       // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
       // due to the subtypes.
-
       if ((value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') && curr.rrule) {
         let rule = curr.rrule.replace('RRULE:', '');
         // Make sure the rrule starts with FREQ=
@@ -613,7 +627,9 @@ module.exports = {
               // If the original date has a TZID, add it
               if (curr.start.tz) {
                 const tz = getTimeZone(curr.start.tz);
-                rule += `;DTSTART;TZID=${tz}:${curr.start.toISOString().replace(/[-:]/g, '')}`;
+                const tzoffset = moment.tz(tz).utcOffset() * -60000;
+                const localISOTime = (new Date(curr.start - tzoffset)).toISOString().slice(0, -1);
+                rule += `;DTSTART;TZID=${tz}:${localISOTime.replace(/[-:]/g, '')}`;
               } else {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
               }
