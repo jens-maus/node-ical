@@ -62,6 +62,48 @@ declare module 'node-ical' {
 
   type TimeZoneDictionary = Record<string, TimeZoneDef | undefined>;
 
+  /**
+   * Example :
+   * TRIGGER:-P15M
+   * TRIGGER;RELATED=END:P5M
+   * TRIGGER;VALUE=DATE-TIME:19980101T050000Z
+   */
+  type Trigger = string;
+
+  /**
+   * https://www.kanzaki.com/docs/ical/valarm.html
+   */
+  export interface VAlarm extends BaseComponent {
+    type: 'VALARM';
+    action: 'AUDIO' | 'DISPLAY' | 'EMAIL' | 'PROCEDURE';
+    trigger: Trigger;
+    description?: string;
+    /**
+     * https://www.kanzaki.com/docs/ical/repeat.html
+     */
+    repeat?: number;
+    /**
+     * Time between repeated alarms (if repeat is set)
+     * DURATION:PT15M
+     */
+    duration?;
+    /**
+     * Everything except DISPLAY
+     * https://www.kanzaki.com/docs/ical/attach.html
+     */
+    attach;
+    /**
+     * For action = email
+     */
+    summary?: string;
+
+    /**
+     * For action = email
+     */
+    attendee?: Attendee;
+
+  }
+
   export interface VEvent extends BaseComponent {
     type: 'VEVENT';
     method: Method;
@@ -91,6 +133,8 @@ declare module 'node-ical' {
     exdate: any;
     geo: any;
     recurrenceid: any;
+
+    alarms?: VAlarm[];
   }
 
   /**
