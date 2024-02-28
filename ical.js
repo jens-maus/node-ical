@@ -548,7 +548,9 @@ module.exports = {
 
           // One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
           // let's make sure to clear the recurrenceid off the parent field.
-          if (typeof par[curr.uid].rrule !== 'undefined' && typeof par[curr.uid].recurrenceid !== 'undefined') {
+          if (typeof par[curr.uid].rrule !== 'undefined' &&
+              typeof par[curr.uid].recurrenceid !== 'undefined' &&
+              par[curr.uid] !== '__proto__') {
             delete par[curr.uid].recurrenceid;
           }
         } else if (component === 'VALARM' && (par.type === 'VEVENT' || par.type === 'VTODO')) {
