@@ -1,6 +1,6 @@
 declare module 'node-ical' {
-  import { AxiosRequestConfig } from 'axios';
-  import { RRule } from 'rrule';
+  import {AxiosRequestConfig} from 'axios';
+  import {RRule} from 'rrule';
 
   /**
      * Methods (Sync)
@@ -62,47 +62,45 @@ declare module 'node-ical' {
 
   type TimeZoneDictionary = Record<string, TimeZoneDef | undefined>;
 
-
   /**
-   * example : 
+   * Example :
    * TRIGGER:-P15M
    * TRIGGER;RELATED=END:P5M
    * TRIGGER;VALUE=DATE-TIME:19980101T050000Z
    */
-  type Trigger = string
+  type Trigger = string;
 
   /**
    * https://www.kanzaki.com/docs/ical/valarm.html
    */
   export interface VAlarm extends BaseComponent {
-    type: "VALARM"
-    action: "AUDIO" | "DISPLAY" | "EMAIL" | "PROCEDURE"
-    trigger: Trigger
-    description?: string
+    type: 'VALARM';
+    action: 'AUDIO' | 'DISPLAY' | 'EMAIL' | 'PROCEDURE';
+    trigger: Trigger;
+    description?: string;
     /**
      * https://www.kanzaki.com/docs/ical/repeat.html
      */
-    repeat?: number
+    repeat?: number;
     /**
-     * time between repeated alarms (if repeat is set)
+     * Time between repeated alarms (if repeat is set)
      * DURATION:PT15M
      */
-    duration?
+    duration?;
     /**
-     * everything except DISPLAY
+     * Everything except DISPLAY
      * https://www.kanzaki.com/docs/ical/attach.html
      */
-    attach
+    attach;
     /**
-     * for action = email
+     * For action = email
      */
-    summary?: string
+    summary?: string;
 
     /**
-     * for action = email
+     * For action = email
      */
-    attendee?: Attendee
-
+    attendee?: Attendee;
 
   }
 
@@ -136,7 +134,7 @@ declare module 'node-ical' {
     geo: any;
     recurrenceid: any;
 
-    alarms?: Array<VAlarm>
+    alarms?: VAlarm[];
   }
 
   /**
@@ -192,7 +190,7 @@ declare module 'node-ical' {
   export type AttendeeRole = 'CHAIR' | 'REQ-PARTICIPANT' | 'NON-PARTICIPANT' | string;
   export type AttendeePartStat = 'NEEDS-ACTION' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'DELEGATED';
 
-  export type DateWithTimeZone = Date & { tz: string };
+  export type DateWithTimeZone = Date & {tz: string};
   export type DateType = 'date-time' | 'date';
   export type Transparency = 'TRANSPARENT' | 'OPAQUE';
   export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';
