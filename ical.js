@@ -450,13 +450,11 @@ module.exports = {
         const par = stack.pop();
 
         if (!curr.end) { // RFC5545, 3.6.1
-          if (curr.datetype === 'date-time') {
-            curr.end = new Date(curr.start.getTime());
-            // If the duration is not set
-          } else if (curr.duration === undefined) {
-            // Set the end to the start plus one day RFC5545, 3.6.1
-            curr.end = moment.utc(curr.start).add(1, 'days').toDate(); // New Date(moment(curr.start).add(1, 'days'));
-          } else {
+          // Set the end according to the datetype of event
+          curr.end = (curr.datetype === 'date-time') ? new Date(curr.start.getTime()) : moment.utc(curr.start).add(1, 'days').toDate();
+
+          // If there was a duration specified
+          if (curr.duration !== undefined) {
             const durationUnits =
             {
               // Y: 'years',
@@ -469,14 +467,13 @@ module.exports = {
             };
             // Get the list of duration elements
             const r = curr.duration.match(/-?\d+[YMWDHS]/g);
+
+            // Use the duration to create the end value, from the start
             let newend = moment.utc(curr.start);
             // Is the 1st character a negative sign?
             const indicator = curr.duration.startsWith('-') ? -1 : 1;
-            // Process each element
-            for (const d of r) {
-              newend = newend.add(Number.parseInt(d, 10) * indicator, durationUnits[d.slice(-1)]);
-            }
-
+            newend = newend.add(Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
+            // End is a Date type, not moment
             curr.end = newend.toDate();
           }
         }
