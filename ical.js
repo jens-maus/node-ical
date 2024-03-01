@@ -81,20 +81,17 @@ const storeParameter = function (name) {
 };
 
 const addTZ = function (dt, parameters) {
-  const p = parseParameters(parameters);
-
-  if (dt.tz) {
+  if (dt && dt.tz) {
     // Date already has a timezone property
     return dt;
   }
 
-  if (parameters && p && dt) {
-    dt.tz = p.TZID;
-    if (dt.tz !== undefined) {
-      // Remove surrounding quotes if found at the beginning and at the end of the string
-      // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
-      dt.tz = dt.tz.replace(/^"(.*)"$/, '$1');
-    }
+  const p = parseParameters(parameters);
+  if (parameters && p && dt && typeof p.TZID !== 'undefined') {
+    dt.tz = p.TZID.toString();
+    // Remove surrounding quotes if found at the beginning and at the end of the string
+    // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
+    dt.tz = dt.tz.replace(/^"(.*)"$/, '$1');
   }
 
   return dt;

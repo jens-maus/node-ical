@@ -1038,6 +1038,19 @@ vows
           assert.equal(event.end.toDateString(), new Date(2024, 1, 22).toDateString());
         }
       }
+    },
+    'with test_with_int_tzid.ics': {
+      topic() {
+        return ical.parseFile('./test/test_with_int_tzid.ics');
+      },
+      'checking for TZID': {
+        topic(topic) {
+          return _.values(topic)[0];
+        },
+        'task completed'(task) {
+          assert.equal(task.summary, 'test export import');
+        }
+      }
     }
   })
   .export(module);
