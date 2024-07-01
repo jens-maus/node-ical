@@ -21,7 +21,7 @@
     "axios": "1.6.8",
     "moment-timezone": "^0.5.45",
     "rrule": "2.8.1",
-    "uuid": "^9.0.0"
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "ansi-regex": ">=5.0.1",
