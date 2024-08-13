@@ -11,10 +11,6 @@ const _ = require('underscore');
 const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
 
-process.on('uncaughtException', error => {
-  console.log('Caught exception: ' + error.stack);
-});
-
 vows
   .describe('node-ical')
   .addBatch({
