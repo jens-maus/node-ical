@@ -610,7 +610,12 @@ module.exports = {
               // If the original date has a TZID, add it
               if (curr.start.tz) {
                 const tz = getTimeZone(curr.start.tz);
-                rule += `;DTSTART;TZID=${tz}:${curr.start.toISOString().replace(/[-:]/g, '')}`;
+                // If a timezone is provided, rrule requires the time to be local
+                const adjustedTimeString = curr.start
+                  .toLocaleString('sv', {timeZone: tz})
+                  .replace(/ /g, 'T')
+                  .replace(/[-:]/g, '');
+                rule += `;DTSTART;TZID=${tz}:${adjustedTimeString}`;
               } else {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
               }
