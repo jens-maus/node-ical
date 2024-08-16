@@ -698,7 +698,7 @@ module.exports = {
       }
 
       // Remove any double quotes in any tzid statement// except around (utc+hh:mm
-      if (l.indexOf('TZID=') && !l.includes('"(')) {
+      if (l.includes('TZID=') && !l.includes('"(')) {
         l = l.replace(/"/g, '');
       }
 
