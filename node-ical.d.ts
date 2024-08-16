@@ -86,12 +86,12 @@ declare module 'node-ical' {
      * Time between repeated alarms (if repeat is set)
      * DURATION:PT15M
      */
-    duration?;
+    duration?: unknown;
     /**
      * Everything except DISPLAY
      * https://www.kanzaki.com/docs/ical/attach.html
      */
-    attach;
+    attach: unknown;
     /**
      * For action = email
      */
