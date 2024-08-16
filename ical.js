@@ -34,6 +34,9 @@ const parseValue = function (value) {
     return number;
   }
 
+  // Remove quotes if found
+  value = value.replace(/^"(.*)"$/, '$1');
+
   return value;
 };
 
