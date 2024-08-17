@@ -17,7 +17,8 @@ const text = function (t = '') {
     .replace(/\\,/g, ',')
     .replace(/\\;/g, ';')
     .replace(/\\[nN]/g, '\n')
-    .replace(/\\\\/g, '\\');
+    .replace(/\\\\/g, '\\')
+    .replace(/^"(.*)"$/, '$1');
 };
 
 const parseValue = function (value) {
