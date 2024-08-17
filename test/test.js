@@ -976,6 +976,21 @@ vows
         }
       }
     },
+    'with test22.ics (quoted parameter values)': {
+      topic() {
+        return ical.parseFile('./test/test22.ics');
+      },
+      'grabbing VEVENT': {
+        topic(topic) {
+          return _.values(topic)[0];
+        },
+        'it has the correct user id'(event) {
+          assert.equal(event.attendee.params['X-USER-ID'], 'abcd:1234-5678-9abc-aaaa-ede123456');
+          assert.equal(event.attendee.params.CUTYPE, 'INDIVIDUAL');
+          assert.equal(event.attendee.val, 'test-user');
+        }
+      }
+    },
     'with test_with_tz_list.ics': {
       topic() {
         return ical.parseFile('./test/test_with_tz_list.ics');
