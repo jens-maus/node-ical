@@ -17,7 +17,8 @@ const text = function (t = '') {
     .replace(/\\,/g, ',')
     .replace(/\\;/g, ';')
     .replace(/\\[nN]/g, '\n')
-    .replace(/\\\\/g, '\\');
+    .replace(/\\\\/g, '\\')
+    .replace(/^"(.*)"$/, '$1');
 };
 
 const parseValue = function (value) {
@@ -33,6 +34,9 @@ const parseValue = function (value) {
   if (!Number.isNaN(number)) {
     return number;
   }
+
+  // Remove quotes if found
+  value = value.replace(/^"(.*)"$/, '$1');
 
   return value;
 };
@@ -698,7 +702,7 @@ module.exports = {
       }
 
       // Remove any double quotes in any tzid statement// except around (utc+hh:mm
-      if (l.indexOf('TZID=') && !l.includes('"(')) {
+      if (l.includes('TZID=') && !l.includes('"(')) {
         l = l.replace(/"/g, '');
       }
 

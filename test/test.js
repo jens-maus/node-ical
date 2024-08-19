@@ -976,6 +976,22 @@ vows
         }
       }
     },
+    'with test22.ics (quoted parameter values)': {
+      topic() {
+        return ical.parseFile('./test/test22.ics');
+      },
+      'grabbing VEVENT': {
+        topic(topic) {
+          return _.values(topic)[0];
+        },
+        'it has the correct response comment'(event) {
+          // See: <https://github.com/jens-maus/node-ical/issues/326>
+          assert.equal(event.attendee.params['X-RESPONSE-COMMENT'], 'Test link: https://example.com/test');
+          assert.equal(event.attendee.params.CUTYPE, 'INDIVIDUAL');
+          assert.equal(event.attendee.val, 'mailto:test@example.com');
+        }
+      }
+    },
     'with test_with_tz_list.ics': {
       topic() {
         return ical.parseFile('./test/test_with_tz_list.ics');
