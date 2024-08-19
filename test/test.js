@@ -984,10 +984,11 @@ vows
         topic(topic) {
           return _.values(topic)[0];
         },
-        'it has the correct user id'(event) {
-          assert.equal(event.attendee.params['X-USER-ID'], 'abcd:1234-5678-9abc-aaaa-ede123456');
+        'it has the correct response comment'(event) {
+          // See: <https://github.com/jens-maus/node-ical/issues/326>
+          assert.equal(event.attendee.params['X-RESPONSE-COMMENT'], 'Test link: https://example.com/test');
           assert.equal(event.attendee.params.CUTYPE, 'INDIVIDUAL');
-          assert.equal(event.attendee.val, 'test-user');
+          assert.equal(event.attendee.val, 'mailto:test@example.com');
         }
       }
     },
