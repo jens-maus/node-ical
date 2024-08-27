@@ -8,7 +8,7 @@ process.env.TZ = 'America/San_Francisco';
 const assert = require('assert');
 const vows = require('vows');
 const _ = require('underscore');
-const moment = require('moment-timezone');
+const moment = require('moment-timezone/builds/moment-timezone-with-data-10-year-range');
 const ical = require('../node-ical.js');
 
 vows
@@ -1074,7 +1074,7 @@ vows
           assert.equal(topic.start.toISOString(), '2022-07-14T12:00:00.000Z');
         }
       },
-      'recurring yearly frist event (14 july)': {
+      'recurring yearly first event (14 july)': {
         topic(events) {
           const ev = _.select(_.values(events), x => {
             return x.uid === '000021a';
