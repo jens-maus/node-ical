@@ -1054,9 +1054,9 @@ vows
         }
       }
     },
-    'with test22.ics (testing dtstart of rrule with timezones)': {
+    'with test23.ics (testing dtstart of rrule with timezones)': {
       topic() {
-        return ical.parseFile('./test/test22.ics');
+        return ical.parseFile('./test/test23.ics');
       },
       'first event': {
         topic(events) {
