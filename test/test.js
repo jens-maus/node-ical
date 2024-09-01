@@ -8,8 +8,11 @@ process.env.TZ = 'America/San_Francisco';
 const assert = require('assert');
 const vows = require('vows');
 const _ = require('underscore');
-const moment = require('moment-timezone/builds/moment-timezone-with-data-10-year-range');
+const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
+
+/* Fix missing Etc/Unknown on Windows tests */
+moment.tz.link('Etc/Unknown|Etc/GMT');
 
 vows
   .describe('node-ical')
