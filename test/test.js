@@ -5,14 +5,15 @@
  ** */
 process.env.TZ = 'America/San_Francisco';
 
+const moment = require('moment-timezone');
+/* Setup moment timezone defaults */
+moment.tz.link('Etc/Unknown|Etc/GMT');
+moment.tz.setDefault('America/San_Francisco');
+
 const assert = require('assert');
 const vows = require('vows');
 const _ = require('underscore');
-const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
-
-/* Fix missing Etc/Unknown on Windows tests */
-moment.tz.link('Etc/Unknown|Etc/GMT');
 
 vows
   .describe('node-ical')
