@@ -1086,7 +1086,10 @@ vows
           return ev.rrule.between(new Date(2023, 0, 1), new Date(2024, 0, 1))[0];
         },
         'dt start well set'(topic) {
-          assert.equal(topic.toDateString(), new Date(2023, 6, 14).toDateString());
+          /* not on windows, see: https://github.com/jkbrzt/rrule/issues/608 */
+          if (process.platform !== "win32") {
+            assert.equal(topic.toDateString(), new Date(2023, 6, 14).toDateString());
+          }
         },
         'starts 14 Jul 2023 @ 12:00:00 (UTC)'(topic) {
           assert.equal(topic.toISOString(), '2023-07-14T12:00:00.000Z');
