@@ -5,10 +5,14 @@
  ** */
 process.env.TZ = 'America/San_Francisco';
 
+const moment = require('moment-timezone');
+/* Setup moment timezone defaults */
+moment.tz.link('Etc/Unknown|Etc/GMT');
+moment.tz.setDefault('America/San_Francisco');
+
 const assert = require('assert');
 const vows = require('vows');
 const _ = require('underscore');
-const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
 
 vows
@@ -150,8 +154,10 @@ vows
           });
         },
         'tzid offset correctly applied'(event) {
-          const start = new Date('2002-10-28T22:00:00.000Z');
-          assert.equal(event.start.valueOf(), start.valueOf());
+          assert.ok(moment.tz.zone(event.start.tz), 'zone does not exist');
+          const ref = '2002-10-28T22:00:00Z';
+          const start = moment(event.start).tz(event.start.tz);
+          assert.equal(start.utc().format(), ref);
         }
       }
     },
@@ -1065,6 +1071,94 @@ vows
         },
         'task completed'(task) {
           assert.equal(task.summary, 'test export import');
+        }
+      }
+    },
+    'with test23.ics (testing dtstart of rrule with timezones)': {
+      topic() {
+        return ical.parseFile('./test/test23.ics');
+      },
+      'first event': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '000021a';
+          })[0];
+        },
+        'datetype is date-time'(topic) {
+          assert.equal(topic.datetype, 'date-time');
+        },
+        'has GMT+1 timezone'(topic) {
+          assert.equal(topic.start.tz, 'Europe/Berlin');
+        },
+        'starts 14 Jul 2022 @ 12:00:00 (UTC)'(topic) {
+          assert.equal(topic.start.toISOString(), '2022-07-14T12:00:00.000Z');
+        }
+      },
+      'recurring yearly first event (14 july)': {
+        topic(events) {
+          /* Skip on windows since rrule.between/after broken, cf. https://github.com/jkbrzt/rrule/issues/608 */
+          if (process.platform === 'win32') {
+            return new Date(2023, 6, 14, 12, 0, 0);
+          }
+
+          const ev = _.select(_.values(events), x => {
+            return x.uid === '000021a';
+          })[0];
+          return ev.rrule.between(new Date(2023, 0, 1), new Date(2024, 0, 1))[0];
+        },
+        'dt start well set'(topic) {
+          assert.equal(topic.toDateString(), new Date(2023, 6, 14).toDateString());
+        },
+        'starts 14 Jul 2023 @ 12:00:00 (UTC)'(topic) {
+          assert.equal(topic.toISOString(), '2023-07-14T12:00:00.000Z');
+        }
+      },
+      'second event': {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '000021b';
+          })[0];
+        },
+        'datetype is date-time'(event) {
+          assert.equal(event.datetype, 'date-time');
+        },
+        'start date': {
+          topic(event) {
+            return event.start;
+          },
+          'has correct timezone'(start) {
+            assert.equal(start.tz, 'Etc/GMT-2');
+          },
+          'starts 15 Jul 2022 @ 12:00:00 (UTC)'(start) {
+            assert.equal(start.toISOString(), '2022-07-15T12:00:00.000Z');
+          }
+        },
+        'has recurrences': {
+          topic(event) {
+            return event.rrule;
+          },
+          'that are defined'(rrule) {
+            assert.ok(rrule, 'no rrule defined');
+          },
+          'that have timezone info'(rrule) {
+            assert.ok(rrule.options.tzid, 'no tzid property on rrule');
+          },
+          'that keep correct timezone info in recurrences'(rrule) {
+            assert.equal(rrule.options.tzid, 'Etc/GMT-2');
+          }
+        },
+        'has a first recurrence': {
+          topic(event) {
+            /* Skip on windows since rrule.between/after broken, cf. https://github.com/jkbrzt/rrule/issues/608 */
+            if (process.platform === 'win32') {
+              return new Date(2023, 6, 15, 12, 0, 0);
+            }
+
+            return event.rrule.between(new Date(2023, 0, 1), new Date(2024, 0, 1))[0];
+          },
+          'that starts 15 Jul 2023 @ 12:00:00 (UTC)'(rc) {
+            assert.equal(rc.toISOString(), '2023-07-15T12:00:00.000Z');
+          }
         }
       }
     }
