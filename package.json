@@ -24,7 +24,7 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "ansi-regex": ">=5.0.1",
+    "ansi-regex": ">=6.1.0",
     "diff": ">=5.2.0",
     "dot-prop": ">=9.0.0",
     "eslint": "^7.11.0",
