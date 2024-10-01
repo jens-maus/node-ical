@@ -27,7 +27,7 @@
     "ansi-regex": ">=6.1.0",
     "diff": ">=5.2.0",
     "dot-prop": ">=9.0.0",
-    "eslint": "^7.11.0",
+    "eslint": "^9.11.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.30.0",
     "pre-commit": "^1.2.2",
