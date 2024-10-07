@@ -278,7 +278,9 @@ const dateParameter = function (name) {
           });
         }
 
-        // Timezone confirmed or forced to offset
+        // Cave the date part of newDate before adjustment
+        let preDstDate = newDate.slice(0, 8);
+        // Timezone confirmed or forced to offset // was tz
         newDate = found ? moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate() : new Date(
           Number.parseInt(comps[1], 10),
           Number.parseInt(comps[2], 10) - 1,
@@ -287,6 +289,26 @@ const dateParameter = function (name) {
           Number.parseInt(comps[5], 10),
           Number.parseInt(comps[6], 10)
         );
+        // Watch out for DST adjustments which make the dates incorrect
+        // The input date string is correct, make sure the output matches DATE
+        // Save the  date part of newDate after adjustment
+        let postDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
+        // If the date parts don't match
+        if (preDstDate !== postDstDate) {
+          // Adjust newDate up to get to same DAY
+          if (preDstDate > postDstDate) {
+            while (preDstDate > postDstDate) {
+              newDate = new Date(newDate.getTime() + ((60 * 60000)) + 1);
+              postDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
+            }
+          } else {
+            // Adjust newDate DOWN to get to same DAY
+            while (preDstDate < postDstDate) {
+              newDate = new Date(newDate.getTime() - ((60 * 60000)));
+              preDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
+            }
+          }
+        }
 
         // Make sure to correct the parameters if the TZID= is changed
         newDate = addTZ(newDate, parameters);
