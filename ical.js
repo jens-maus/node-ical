@@ -205,11 +205,16 @@ const dateParameter = function (name) {
 
       const comps = /^(\d{4})(\d{2})(\d{2}).*$/.exec(value);
       if (comps !== null) {
+        // Console.log("full date comps=", comps)
         // No TZ info - assume same timezone as this computer
         newDate = new Date(comps[1], Number.parseInt(comps[2], 10) - 1, comps[3]);
+        const tzo = newDate.getTimezoneOffset();
+        if (tzo < 0) {
+          newDate = new Date(newDate.valueOf() + (tzo * -60000));
+        }
 
         newDate.dateOnly = true;
-
+        // Console.log("new full date=", newDate )
         // Store as string - worst case scenario
         return storeValueParameter(name)(newDate, curr);
       }
@@ -218,8 +223,10 @@ const dateParameter = function (name) {
     // Typical RFC date-time format
     const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(value);
     if (comps !== null) {
+      // Console.log("comps=", comps)
       if (comps[7] === 'Z') {
         // GMT
+        // console.log(" utc time")
         newDate = new Date(
           Date.UTC(
             Number.parseInt(comps[1], 10),
@@ -231,8 +238,10 @@ const dateParameter = function (name) {
           )
         );
         newDate.tz = 'Etc/UTC';
+        // Console.log("new utc Date =", newDate)
       } else if (parameters && parameters[0] && parameters[0].includes('TZID=') && parameters[0].split('=')[1]) {
         // Get the timezone from the parameters TZID value
+        // console.log("with params")
         let tz = parameters[0].split('=')[1];
         let found = '';
         let offset = '';
@@ -278,8 +287,8 @@ const dateParameter = function (name) {
           });
         }
 
-        // Cave the date part of newDate before adjustment
-        let preDstDate = newDate.slice(0, 8);
+        // Save the date part of newDate before adjustment
+        const preDstDate = newDate.slice(0, 8);
         // Timezone confirmed or forced to offset // was tz
         newDate = found ? moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate() : new Date(
           Number.parseInt(comps[1], 10),
@@ -289,23 +298,33 @@ const dateParameter = function (name) {
           Number.parseInt(comps[5], 10),
           Number.parseInt(comps[6], 10)
         );
+
         // Watch out for DST adjustments which make the dates incorrect
         // The input date string is correct, make sure the output matches DATE
         // Save the  date part of newDate after adjustment
         let postDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
+        // Console.log('newdate=', newDate, 'previous value=', preDstDate, 'after reconstruction=',postDstDate)
         // If the date parts don't match
         if (preDstDate !== postDstDate) {
           // Adjust newDate up to get to same DAY
           if (preDstDate > postDstDate) {
-            while (preDstDate > postDstDate) {
+            // Console.log("pre is > than post, adjusting post up ")
+            // console.log("pre=", preDstDate, " post="+postDstDate)
+            for (let i = 2; i > 0 && (preDstDate > postDstDate); i--) {
+              // Console.log("pre is > that post")
               newDate = new Date(newDate.getTime() + ((60 * 60000)) + 1);
               postDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
+              // Console.log("pre=", preDstDate, " post=", postDstDate)
             }
           } else {
+            // Console.log("pre is < than post, adjusting post down ")
             // Adjust newDate DOWN to get to same DAY
-            while (preDstDate < postDstDate) {
+            // console.log("pre=", preDstDate, " post="+postDstDate)
+            for (let i = 2; i > 0 && (preDstDate < postDstDate); i--) {
+              // Console.log("pre is < than post")
               newDate = new Date(newDate.getTime() - ((60 * 60000)));
-              preDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
+              postDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
+              // Console.log("pre=", preDstDate, " post=", postDstDate)
             }
           }
         }
@@ -313,6 +332,7 @@ const dateParameter = function (name) {
         // Make sure to correct the parameters if the TZID= is changed
         newDate = addTZ(newDate, parameters);
       } else {
+        // Console.log("tz stack?")
         // Get the time zone from the stack
         const stackItemWithTimeZone =
           (stack || []).find(item => {
@@ -606,7 +626,7 @@ module.exports = {
         rule = rule.slice(rule.lastIndexOf('FREQ='));
         // If no rule start date
         if (rule.includes('DTSTART') === false) {
-          // Get date/time into a specific format for comapare
+          // Get date/time into a specific format for compare
           let x = moment(curr.start).format('MMMM/Do/YYYY, h:mm:ss a');
           // If the local time value is midnight
           // This a whole day event
