@@ -242,7 +242,7 @@ vows
         },
         'has a start'(topic) {
           assert.equal(topic.start.tz, 'America/Phoenix');
-          assert.equal(topic.start.toISOString(), new Date(Date.UTC(2011, 10, 10, 0, 0, 0)).toISOString());
+          assert.equal(topic.start.toISOString(), new Date(Date.UTC(2011, 10, 10, 2, 0, 0)).toISOString());
         },
         'method is PUBLISH'(topic) {
           assert.equal(topic.method, 'PUBLISH');

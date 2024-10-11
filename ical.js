@@ -287,6 +287,8 @@ const dateParameter = function (name) {
           });
         }
 
+        const tzo = new Date().getTimezoneOffset();
+        // Console.log("offset=", tzo)
         // Save the date part of newDate before adjustment
         const preDstDate = newDate.slice(0, 8);
         // Timezone confirmed or forced to offset // was tz
@@ -298,37 +300,29 @@ const dateParameter = function (name) {
           Number.parseInt(comps[5], 10),
           Number.parseInt(comps[6], 10)
         );
-
+        // Console.log("raw newDate=", newDate)
+        newDate = new Date(new Date(newDate.valueOf()).getTime());
+        // If(tzo<0){
+        //  newDate = new Date(newDate.valueOf()-(tzo*-60000))
+        // }
         // Watch out for DST adjustments which make the dates incorrect
         // The input date string is correct, make sure the output matches DATE
         // Save the  date part of newDate after adjustment
         let postDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
         // Console.log('newdate=', newDate, 'previous value=', preDstDate, 'after reconstruction=',postDstDate)
-        // If the date parts don't match
-        if (preDstDate !== postDstDate) {
-          // Adjust newDate up to get to same DAY
-          if (preDstDate > postDstDate) {
-            // Console.log("pre is > than post, adjusting post up ")
-            // console.log("pre=", preDstDate, " post="+postDstDate)
-            for (let i = 2; i > 0 && (preDstDate > postDstDate); i--) {
-              // Console.log("pre is > that post")
-              newDate = new Date(newDate.getTime() + ((60 * 60000)) + 1);
-              postDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
-              // Console.log("pre=", preDstDate, " post=", postDstDate)
-            }
-          } else {
-            // Console.log("pre is < than post, adjusting post down ")
-            // Adjust newDate DOWN to get to same DAY
-            // console.log("pre=", preDstDate, " post="+postDstDate)
-            for (let i = 2; i > 0 && (preDstDate < postDstDate); i--) {
-              // Console.log("pre is < than post")
-              newDate = new Date(newDate.getTime() - ((60 * 60000)));
-              postDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
-              // Console.log("pre=", preDstDate, " post=", postDstDate)
-            }
+
+        if (comps[4] + comps[5] + comps[6] !== '000000') {
+          const tzoMinutes = Math.abs(tzo); // Offset in hours
+          const msInMinute = 60 * 1000;
+          // If the date parts don't match, accidental date change
+          if (preDstDate !== postDstDate) {
+            // Adjust newDate up to get to same DAY
+            newDate = preDstDate > postDstDate ? new Date(newDate.getTime() + (tzoMinutes * msInMinute) + 1) : new Date(newDate.getTime() - (tzoMinutes * msInMinute));
           }
         }
 
+        postDstDate = newDate.toISOString().slice(0, 10).replaceAll('-', '');
+        // Console.log("pre=", preDstDate, " post=", postDstDate, " new date=",newDate)
         // Make sure to correct the parameters if the TZID= is changed
         newDate = addTZ(newDate, parameters);
       } else {
