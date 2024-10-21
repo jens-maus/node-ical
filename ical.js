@@ -158,8 +158,8 @@ function getTimeZone(value) {
   if (tz && tz.startsWith('(')) {
     // Extract just the offset
     const regex = /[+|-]\d*:\d*/;
-    tz = null;
     found = tz.match(regex);
+    tz = null;
   }
 
   // Timezone not confirmed yet
@@ -584,11 +584,8 @@ module.exports = {
         rule = rule.slice(rule.lastIndexOf('FREQ='));
         // If no rule start date
         if (rule.includes('DTSTART') === false) {
-          // Get date/time into a specific format for comapare
-          let x = moment(curr.start).format('MMMM/Do/YYYY, h:mm:ss a');
-          // If the local time value is midnight
           // This a whole day event
-          if (x.slice(-11) === '12:00:00 am') {
+          if (curr.datetype === 'date') {
             // Get the timezone offset
             // The internal date is stored in UTC format
             const offset = curr.start.getTimezoneOffset();
@@ -600,7 +597,7 @@ module.exports = {
               curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60000));
             } else {
               // Get rid of any time (shouldn't be any, but be sure)
-              x = moment(curr.start).format('MMMM/Do/YYYY');
+              const x = moment(curr.start).format('MMMM/Do/YYYY');
               const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
               if (comps) {
                 curr.start = new Date(comps[3], comps[1] - 1, comps[2]);
