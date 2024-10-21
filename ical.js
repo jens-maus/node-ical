@@ -158,8 +158,8 @@ function getTimeZone(value) {
   if (tz && tz.startsWith('(')) {
     // Extract just the offset
     const regex = /[+|-]\d*:\d*/;
-    tz = null;
     found = tz.match(regex);
+    tz = null;
   }
 
   // Timezone not confirmed yet
