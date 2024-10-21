@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "ansi-regex": ">=6.1.0",
-    "diff": ">=5.2.0",
+    "diff": ">=7.0.0",
     "dot-prop": ">=9.0.0",
     "eslint": "^7.11.0",
     "eslint-config-prettier": "^9.1.0",
