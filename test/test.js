@@ -1161,6 +1161,41 @@ vows
           }
         }
       }
+    },
+    'with germany_at_end_of_day_repeating.ics': {
+      topic() {
+        return ical.parseFile('./test/germany_at_end_of_day_repeating.ics');
+      },
+      checkEnd: {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '2m6mt1p89l2anl74915ur3hsgm@google.com';
+          })[0];
+        },
+        'task completed'(task) {
+          assert.equal(task.start.toDateString(), new Date(2024, 9, 22, 23, 0, 0).toDateString());
+        }
+      }
+    },
+    'with whole_day_moved_over_dst_change_berlin.ics': {
+      topic() {
+        return ical.parseFile('./test/whole_day_moved_over_dst_change_berlin.ics');
+      },
+      checkEnd: {
+        topic(events) {
+          return _.select(_.values(events), x => {
+            return x.uid === '14nv8jl8d6dvdbl477lod4fftf@google.com';
+          })[0].recurrences['2024-10-28'];
+        },
+        'topic recurrence': {
+          'datetype is date'(task) {
+            assert.equal(task.datetype, 'date');
+          },
+          'moved event starts 30 Oct 2024'(now) {
+            assert.equal(now.start.toDateString(), new Date(2024, 9, 30, 0, 0, 0).toDateString());
+          }
+        }
+      }
     }
   })
   .export(module);
