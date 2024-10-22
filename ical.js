@@ -645,11 +645,23 @@ module.exports = {
     URL: storeParameter('url'),
     UID: storeParameter('uid'),
     LOCATION: storeParameter('location'),
-    DTSTART(value, parameters, curr, stack) {
-      curr = dateParameter('start')(value, parameters, curr, stack);
-      return typeParameter('datetype')(value, parameters, curr);
+    DTSTART(value, parameters, curr, stack, line) {
+      // If already defined, this is a duplicate for this event
+      if (curr.start === undefined) {
+        curr = dateParameter('start')(value, parameters, curr, stack);
+        return typeParameter('datetype')(value, parameters, curr);
+      }
+
+      throw new Error('duplicate DTSTART encountered, line=' + line);
     },
-    DTEND: dateParameter('end'),
+    DTEND(value, parameters, curr, stack, line) {
+      // If already defined, this is a duplicate for this event
+      if (curr.end === undefined) {
+        return dateParameter('end')(value, parameters, curr, stack);
+      }
+
+      throw new Error('duplicate DTEND encountered, line=' + line);
+    },
     EXDATE: exdateParameter('exdate'),
     ' CLASS': storeParameter('class'), // Should there be a space in this property?
     TRANSP: storeParameter('transparency'),
