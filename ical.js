@@ -266,8 +266,8 @@ const dateParameter = function (name) {
           // Extract just the offset
           const regex = /[+|-]\d*:\d*/;
           offset = tz.match(regex);
-          tz = null;
           found = offset;
+          tz = null;
         }
 
         // Timezone not confirmed yet
