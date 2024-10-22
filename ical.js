@@ -372,7 +372,7 @@ const exdateParameter = function (name) {
         if (typeof exdate[name].toISOString === 'function') {
           curr[name][exdate[name].toISOString().slice(0, 10)] = exdate[name];
         } else {
-          throw new TypeError('No toISOString function in exdate[name] = '+ exdate[name]);
+          throw new TypeError('No toISOString function in exdate[name] = ' + exdate[name]);
         }
       }
     }
@@ -548,7 +548,7 @@ module.exports = {
             if (typeof curr.recurrenceid.toISOString === 'function') {
               par[curr.uid].recurrences[curr.recurrenceid.toISOString().slice(0, 10)] = recurrenceObject;
             } else { // Removed issue 56
-              throw new TypeError('No toISOString function in curr.recurrenceid ='+ curr.recurrenceid);
+              throw new TypeError('No toISOString function in curr.recurrenceid =' + curr.recurrenceid);
             }
           }
 
@@ -623,10 +623,10 @@ module.exports = {
 
               rule = rule.replace(/\.\d{3}/, '');
             } catch (error) { // This should not happen, issue #56
-              throw new Error('ERROR when trying to convert to ISOString '+ error);
+              throw new Error('ERROR when trying to convert to ISOString ' + error);
             }
           } else {
-            throw new Error('No toISOString function in curr.start '+ curr.start);
+            throw new Error('No toISOString function in curr.start ' + curr.start);
           }
         }
 
