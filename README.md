@@ -137,6 +137,9 @@ END:VCALENDAR
 `, function(err, data) { console.log(data); });
 ```
 
+note: If you using the ical.async.xxx functions is a separate async method from your mainline
+any thrown errors will be posted to that separate function.. so try/catch must be used around the ical.async.xxx functions
+
 ### autodetect
 These are the old API examples, which still work and will be converted to the new API automatically.
 Functions with callbacks provided will also have better performance over the older versions even if they use the old API.
