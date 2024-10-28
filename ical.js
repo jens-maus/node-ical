@@ -483,6 +483,7 @@ module.exports = {
               if (!durationUnits[unit]) {
                 throw new Error(`Invalid duration unit: ${unit}`);
               }
+
               newEnd = newEnd.add(Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
             }
 
