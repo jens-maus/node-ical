@@ -479,6 +479,10 @@ module.exports = {
             const indicator = curr.duration.startsWith('-') ? -1 : 1;
 
             for (const r of duration) {
+              const unit = r.slice(-1);
+              if (!durationUnits[unit]) {
+                throw new Error(`Invalid duration unit: ${unit}`);
+              }
               newEnd = newEnd.add(Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
             }
 
