@@ -458,11 +458,10 @@ module.exports = {
           curr.end = (curr.datetype === 'date-time') ? new Date(curr.start.getTime()) : moment.utc(curr.start).add(1, 'days').toDate();
 
           // If there was a duration specified
+          // see RFC5545, 3.3.6 (no year and month)
           if (curr.duration !== undefined) {
             const durationUnits =
             {
-              // Y: 'years',
-              // M: 'months',
               W: 'weeks',
               D: 'days',
               H: 'hours',
@@ -470,10 +469,12 @@ module.exports = {
               S: 'seconds'
             };
             // Get the list of duration elements
-            const duration = curr.duration.match(/-?\d{1,10}[YMWDHS]/g);
+            const duration = curr.duration.match(/-?\d{1,10}[WDHMS]/g);
 
             // Use the duration to create the end value, from the start
-            let newEnd = moment.utc(curr.start);
+            const startMoment = moment.utc(curr.start);
+            let newEnd = startMoment;
+
             // Is the 1st character a negative sign?
             const indicator = curr.duration.startsWith('-') ? -1 : 1;
 
