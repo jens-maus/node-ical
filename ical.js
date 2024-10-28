@@ -372,7 +372,7 @@ const exdateParameter = function (name) {
         if (typeof exdate[name].toISOString === 'function') {
           curr[name][exdate[name].toISOString().slice(0, 10)] = exdate[name];
         } else {
-          throw new TypeError('No toISOString function in exdate[name]', exdate[name]);
+          throw new TypeError('No toISOString function in exdate[name] = ' + exdate[name]);
         }
       }
     }
@@ -548,7 +548,7 @@ module.exports = {
             if (typeof curr.recurrenceid.toISOString === 'function') {
               par[curr.uid].recurrences[curr.recurrenceid.toISOString().slice(0, 10)] = recurrenceObject;
             } else { // Removed issue 56
-              throw new TypeError('No toISOString function in curr.recurrenceid', curr.recurrenceid);
+              throw new TypeError('No toISOString function in curr.recurrenceid =' + curr.recurrenceid);
             }
           }
 
@@ -623,10 +623,10 @@ module.exports = {
 
               rule = rule.replace(/\.\d{3}/, '');
             } catch (error) { // This should not happen, issue #56
-              throw new Error('ERROR when trying to convert to ISOString', error);
+              throw new Error('ERROR when trying to convert to ISOString ' + error);
             }
           } else {
-            throw new Error('No toISOString function in curr.start', curr.start);
+            throw new Error('No toISOString function in curr.start ' + curr.start);
           }
         }
 
@@ -645,11 +645,23 @@ module.exports = {
     URL: storeParameter('url'),
     UID: storeParameter('uid'),
     LOCATION: storeParameter('location'),
-    DTSTART(value, parameters, curr, stack) {
-      curr = dateParameter('start')(value, parameters, curr, stack);
-      return typeParameter('datetype')(value, parameters, curr);
+    DTSTART(value, parameters, curr, stack, line) {
+      // If already defined, this is a duplicate for this event
+      if (curr.start === undefined) {
+        curr = dateParameter('start')(value, parameters, curr, stack);
+        return typeParameter('datetype')(value, parameters, curr);
+      }
+
+      throw new Error('duplicate DTSTART encountered, line=' + line);
     },
-    DTEND: dateParameter('end'),
+    DTEND(value, parameters, curr, stack, line) {
+      // If already defined, this is a duplicate for this event
+      if (curr.end === undefined) {
+        return dateParameter('end')(value, parameters, curr, stack);
+      }
+
+      throw new Error('duplicate DTEND encountered, line=' + line);
+    },
     EXDATE: exdateParameter('exdate'),
     ' CLASS': storeParameter('class'), // Should there be a space in this property?
     TRANSP: storeParameter('transparency'),

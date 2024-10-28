@@ -137,6 +137,19 @@ END:VCALENDAR
 `, function(err, data) { console.log(data); });
 ```
 
+Note: When using the `ical.async.*` functions in a separate async context from your main code,
+errors will be thrown in that separate context. Therefore, you must wrap these function calls
+in try/catch blocks to properly handle any errors. For example:
+
+```javascript
+try {
+  const events = await ical.async.parseFile('calendar.ics');
+  // Process events
+} catch (error) {
+  console.error('Failed to parse calendar:', error);
+}
+```
+
 ### autodetect
 These are the old API examples, which still work and will be converted to the new API automatically.
 Functions with callbacks provided will also have better performance over the older versions even if they use the old API.
