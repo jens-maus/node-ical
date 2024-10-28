@@ -851,7 +851,7 @@ vows
         },
         'it uses the start/end of the event'(event) {
           assert.equal(event.start.toJSON(), '2024-02-15T09:00:00.000Z');
-          assert.equal(event.end.toJSON(), '2024-02-15T09:15:00.000Z');
+          assert.equal(event.end.toJSON(), '2024-02-15T10:15:00.000Z');
         }
       }
     },

@@ -470,15 +470,19 @@ module.exports = {
               S: 'seconds'
             };
             // Get the list of duration elements
-            const r = curr.duration.match(/-?\d{1,10}[YMWDHS]/g);
+            const duration = curr.duration.match(/-?\d{1,10}[YMWDHS]/g);
 
             // Use the duration to create the end value, from the start
-            let newend = moment.utc(curr.start);
+            let newEnd = moment.utc(curr.start);
             // Is the 1st character a negative sign?
             const indicator = curr.duration.startsWith('-') ? -1 : 1;
-            newend = newend.add(Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
+
+            for (const r of duration) {
+              newEnd = newEnd.add(Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
+            }
+
             // End is a Date type, not moment
-            curr.end = newend.toDate();
+            curr.end = newEnd.toDate();
           }
         }
 
