@@ -622,10 +622,11 @@ module.exports = {
               if (curr.start.tz) {
                 const tz = getTimeZone(curr.start.tz);
                 // If a timezone is provided, rrule requires the time to be local
+                // but without Z suffix (cf. RFC5545, 3.3.5)
                 const adjustedTimeString = curr.start
-                  .toLocaleString('sv', {timeZone: tz})
+                  .toLocaleString('sv-SE', {timeZone: tz}) // 'sv-SE' outputs 'YYYY-MM-DD' date format
                   .replace(/ /g, 'T')
-                  .replace(/[-:]/g, '');
+                  .replace(/[-:Z]/g, '');
                 rule += `;DTSTART;TZID=${tz}:${adjustedTimeString}`;
               } else {
                 rule += `;DTSTART=${curr.start.toISOString().replace(/[-:]/g, '')}`;
