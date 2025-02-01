@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "axios": "^1.7.9",
-    "moment-timezone": "^0.5.45",
+    "moment-timezone": "^0.5.47",
     "rrule": "2.8.1",
     "uuid": "^10.0.0"
   },
