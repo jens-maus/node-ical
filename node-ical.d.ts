@@ -1,6 +1,16 @@
 declare module 'node-ical' {
-  import {AxiosRequestConfig} from 'axios';
   import {RRule} from 'rrule';
+
+  /**
+   * Minimal Fetch options type (subset of RequestInit) to avoid requiring DOM lib.
+   */
+  export interface FetchOptions {
+    method?: string;
+    headers?: Record<string, string> | Array<[string, string]>;
+    body?: any;
+    // Allow any additional fields (e.g. agent for node, redirect etc.) without forcing DOM lib.
+    [key: string]: any;
+  }
 
   /**
      * Methods (Sync)
@@ -17,7 +27,7 @@ declare module 'node-ical' {
      * Methods (Async)
      */
   export interface NodeICalAsync {
-    fromURL: ((url: string, callback: NodeIcalCallback) => void) & ((url: string, options: AxiosRequestConfig | NodeIcalCallback, callback?: NodeIcalCallback) => void) & ((url: string) => Promise<CalendarResponse>);
+    fromURL: ((url: string, callback: NodeIcalCallback) => void) & ((url: string, options: FetchOptions | NodeIcalCallback, callback?: NodeIcalCallback) => void) & ((url: string) => Promise<CalendarResponse>);
 
     parseICS: ((body: string, callback: NodeIcalCallback) => void) & ((body: string) => Promise<CalendarResponse>);
 
@@ -31,7 +41,7 @@ declare module 'node-ical' {
      */
   export function fromURL(url: string, callback: NodeIcalCallback): void;
 
-  export function fromURL(url: string, options: AxiosRequestConfig | NodeIcalCallback, callback?: NodeIcalCallback): void;
+  export function fromURL(url: string, options: FetchOptions | NodeIcalCallback, callback?: NodeIcalCallback): void;
 
   export function fromURL(url: string): Promise<CalendarResponse>;
 
