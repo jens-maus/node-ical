@@ -140,7 +140,6 @@ declare module 'node-ical' {
     lastmodified: DateWithTimeZone;
     rrule?: RRule;
     attendee?: Attendee[] | Attendee;
-    /* eslint-disable-next-line @typescript-eslint/ban-types */
     recurrences?: Record<string, Omit<VEvent, 'recurrences'>>;
     status?: VEventStatus;
 

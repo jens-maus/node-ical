@@ -38,10 +38,45 @@
     "vows": "^0.8.2",
     "xml-js": "^1.6.11",
     "braces": "^3.0.3",
-    "xo": "~0.39.1"
+    "xo": "~1.2.2"
   },
   "xo": {
-    "space": 2
+    "space": 2,
+    "rules": {
+      "@stylistic/comma-dangle": "off",
+      "@stylistic/function-paren-newline": "off",
+      "@stylistic/indent-binary-ops": "off",
+      "@stylistic/max-len": "off",
+      "@stylistic/multiline-ternary": "off",
+      "@stylistic/operator-linebreak": "off",
+      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/consistent-type-imports": "off",
+      "@typescript-eslint/member-ordering": "off",
+      "@typescript-eslint/naming-convention": "off",
+      "arrow-body-style": "off",
+      "import-x/order": "off",
+      "logical-assignment-operators": "off",
+      "n/prefer-global/process": "off",
+      "unicorn/prefer-includes": "off",
+      "n/prefer-promises/fs": "off",
+      "no-useless-catch": "off",
+      "object-shorthand": "off",
+      "prefer-object-has-own": "off",
+      "promise/prefer-await-to-then": "off",
+      "unicorn/consistent-date-clone": "off",
+      "unicorn/consistent-existence-index-check": "off",
+      "unicorn/filename-case": "off",
+      "unicorn/prefer-at": "off",
+      "unicorn/prefer-prototype-methods": "off",
+      "unicorn/prefer-string-replace-all": "off",
+      "unicorn/prefer-ternary": "off",
+      "unicorn/prevent-abbreviations": "off",
+      "unicorn/no-typeof-undefined": "off",
+      "unicorn/prefer-module": "off",
+      "unicorn/prefer-node-protocol": "off",
+      "unicorn/prefer-spread": "off",
+      "unicorn/numeric-separators-style": "off"
+    }
   },
   "pre-commit": [
     "lintfix"
