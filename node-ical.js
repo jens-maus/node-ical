@@ -1,5 +1,4 @@
-const fs = require('fs');
-const axios = require('axios');
+const fs = require('node:fs');
 const ical = require('./ical.js');
 
 /**
@@ -87,7 +86,7 @@ const autodetect = {};
  * Download an iCal file from the web and parse it.
  *
  * @param {string} url                - URL of file to request.
- * @param {Object|icsCallback} [opts] - Options to pass to axios.get() from npm:axios.
+ * @param {Object|icsCallback} [opts] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
  *                                      Alternatively you can pass the callback function directly.
  *                                      If no callback is provided a promise will be returned.
  * @param {icsCallback} [cb]          - Callback function.
@@ -96,17 +95,23 @@ const autodetect = {};
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
 async.fromURL = function (url, options, cb) {
+  // Normalize overloads: (url, cb) or (url, options, cb)
+  if (typeof options === 'function' && cb === undefined) {
+    cb = options;
+    options = undefined;
+  }
+
   return promiseCallback((resolve, reject) => {
-    axios.get(url, options)
+    const fetchOptions = (options && typeof options === 'object') ? {...options} : {};
+
+    fetch(url, fetchOptions)
       .then(response => {
-        // If (response.status !== 200) {
-        // all ok status codes should be accepted (any 2XX code)
-        if (Math.floor(response.status / 100) !== 2) {
-          reject(new Error(`${response.status} ${response.statusText}`));
-          return;
+        if (!response.ok) {
+          // Mimic previous error style
+          throw new Error(`${response.status} ${response.statusText}`);
         }
 
-        return response.data;
+        return response.text();
       })
       .then(data => {
         ical.parseICS(data, (error, ics) => {
@@ -245,5 +250,5 @@ module.exports = {
   // Other backwards compat things
   objectHandlers: ical.objectHandlers,
   handleObject: ical.handleObject,
-  parseLines: ical.parseLines
+  parseLines: ical.parseLines,
 };

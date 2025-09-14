@@ -1,6 +1,22 @@
 declare module 'node-ical' {
-  import {AxiosRequestConfig} from 'axios';
   import {RRule} from 'rrule';
+
+  /**
+   * Minimal Fetch options type (subset of RequestInit) to avoid requiring DOM lib.
+   */
+  export interface FetchOptions {
+    method?: string;
+    /**
+     * Accept common header container shapes without depending on DOM lib types.
+     * - Plain object map
+     * - Any iterable of [key,value] tuples (covers Arrays and WHATWG Headers at runtime)
+     */
+    headers?: Record<string, string> | Iterable<[string, string]>;
+    /** Request body (caller supplied) */
+    body?: unknown;
+    /** Additional fetch options (e.g. agent, redirect, follow, timeout, signal, etc.) */
+    [key: string]: unknown;
+  }
 
   /**
      * Methods (Sync)
@@ -17,7 +33,7 @@ declare module 'node-ical' {
      * Methods (Async)
      */
   export interface NodeICalAsync {
-    fromURL: ((url: string, callback: NodeIcalCallback) => void) & ((url: string, options: AxiosRequestConfig | NodeIcalCallback, callback?: NodeIcalCallback) => void) & ((url: string) => Promise<CalendarResponse>);
+    fromURL: ((url: string, callback: NodeIcalCallback) => void) & ((url: string, options: FetchOptions | NodeIcalCallback, callback?: NodeIcalCallback) => void) & ((url: string) => Promise<CalendarResponse>);
 
     parseICS: ((body: string, callback: NodeIcalCallback) => void) & ((body: string) => Promise<CalendarResponse>);
 
@@ -31,7 +47,7 @@ declare module 'node-ical' {
      */
   export function fromURL(url: string, callback: NodeIcalCallback): void;
 
-  export function fromURL(url: string, options: AxiosRequestConfig | NodeIcalCallback, callback?: NodeIcalCallback): void;
+  export function fromURL(url: string, options: FetchOptions | NodeIcalCallback, callback?: NodeIcalCallback): void;
 
   export function fromURL(url: string): Promise<CalendarResponse>;
 
@@ -46,7 +62,7 @@ declare module 'node-ical' {
   /**
      * Response objects
      */
-  export type NodeIcalCallback = (error: any, data: CalendarResponse) => void;
+  export type NodeIcalCallback = (error: any, data: CalendarResponse | undefined) => void;
 
   export type CalendarResponse = Record<string, CalendarComponent>;
 
@@ -124,7 +140,6 @@ declare module 'node-ical' {
     lastmodified: DateWithTimeZone;
     rrule?: RRule;
     attendee?: Attendee[] | Attendee;
-    /* eslint-disable-next-line @typescript-eslint/ban-types */
     recurrences?: Record<string, Omit<VEvent, 'recurrences'>>;
     status?: VEventStatus;
 

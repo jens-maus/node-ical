@@ -84,10 +84,13 @@ const ical = require('node-ical');
 
     // you can also use the async lib to download and parse iCal from the web
     const webEvents = await ical.async.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics');
-    // also you can pass options to axios.get() (optional though!)
+    // you can pass standard fetch() options (e.g. headers, signal for timeout)
+    // Example: 5s timeout
+    const ac = new AbortController();
+    setTimeout(() => ac.abort(), 5000);
     const headerWebEvents = await ical.async.fromURL(
         'http://lanyrd.com/topics/nodejs/nodejs.ics',
-        { headers: { 'User-Agent': 'API-Example / 1.0' } }
+        { headers: { 'User-Agent': 'API-Example/1.0' }, signal: ac.signal }
     );
 
     // parse iCal data without blocking the main loop for extra-large events
@@ -193,7 +196,7 @@ ical.fromURL(url, options, function(err, data) {
 });
 ```
 
-Use the axios library to get the specified URL (```opts``` gets passed on to the ```axios.get()``` call), and call the function with the result. (either an error or the data)
+Fetch the specified URL using the native fetch API (```options``` are passed to the underlying `fetch()` call) and call the function with the result (either an error or the data). Requires Node.js 18+ (or any environment that provides a global `fetch`).
 
 #### Example 1 - Print list of upcoming node conferences (see example.js) (parses the file synchronous)
 ```javascript
