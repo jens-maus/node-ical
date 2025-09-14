@@ -51,16 +51,24 @@ function withServer(routeHandlers, run) {
     const {port} = server.address();
     const urlBase = `http://localhost:${port}`;
     run({server, port, urlBase}, () => {
-      // Defer close to next tick so any final I/O settles
-      setImmediate(() => {
-        for (const s of sockets) {
-          try {
-            s.destroy();
-          } catch {}
-        }
+      // Graceful shutdown strategy (Windows/Node 24):
+      // 1. Stop accepting new connections
+      // 2. Half-close existing sockets (end) so fetch can finish reading
+      // 3. Delay final close slightly to allow libuv to flush events
+      server.closeAllConnections?.(); // Node 20+ optional API
+      for (const s of sockets) {
+        try {
+          // If writable, attempt a graceful end; avoid immediate destroy which can trip libuv assertion
+          if (!s.destroyed) {
+            s.end();
+          }
+        } catch {}
+      }
 
+      // Delay server.close enough for end() to propagate (10ms chosen conservatively)
+      setTimeout(() => {
         server.close();
-      });
+      }, 10);
     });
   });
 }
