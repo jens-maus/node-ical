@@ -22,8 +22,7 @@
   },
   "dependencies": {
     "moment-timezone": "^0.6.0",
-    "rrule": "2.8.1",
-    "uuid": "^13.0.0"
+    "rrule": "2.8.1"
   },
   "devDependencies": {
     "pre-commit": "^1.2.2",

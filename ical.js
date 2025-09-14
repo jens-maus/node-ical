@@ -1,6 +1,6 @@
 /* eslint-disable max-depth, max-params, no-warning-comments, complexity */
 
-const {v4: uuid} = require('uuid');
+const {randomUUID} = require('node:crypto');
 const moment = require('moment-timezone');
 const rrule = require('rrule').RRule;
 
@@ -573,7 +573,7 @@ module.exports = {
           par.alarms ??= [];
           par.alarms.push(curr);
         } else {
-          const id = uuid();
+          const id = randomUUID();
           par[id] = curr;
 
           if (par.method) { // RFC5545, 3.2
