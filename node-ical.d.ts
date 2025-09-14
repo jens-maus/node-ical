@@ -6,10 +6,16 @@ declare module 'node-ical' {
    */
   export interface FetchOptions {
     method?: string;
-    headers?: Record<string, string> | Array<[string, string]>;
-    body?: any;
-    // Allow any additional fields (e.g. agent for node, redirect etc.) without forcing DOM lib.
-    [key: string]: any;
+    /**
+     * Accept common header container shapes without depending on DOM lib types.
+     * - Plain object map
+     * - Any iterable of [key,value] tuples (covers Arrays and WHATWG Headers at runtime)
+     */
+    headers?: Record<string, string> | Iterable<[string, string]>;
+    /** Request body (caller supplied) */
+    body?: unknown;
+    /** Additional fetch options (e.g. agent, redirect, follow, timeout, signal, etc.) */
+    [key: string]: unknown;
   }
 
   /**
