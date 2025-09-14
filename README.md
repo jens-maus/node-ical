@@ -84,10 +84,13 @@ const ical = require('node-ical');
 
     // you can also use the async lib to download and parse iCal from the web
     const webEvents = await ical.async.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics');
-    // you can pass standard fetch() options (e.g. headers)
+    // you can pass standard fetch() options (e.g. headers, signal for timeout)
+    // Example: 5s timeout
+    const ac = new AbortController();
+    setTimeout(() => ac.abort(), 5000);
     const headerWebEvents = await ical.async.fromURL(
         'http://lanyrd.com/topics/nodejs/nodejs.ics',
-        { headers: { 'User-Agent': 'API-Example / 1.0' } }
+        { headers: { 'User-Agent': 'API-Example/1.0' }, signal: ac.signal }
     );
 
     // parse iCal data without blocking the main loop for extra-large events
