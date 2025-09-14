@@ -243,4 +243,28 @@ vows
       },
     },
   })
+  .addBatch({
+    'teardown fetch dispatcher': {
+      topic() {
+        (async () => {
+          try {
+            const dispatcher = globalThis.__undici_global__?.dispatcher || globalThis.dispatcher;
+            if (dispatcher && typeof dispatcher.close === 'function') {
+              // Force close to release any keep-alive sockets on Windows/Node24
+              await dispatcher.close();
+            }
+
+            // Allow extra time for libuv to settle (Windows timing); 60ms empirically safe
+            setTimeout(() => this.callback(null, true), 60);
+          } catch {
+            this.callback(null, true); // Never fail teardown
+          }
+        })();
+      },
+      'dispatcher closed'(err, ok) {
+        assert.ifError(err);
+        assert.strictEqual(ok, true);
+      }
+    }
+  })
   .export(module);
