@@ -25,6 +25,10 @@ function withServer(routeHandlers, run) {
   );
 
   const server = http.createServer((req, res) => {
+    // Reduce flakiness on Windows/Node by avoiding keep-alive lingering
+    server.keepAliveTimeout = 0;
+    server.headersTimeout = 1000;
+
     // Get pathname (ignore query/hash); fall back to raw req.url if URL ctor fails.
     const pathname = (() => {
       try {
@@ -65,7 +69,7 @@ function withServer(routeHandlers, run) {
         } catch {}
       }
 
-      setTimeout(() => server.close(), 10);
+      setTimeout(() => server.close(), 25);
     });
   });
 }
@@ -84,8 +88,8 @@ vows
           },
           ({urlBase}, done) => {
             ical.fromURL(`${urlBase}/ok.ics`, {}, (error, data) => {
-              done();
               this.callback(error, data);
+              done();
             });
           },
         );
@@ -94,7 +98,7 @@ vows
         assert.ifError(error);
         const ev = getFirstVEvent(data);
         assert.ok(ev, 'No VEVENT parsed');
-        assert.equal(ev.summary, 'Fetch Test Event');
+        assert.strictEqual(ev.summary, 'Fetch Test Event');
       },
     },
 
@@ -102,7 +106,7 @@ vows
       topic() {
         withServer(
           {
-            '/missing.ics'(request, res) {
+            '/missing.ics'(_request, res) {
               res.writeHead(404, {'Content-Type': 'text/plain'});
               res.end('nope');
             },
@@ -118,7 +122,7 @@ vows
       'passes an error to callback'(error, data) {
         assert.ok(error, 'Expected error for 404');
         assert.match(error.message, /404/);
-        assert.equal(data, null);
+        assert.strictEqual(data, null);
       },
     },
 
@@ -152,7 +156,7 @@ vows
         assert.ifError(error);
         const ev = getFirstVEvent(data);
         assert.ok(ev);
-        assert.equal(ev.summary, 'Secured Event');
+        assert.strictEqual(ev.summary, 'Secured Event');
       },
     },
 
@@ -164,7 +168,7 @@ vows
               res.writeHead(200, {'Content-Type': 'text/calendar'});
               res.end(eventBody('Callback No Options'));
             },
-            '/plain-missing.ics'(request, res) {
+            '/plain-missing.ics'(_request, res) {
               res.writeHead(404, {'Content-Type': 'text/plain'});
               res.end('missing');
             },
@@ -182,13 +186,13 @@ vows
         assert.ifError(error);
         const ev = getFirstVEvent(data);
         assert.ok(ev, 'No VEVENT');
-        assert.equal(ev.summary, 'Callback No Options');
+        assert.strictEqual(ev.summary, 'Callback No Options');
       },
       '404 without options yields error': {
         topic() {
           withServer(
             {
-              '/missing.ics'(request, res) {
+              '/missing.ics'(_request, res) {
                 res.writeHead(404, {'Content-Type': 'text/plain'});
                 res.end('nope');
               },
@@ -204,7 +208,7 @@ vows
         'returns error object'(error, data) {
           assert.ok(error, 'Expected error');
           assert.match(error.message, /404/);
-          assert.equal(data, null);
+          assert.strictEqual(data, null);
         },
       },
     },
@@ -236,7 +240,7 @@ vows
         assert.ifError(error);
         const ev = getFirstVEvent(data);
         assert.ok(ev, 'No VEVENT found');
-        assert.equal(ev.summary, 'Promise Event');
+        assert.strictEqual(ev.summary, 'Promise Event');
       },
     },
   })
