@@ -11,9 +11,12 @@ const ical = require('../node-ical.js');
 const ICS_BODY = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//TEST//node-ical fetch test//EN\nBEGIN:VEVENT\nUID:fetch-test-1\nDTSTAMP:20250101T000000Z\nDTSTART:20250101T100000Z\nDTEND:20250101T110000Z\nSUMMARY:Fetch Test Event\nEND:VEVENT\nEND:VCALENDAR';
 
 function withServer(routeHandlers, run) {
-  // Ensure a clean dictionary without prototype pollution risk
-  if (Object.getPrototypeOf(routeHandlers) !== null) {
-    routeHandlers = Object.assign(Object.create(null), routeHandlers);
+  // Normalize provided handlers into a Map to avoid dynamic object property lookups (CodeQL warning mitigation)
+  const handlerMap = new Map();
+  for (const [key, value] of Object.entries(routeHandlers)) {
+    if (typeof value === 'function') {
+      handlerMap.set(key, value);
+    }
   }
 
   const server = http.createServer((request, res) => {
@@ -25,11 +28,9 @@ function withServer(routeHandlers, run) {
       pathname = request.url; // Fallback (unlikely in tests)
     }
 
-    let handler;
-    if (Object.prototype.hasOwnProperty.call(routeHandlers, pathname)) {
-      handler = routeHandlers[pathname];
-    } else if (Object.prototype.hasOwnProperty.call(routeHandlers, '*')) {
-      handler = routeHandlers['*'];
+    let handler = handlerMap.get(pathname);
+    if (!handler) {
+      handler = handlerMap.get('*');
     }
 
     if (typeof handler === 'function') {
