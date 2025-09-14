@@ -11,9 +11,28 @@ const ical = require('../node-ical.js');
 const ICS_BODY = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//TEST//node-ical fetch test//EN\nBEGIN:VEVENT\nUID:fetch-test-1\nDTSTAMP:20250101T000000Z\nDTSTART:20250101T100000Z\nDTEND:20250101T110000Z\nSUMMARY:Fetch Test Event\nEND:VEVENT\nEND:VCALENDAR';
 
 function withServer(routeHandlers, run) {
+  // Ensure a clean dictionary without prototype pollution risk
+  if (Object.getPrototypeOf(routeHandlers) !== null) {
+    routeHandlers = Object.assign(Object.create(null), routeHandlers);
+  }
+
   const server = http.createServer((request, res) => {
-    const handler = routeHandlers[request.url] || routeHandlers['*'];
-    if (handler) {
+    // Normalize URL to pathname only (ignore query/fragments)
+    let pathname;
+    try {
+      pathname = new URL(request.url, 'http://localhost').pathname;
+    } catch {
+      pathname = request.url; // Fallback (unlikely in tests)
+    }
+
+    let handler;
+    if (Object.prototype.hasOwnProperty.call(routeHandlers, pathname)) {
+      handler = routeHandlers[pathname];
+    } else if (Object.prototype.hasOwnProperty.call(routeHandlers, '*')) {
+      handler = routeHandlers['*'];
+    }
+
+    if (typeof handler === 'function') {
       handler(request, res);
     } else {
       res.writeHead(404, {'Content-Type': 'text/plain'});
