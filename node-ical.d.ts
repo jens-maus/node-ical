@@ -62,7 +62,7 @@ declare module 'node-ical' {
   /**
      * Response objects
      */
-  export type NodeIcalCallback = (error: any, data: CalendarResponse | null) => void;
+  export type NodeIcalCallback = (error: any, data: CalendarResponse | undefined) => void;
 
   export type CalendarResponse = Record<string, CalendarComponent>;
 

@@ -38,9 +38,16 @@ function withServer(routeHandlers, run) {
       }
     })();
 
-    const handler = handlerMap.get(pathname) || handlerMap.get('*');
-    if (handler) {
-      handler(req, res);
+    // Safe handler resolution: only invoke if value is a function; fallback to '*'
+    let handler = handlerMap.get(pathname);
+    if (typeof handler !== 'function') {
+      const wildcard = handlerMap.get('*');
+      handler = typeof wildcard === 'function' ? wildcard : undefined;
+    }
+
+    if (typeof handler === 'function') {
+      // Codeql[js/unsafe-dynamic-method-call]: handler validated as function above
+      Reflect.apply(handler, undefined, [req, res]);
       return;
     }
 
