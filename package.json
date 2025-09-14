@@ -23,19 +23,19 @@
   "dependencies": {
     "moment-timezone": "^0.6.0",
     "rrule": "2.8.1",
-    "uuid": "^11.1.0"
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "ansi-regex": ">=6.2.2",
     "diff": ">=8.0.2",
-    "dot-prop": ">=9.0.0",
+    "dot-prop": ">=10.0.0",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "pre-commit": "^1.2.2",
-    "set-value": ">=4.0.1",
+    "set-value": ">=4.1.0",
     "underscore": "1.13.7",
-    "vows": "^0.8.2",
+    "vows": "^0.8.3",
     "xml-js": "^1.6.11",
     "braces": "^3.0.3",
     "xo": "~1.2.2"
