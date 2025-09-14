@@ -10,37 +10,41 @@ const ical = require('../node-ical.js');
 
 const ICS_BODY = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//TEST//node-ical fetch test//EN\nBEGIN:VEVENT\nUID:fetch-test-1\nDTSTAMP:20250101T000000Z\nDTSTART:20250101T100000Z\nDTEND:20250101T110000Z\nSUMMARY:Fetch Test Event\nEND:VEVENT\nEND:VCALENDAR';
 
+function eventBody(summary) {
+  return ICS_BODY.replace('Fetch Test Event', summary);
+}
+
+function getFirstVEvent(data) {
+  return Object.values(data).find(e => e.type === 'VEVENT');
+}
+
 function withServer(routeHandlers, run) {
-  // Normalize provided handlers into a Map to avoid dynamic object property lookups (CodeQL warning mitigation)
-  const handlerMap = new Map();
-  for (const [key, value] of Object.entries(routeHandlers)) {
-    if (typeof value === 'function') {
-      handlerMap.set(key, value);
-    }
-  }
+  // Map only function handlers (avoid dynamic property lookups)
+  const handlerMap = new Map(
+    Object.entries(routeHandlers).filter(([, fn]) => typeof fn === 'function'),
+  );
 
-  const server = http.createServer((request, res) => {
-    // Normalize URL to pathname only (ignore query/fragments)
-    let pathname;
-    try {
-      pathname = new URL(request.url, 'http://localhost').pathname;
-    } catch {
-      pathname = request.url; // Fallback (unlikely in tests)
+  const server = http.createServer((req, res) => {
+    // Get pathname (ignore query/hash); fall back to raw req.url if URL ctor fails.
+    const pathname = (() => {
+      try {
+        return new URL(req.url, 'http://localhost').pathname;
+      } catch {
+        return req.url;
+      }
+    })();
+
+    const handler = handlerMap.get(pathname) || handlerMap.get('*');
+    if (handler) {
+      handler(req, res);
+      return;
     }
 
-    let handler = handlerMap.get(pathname);
-    if (!handler) {
-      handler = handlerMap.get('*');
-    }
-
-    if (typeof handler === 'function') {
-      handler(request, res);
-    } else {
-      res.writeHead(404, {'Content-Type': 'text/plain'});
-      res.end('not found');
-    }
+    res.writeHead(404, {'Content-Type': 'text/plain'});
+    res.end('not found');
   });
-  // Track active sockets to ensure clean shutdown
+
+  // Track sockets for graceful shutdown
   const sockets = new Set();
   server.on('connection', socket => {
     sockets.add(socket);
@@ -51,24 +55,17 @@ function withServer(routeHandlers, run) {
     const {port} = server.address();
     const urlBase = `http://localhost:${port}`;
     run({server, port, urlBase}, () => {
-      // Graceful shutdown strategy (Windows/Node 24):
-      // 1. Stop accepting new connections
-      // 2. Half-close existing sockets (end) so fetch can finish reading
-      // 3. Delay final close slightly to allow libuv to flush events
-      server.closeAllConnections?.(); // Node 20+ optional API
+      // Graceful shutdown (Windows/Node24): stop new conns, end existing, delay close
+      server.closeAllConnections?.();
       for (const s of sockets) {
         try {
-          // If writable, attempt a graceful end; avoid immediate destroy which can trip libuv assertion
           if (!s.destroyed) {
             s.end();
           }
         } catch {}
       }
 
-      // Delay server.close enough for end() to propagate (10ms chosen conservatively)
-      setTimeout(() => {
-        server.close();
-      }, 10);
+      setTimeout(() => server.close(), 10);
     });
   });
 }
@@ -80,9 +77,9 @@ vows
       topic() {
         withServer(
           {
-            '/ok.ics'(request, res) {
+            '/ok.ics'(_request, res) {
               res.writeHead(200, {'Content-Type': 'text/calendar'});
-              res.end(ICS_BODY);
+              res.end(eventBody('Fetch Test Event'));
             },
           },
           ({urlBase}, done) => {
@@ -95,7 +92,7 @@ vows
       },
       'parses VEVENT'(error, data) {
         assert.ifError(error);
-        const ev = Object.values(data).find(e => e.type === 'VEVENT');
+        const ev = getFirstVEvent(data);
         assert.ok(ev, 'No VEVENT parsed');
         assert.equal(ev.summary, 'Fetch Test Event');
       },
@@ -132,7 +129,7 @@ vows
             '/secure.ics'(request, res) {
               if (request.headers['x-test-token'] === 'abc') {
                 res.writeHead(200, {'Content-Type': 'text/calendar'});
-                res.end(ICS_BODY.replace('Fetch Test Event', 'Secured Event'));
+                res.end(eventBody('Secured Event'));
               } else {
                 res.writeHead(401, {'Content-Type': 'text/plain'});
                 res.end('unauthorized');
@@ -153,7 +150,7 @@ vows
       },
       'authorized fetch succeeds'(error, data) {
         assert.ifError(error);
-        const ev = Object.values(data).find(e => e.type === 'VEVENT');
+        const ev = getFirstVEvent(data);
         assert.ok(ev);
         assert.equal(ev.summary, 'Secured Event');
       },
@@ -163,9 +160,9 @@ vows
       topic() {
         withServer(
           {
-            '/plain.ics'(request, res) {
+            '/plain.ics'(_request, res) {
               res.writeHead(200, {'Content-Type': 'text/calendar'});
-              res.end(ICS_BODY.replace('Fetch Test Event', 'Callback No Options'));
+              res.end(eventBody('Callback No Options'));
             },
             '/plain-missing.ics'(request, res) {
               res.writeHead(404, {'Content-Type': 'text/plain'});
@@ -183,7 +180,7 @@ vows
       },
       'works and parses event'(error, data) {
         assert.ifError(error);
-        const ev = Object.values(data).find(e => e.type === 'VEVENT');
+        const ev = getFirstVEvent(data);
         assert.ok(ev, 'No VEVENT');
         assert.equal(ev.summary, 'Callback No Options');
       },
@@ -216,28 +213,28 @@ vows
       topic() {
         withServer(
           {
-            '/promise.ics'(request, res) {
+            '/promise.ics'(_request, res) {
               res.writeHead(200, {'Content-Type': 'text/calendar'});
-              res.end(ICS_BODY.replace('Fetch Test Event', 'Promise Event'));
+              res.end(eventBody('Promise Event'));
             },
           },
           ({urlBase}, done) => {
-            ical
-              .fromURL(`${urlBase}/promise.ics`)
-              .then(data => {
+            (async () => {
+              try {
+                const data = await ical.fromURL(`${urlBase}/promise.ics`);
                 done();
                 this.callback(null, data);
-              })
-              .catch(error => {
+              } catch (error) {
                 done();
                 this.callback(error, null);
-              });
+              }
+            })();
           },
         );
       },
       'returns parsed data'(error, data) {
         assert.ifError(error);
-        const ev = Object.values(data).find(e => e.type === 'VEVENT');
+        const ev = getFirstVEvent(data);
         assert.ok(ev, 'No VEVENT found');
         assert.equal(ev.summary, 'Promise Event');
       },
