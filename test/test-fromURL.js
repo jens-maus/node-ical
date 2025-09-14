@@ -39,10 +39,28 @@ function withServer(routeHandlers, run) {
       res.end('not found');
     }
   });
+  // Track active sockets to ensure clean shutdown
+  const sockets = new Set();
+  server.on('connection', socket => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
+  });
+
   server.listen(0, () => {
     const {port} = server.address();
     const urlBase = `http://localhost:${port}`;
-    run({server, port, urlBase}, () => server.close());
+    run({server, port, urlBase}, () => {
+      // Defer close to next tick so any final I/O settles
+      setImmediate(() => {
+        for (const s of sockets) {
+          try {
+            s.destroy();
+          } catch {}
+        }
+
+        server.close();
+      });
+    });
   });
 }
 
