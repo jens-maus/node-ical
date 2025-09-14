@@ -95,9 +95,14 @@ const autodetect = {};
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
 async.fromURL = function (url, options, cb) {
+  // Normalize overloads: (url, cb) or (url, options, cb)
+  if (typeof options === 'function' && cb === undefined) {
+    cb = options;
+    options = undefined;
+  }
+
   return promiseCallback((resolve, reject) => {
-    // Allow signature flexibility: (url, cb) or (url, options, cb)
-    const fetchOptions = (options && typeof options === 'object' && !(typeof options === 'function')) ? {...options} : {};
+    const fetchOptions = (options && typeof options === 'object') ? {...options} : {};
 
     fetch(url, fetchOptions)
       .then(response => {
@@ -245,5 +250,5 @@ module.exports = {
   // Other backwards compat things
   objectHandlers: ical.objectHandlers,
   handleObject: ical.handleObject,
-  parseLines: ical.parseLines
+  parseLines: ical.parseLines,
 };
