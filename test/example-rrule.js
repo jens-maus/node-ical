@@ -24,19 +24,17 @@ for (const k in data) {
       const duration = Number.parseInt(endDate.format('x'), 10) - Number.parseInt(startDate.format('x'), 10);
 
       // Simple case - no recurrences, just print out the calendar event.
-      if (typeof event.rrule === 'undefined') {
+      if (event.rrule === undefined) {
         console.log(`title:${title}`);
         console.log(`startDate:${startDate.format('MMMM Do YYYY, h:mm:ss a')}`);
         console.log(`endDate:${endDate.format('MMMM Do YYYY, h:mm:ss a')}`);
         console.log(`duration:${moment.duration(duration).humanize()}`);
         console.log();
-      } else if (typeof event.rrule !== 'undefined') {
+      } else if (event.rrule !== undefined) {
         // Complicated case - if an RRULE exists, handle multiple recurrences of the event.
         // For recurring events, get the set of event start dates that fall within the range
         // of dates we're looking for.
-        const dates = event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, () => {
-          return true;
-        });
+        const dates = event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, () => true);
 
         // The "dates" array contains the set of dates within our desired date range range that are valid
         // for the recurrence rule.  *However*, it's possible for us to have a specific recurrence that

@@ -1,7 +1,7 @@
 // Convert xml-json raw conversion to hash for fast lookup
 // Save as json for quick import when needed
-const fs = require('fs');
-const p = require('path');
+const fs = require('node:fs');
+const p = require('node:path');
 
 const wtz = require(p.join(__dirname, 'windowsZones.json'));
 const v = getObjects(wtz, 'name', 'mapZone');
@@ -10,7 +10,7 @@ const zoneTable = {};
 function getObjects(object, key, value) {
   let objects = [];
   for (const i in object) {
-    if (!Object.prototype.hasOwnProperty.call(object, i)) {
+    if (!Object.hasOwn(object, i)) {
       continue;
     }
 
@@ -19,7 +19,7 @@ function getObjects(object, key, value) {
     } else if ((i === key && object[i] === value) || (i === key && value === '')) {
       // If key matches and value matches or if key matches and value is not passed (eliminating the case where key matches but passed value does not)
       objects.push(object);
-    } else if (object[i] === value && key === '' && objects.lastIndexOf(object) === -1) {
+    } else if (object[i] === value && key === '' && !objects.includes(object)) {
       objects.push(object);
     }
   }
