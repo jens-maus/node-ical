@@ -269,9 +269,14 @@ const dateParameter = function (name) {
         }
 
         // Timezone confirmed or forced to offset
-        newDate = found
-          ? moment.tz(value, 'YYYYMMDDTHHmmss' + offset, tz).toDate()
-          : new Date(
+        // Prefer explicit numeric offset, then TZID, otherwise fall back to naive local time
+        const offsetString = Array.isArray(offset) ? offset[0] : offset;
+        if (typeof offsetString === 'string' && offsetString.length > 0) {
+          newDate = moment.parseZone(`${value}${offsetString}`, 'YYYYMMDDTHHmmssZ').toDate();
+        } else if (tz && moment.tz.zone(tz)) {
+          newDate = moment.tz(value, 'YYYYMMDDTHHmmss', tz).toDate();
+        } else {
+          newDate = new Date(
             Number.parseInt(comps[1], 10),
             Number.parseInt(comps[2], 10) - 1,
             Number.parseInt(comps[3], 10),
@@ -279,6 +284,7 @@ const dateParameter = function (name) {
             Number.parseInt(comps[5], 10),
             Number.parseInt(comps[6], 10),
           );
+        }
 
         // Make sure to correct the parameters if the TZID= is changed
         newDate = addTZ(newDate, parameters);
