@@ -73,7 +73,7 @@ declare module 'node-ical' {
   type TimeZoneProps = {
     type: 'VTIMEZONE';
     tzid: string;
-    tzurl: string;
+    tzurl?: string;
   } & BaseComponent;
 
   type TimeZoneDictionary = Record<string, TimeZoneDef | undefined>;
