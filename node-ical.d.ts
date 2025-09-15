@@ -1,10 +1,10 @@
 declare module 'node-ical' {
-  import {RRule} from 'rrule';
+  import {type RRule} from 'rrule';
 
   /**
    * Minimal Fetch options type (subset of RequestInit) to avoid requiring DOM lib.
    */
-  export interface FetchOptions {
+  export type FetchOptions = {
     method?: string;
     /**
      * Accept common header container shapes without depending on DOM lib types.
@@ -16,29 +16,29 @@ declare module 'node-ical' {
     body?: unknown;
     /** Additional fetch options (e.g. agent, redirect, follow, timeout, signal, etc.) */
     [key: string]: unknown;
-  }
+  };
 
   /**
      * Methods (Sync)
      */
-  export interface NodeICalSync {
+  export type NodeICalSync = {
     parseICS: (body: string) => CalendarResponse;
 
     parseFile: (file: string) => CalendarResponse;
-  }
+  };
 
   export const sync: NodeICalSync;
 
   /**
      * Methods (Async)
      */
-  export interface NodeICalAsync {
+  export type NodeICalAsync = {
     fromURL: ((url: string, callback: NodeIcalCallback) => void) & ((url: string, options: FetchOptions | NodeIcalCallback, callback?: NodeIcalCallback) => void) & ((url: string) => Promise<CalendarResponse>);
 
     parseICS: ((body: string, callback: NodeIcalCallback) => void) & ((body: string) => Promise<CalendarResponse>);
 
     parseFile: ((file: string, callback: NodeIcalCallback) => void) & ((file: string) => Promise<CalendarResponse>);
-  }
+  };
 
   export const async: NodeICalAsync;
 
@@ -70,11 +70,11 @@ declare module 'node-ical' {
 
   export type VTimeZone = TimeZoneProps & TimeZoneDictionary;
 
-  interface TimeZoneProps extends BaseComponent {
+  type TimeZoneProps = {
     type: 'VTIMEZONE';
     tzid: string;
-    tzurl: string;
-  }
+    tzurl?: string;
+  } & BaseComponent;
 
   type TimeZoneDictionary = Record<string, TimeZoneDef | undefined>;
 
@@ -89,7 +89,7 @@ declare module 'node-ical' {
   /**
    * https://www.kanzaki.com/docs/ical/valarm.html
    */
-  export interface VAlarm extends BaseComponent {
+  export type VAlarm = {
     type: 'VALARM';
     action: 'AUDIO' | 'DISPLAY' | 'EMAIL' | 'PROCEDURE';
     trigger: Trigger;
@@ -118,9 +118,9 @@ declare module 'node-ical' {
      */
     attendee?: Attendee;
 
-  }
+  } & BaseComponent;
 
-  export interface VEvent extends BaseComponent {
+  export type VEvent = {
     type: 'VEVENT';
     method: Method;
     dtstamp: DateWithTimeZone;
@@ -150,12 +150,12 @@ declare module 'node-ical' {
     recurrenceid: any;
 
     alarms?: VAlarm[];
-  }
+  } & BaseComponent;
 
   /**
    * Contains alls metadata of the Calendar
    */
-  export interface VCalendar extends BaseComponent {
+  export type VCalendar = {
     type: 'VCALENDAR';
     prodid?: string;
     version?: string;
@@ -163,13 +163,13 @@ declare module 'node-ical' {
     method?: Method;
     'WR-CALNAME'?: string;
     'WR-TIMEZONE'?: string;
-  }
+  } & BaseComponent;
 
-  export interface BaseComponent {
+  export type BaseComponent = {
     params: any[];
-  }
+  };
 
-  export interface TimeZoneDef {
+  export type TimeZoneDef = {
     type: 'DAYLIGHT' | 'STANDARD';
     params: any[];
     tzoffsetfrom: string;
@@ -179,14 +179,14 @@ declare module 'node-ical' {
     dateType: DateType;
     rrule: string;
     rdate: string | string[];
-  }
+  };
 
   type Property<A> = PropertyWithArgs<A> | string;
 
-  interface PropertyWithArgs<A> {
+  type PropertyWithArgs<A> = {
     val: string;
     params: A & Record<string, unknown>;
-  }
+  };
 
   export type Organizer = Property<{
     CN?: string;

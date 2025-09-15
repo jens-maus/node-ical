@@ -7,17 +7,15 @@ ical.fromURL('https://raw.githubusercontent.com/jens-maus/node-ical/master/test/
     console.log(new Error('ERROR: ' + error));
   } else {
     for (const k in data) {
-      if (!{}.hasOwnProperty.call(data, k)) {
+      if (!Object.hasOwn(data, k)) {
         continue;
       }
 
       const ev = data[k];
       if (data[k].type === 'VEVENT') {
-        console.log(
-          `${ev.summary} is in ${ev.location} on the ${ev.start.getDate()} of ${
-            months[ev.start.getMonth()]
-          } at ${ev.start.toLocaleTimeString('en-GB')}`
-        );
+        console.log(`${ev.summary} is in ${ev.location} on the ${ev.start.getDate()} of ${
+          months[ev.start.getMonth()]
+        } at ${ev.start.toLocaleTimeString('en-GB')}`);
       }
     }
   }

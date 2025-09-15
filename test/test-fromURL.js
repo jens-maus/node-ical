@@ -1,3 +1,5 @@
+/* eslint-disable unicorn/filename-case, unicorn/prevent-abbreviations */
+
 /**
  * Additional tests for fromURL().
  * These focus on HTTP success, error status handling, header passthrough and promise usage.
@@ -20,11 +22,9 @@ function getFirstVEvent(data) {
 
 function withServer(routeHandlers, run) {
   // Map only function handlers (avoid dynamic property lookups)
-  const handlerMap = new Map(
-    Object.entries(routeHandlers).filter(([, fn]) => typeof fn === 'function'),
-  );
+  const handlerMap = new Map(Object.entries(routeHandlers).filter(([, fn]) => typeof fn === 'function'));
 
-  const server = http.createServer((req, res) => {
+  const server = http.createServer((request, res) => {
     // Reduce flakiness on Windows/Node by avoiding keep-alive lingering
     server.keepAliveTimeout = 0;
     server.headersTimeout = 1000;
@@ -32,9 +32,9 @@ function withServer(routeHandlers, run) {
     // Get pathname (ignore query/hash); fall back to raw req.url if URL ctor fails.
     const pathname = (() => {
       try {
-        return new URL(req.url, 'http://localhost').pathname;
+        return new URL(request.url, 'http://localhost').pathname;
       } catch {
-        return req.url;
+        return request.url;
       }
     })();
 
@@ -47,7 +47,7 @@ function withServer(routeHandlers, run) {
 
     if (typeof handler === 'function') {
       // Codeql[js/unsafe-dynamic-method-call]: handler validated as function above
-      Reflect.apply(handler, undefined, [req, res]);
+      Reflect.apply(handler, undefined, [request, res]);
       return;
     }
 
@@ -269,10 +269,10 @@ vows
           }
         })();
       },
-      'dispatcher closed'(err, ok) {
-        assert.ifError(err);
+      'dispatcher closed'(error, ok) {
+        assert.ifError(error);
         assert.strictEqual(ok, true);
-      }
-    }
+      },
+    },
   })
   .export(module);
