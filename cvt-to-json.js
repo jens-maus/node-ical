@@ -58,9 +58,7 @@ for (const key of Object.keys(wtzOld)) {
   // Use latest name in original table to find  correct name
   let iana = zoneTable[lookup];
   //   Console.log(" lookup key="+key +" new ="+ lookup +"="+wzone+" iana="+(!iana? 'undefined':JSON.stringify(iana)))
-  if (iana) {
-    iana = iana.iana[0];
-  }
+  iana &&= iana.iana[0];
 
   // If not set
   if (wzone === undefined) {

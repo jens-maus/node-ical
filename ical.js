@@ -99,9 +99,7 @@ const addTZ = function (dt, parameters) {
 
 let zoneTable = null;
 function getIanaTZFromMS(msTZName) {
-  if (!zoneTable) {
-    zoneTable = require('./windowsZones.json');
-  }
+  zoneTable ||= require('./windowsZones.json');
 
   // Get hash entry
   let he = zoneTable[msTZName];
@@ -358,7 +356,7 @@ const categoriesParameter = function (name) {
 // TODO: See if this causes any problems with events that recur multiple times a day.
 const exdateParameter = function (name) {
   return function (value, parameters, curr) {
-    curr[name] = curr[name] || [];
+    curr[name] ||= [];
     const dates = value ? value.split(',').map(s => s.trim()) : [];
     for (const entry of dates) {
       const exdate = [];
@@ -396,7 +394,7 @@ const addFBType = function (fb, parameters) {
 const freebusyParameter = function (name) {
   return function (value, parameters, curr) {
     const fb = addFBType({}, parameters);
-    curr[name] = curr[name] || [];
+    curr[name] ||= [];
     curr[name].push(fb);
 
     storeParameter(value, parameters, fb);
@@ -708,8 +706,8 @@ module.exports = {
       ctx = undefined;
     }
 
-    ctx = ctx || {};
-    stack = stack || [];
+    ctx ||= {};
+    stack ||= [];
 
     let limitCounter = 0;
 

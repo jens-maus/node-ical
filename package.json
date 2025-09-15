@@ -37,7 +37,6 @@
       "@stylistic/max-len": "off",
       "@typescript-eslint/member-ordering": "off",
       "@typescript-eslint/naming-convention": "off",
-      "logical-assignment-operators": "off",
       "n/prefer-promises/fs": "off",
       "no-useless-catch": "off",
       "promise/prefer-await-to-then": "off",
