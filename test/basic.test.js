@@ -1,6 +1,6 @@
 const assert_ = require('node:assert');
 const process = require('node:process');
-const {it: test} = require('mocha');
+const {it} = require('mocha');
 const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
 
@@ -20,7 +20,7 @@ function findItem(array, predicate) {
   return array.find(item => predicate(item));
 }
 
-test('parse test1.ics basic VEVENTs', () => {
+it('parse test1.ics basic VEVENTs', () => {
   const data = ical.parseFile('./test/test1.ics');
   const events = filterItems(values(data), x => x.type === 'VEVENT');
   assert_.equal(events.length, 9);
@@ -44,7 +44,7 @@ test('parse test1.ics basic VEVENTs', () => {
   assert_.equal(invalid.start, 'Next Year');
 });
 
-test('parse test2.ics VTODO + VFREEBUSY', () => {
+it('parse test2.ics VTODO + VFREEBUSY', () => {
   const data = ical.parseFile('./test/test2.ics');
   const todo = findItem(values(data), item => item.uid === 'uid4@host1.com');
   assert_.equal(todo.type, 'VTODO');
@@ -64,7 +64,7 @@ test('parse test2.ics VTODO + VFREEBUSY', () => {
   assert_.equal(start.utc().format(), ref);
 });
 
-test('parse test3.ics tvcountdown event', () => {
+it('parse test3.ics tvcountdown event', () => {
   const data = ical.parseFile('./test/test3.ics');
   const ev = findItem(values(data), x => x.uid === '20110505T220000Z-83@tvcountdown.com');
   assert_.equal(ev.start.getFullYear(), 2011);
@@ -73,7 +73,7 @@ test('parse test3.ics tvcountdown event', () => {
   assert_.equal(ev.datetype, 'date-time');
 });
 
-test('parse test4.ics tripit', () => {
+it('parse test4.ics tripit', () => {
   const data = ical.parseFile('./test/test4.ics');
   const ev = findItem(values(data), x => x.uid === 'c32a5eaba2354bb29e012ec18da827db90550a3b@tripit.com');
   assert_.equal(ev.start.getFullYear(), 2011);
@@ -86,7 +86,7 @@ test('parse test4.ics tripit', () => {
   assert_.equal(ev.transparency, 'TRANSPARENT');
 });
 
-test('parse test5.ics meetup', () => {
+it('parse test5.ics meetup', () => {
   const data = ical.parseFile('./test/test5.ics');
   const ev = findItem(values(data), x => x.uid === 'event_nsmxnyppbfc@meetup.com');
   assert_.equal(ev.start.tz, 'America/Phoenix');
@@ -94,7 +94,7 @@ test('parse test5.ics meetup', () => {
   assert_.equal(ev.method, 'PUBLISH');
 });
 
-test('parse test6.ics recurring + summaries', () => {
+it('parse test6.ics recurring + summaries', () => {
   const data = ical.parseFile('./test/test6.ics');
   const first = findItem(values(data), x => x.summary === 'foobar Summer 2011 starts!');
   assert_.equal(first.start.toISOString(), new Date(2011, 7, 4, 0, 0, 0).toISOString());
@@ -103,21 +103,21 @@ test('parse test6.ics recurring + summaries', () => {
   assert_.equal(recur.rrule.toText(), 'every 5 weeks on Monday, Friday until January 30, 2013');
 });
 
-test('parse test7.ics rrule dtstart', () => {
+it('parse test7.ics rrule dtstart', () => {
   const data = ical.parseFile('./test/test7.ics');
   const ev = values(data)[0];
   const dates = ev.rrule.between(new Date(2013, 0, 1), new Date(2014, 0, 1));
   assert_.equal(dates[0].toDateString(), new Date(2013, 6, 14).toDateString());
 });
 
-test('parse test8.ics VTODO completion', () => {
+it('parse test8.ics VTODO completion', () => {
   const data = ical.parseFile('./test/test8.ics');
   const task = values(data)[0];
   assert_.equal(task.completion, 100);
   assert_.equal(task.completed.toISOString(), new Date(2013, 6, 16, 10, 57, 45).toISOString());
 });
 
-test('parse test9.ics VALARM', () => {
+it('parse test9.ics VALARM', () => {
   const data = ical.parseFile('./test/test9.ics');
   const task = values(data)[0];
   assert_.equal(task.summary, 'Event with an alarm');
@@ -128,7 +128,7 @@ test('parse test9.ics VALARM', () => {
   assert_.equal(alarm.trigger.val, '-PT5M');
 });
 
-test('parse test10.ics categories parsing variants', () => {
+it('parse test10.ics categories parsing variants', () => {
   const data = ical.parseFile('./test/test10.ics');
   const list = values(data);
   assert_.deepEqual(list[0].categories, ['cat1', 'cat2', 'cat3']);
@@ -138,7 +138,7 @@ test('parse test10.ics categories parsing variants', () => {
   assert_.deepEqual(list[4].categories, ['cat1', 'cat2', 'cat3']);
 });
 
-test('parse test11.ics zimbra freebusy', () => {
+it('parse test11.ics zimbra freebusy', () => {
   const data = ical.parseFile('./test/test11.ics');
   const fb = values(data)[0];
   assert_.equal(fb.url, 'http://mail.example.com/yvr-2a@example.com/20140416');

@@ -1,6 +1,6 @@
 const assert = require('node:assert');
 const process = require('node:process');
-const {it: test} = require('mocha');
+const {it} = require('mocha');
 const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
 
@@ -10,7 +10,7 @@ moment.tz.link('Etc/Unknown|Etc/GMT');
 moment.tz.setDefault('America/San_Francisco');
 
 // Test12.ics – RRULE + EXDATE + RECURRENCE-ID override
-test('test12.ics recurrence + exdates + override', () => {
+it('test12.ics recurrence + exdates + override', () => {
   const data = ical.parseFile('./test/test12.ics');
   const event = Object.values(data).find(x => x.uid === '0000001' && x.summary === 'Treasure Hunting');
   assert.ok(event.rrule);
@@ -25,7 +25,7 @@ test('test12.ics recurrence + exdates + override', () => {
 });
 
 // Test13.ics – RECURRENCE-ID before RRULE
-test('test13.ics recurrence id before rrule', () => {
+it('test13.ics recurrence id before rrule', () => {
   const data = ical.parseFile('./test/test13.ics');
   const event = Object.values(data).find(x => x.uid === '6m2q7kb2l02798oagemrcgm6pk@google.com' && x.summary === 'repeated');
   assert.ok(event.rrule);
@@ -36,7 +36,7 @@ test('test13.ics recurrence id before rrule', () => {
 });
 
 // Test14.ics – comma-separated EXDATEs + bad times EXDATEs
-test('test14.ics comma separated exdates', () => {
+it('test14.ics comma separated exdates', () => {
   const data = ical.parseFile('./test/test14.ics');
   const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
   assert.equal(event.summary, 'Example of comma-separated exdates');
@@ -49,7 +49,7 @@ test('test14.ics comma separated exdates', () => {
   assert.equal(event.exdate[new Date(2017, 4, 5, 12).toISOString().slice(0, 10)], undefined);
 });
 
-test('test14.ics exdates with bad times', () => {
+it('test14.ics exdates with bad times', () => {
   const data = ical.parseFile('./test/test14.ics');
   const event = Object.values(data).find(x => x.uid === '1234567-ABCD-ABCD-ABCD-123456789012');
   assert.equal(event.summary, 'Example of exdate with bad times');
@@ -61,7 +61,7 @@ test('test14.ics exdates with bad times', () => {
 });
 
 // Test15.ics – Microsoft Exchange timezone naming
-test('test15.ics ms exchange tz', () => {
+it('test15.ics ms exchange tz', () => {
   const data = ical.parseFile('./test/test15.ics');
   const event = Object.values(data).find(x => x.uid === '040000008200E00074C5B7101A82E00800000000C9AB6E5A6AFED401000000000000000010000000C55132227F0F0948A7D58F6190A3AEF9');
   assert.equal(event.start.tz, 'Asia/Bangkok');
@@ -69,14 +69,14 @@ test('test15.ics ms exchange tz', () => {
 });
 
 // Test16.ics – quoted parameter values
-test('test16.ics quoted params', () => {
+it('test16.ics quoted params', () => {
   const data = ical.parseFile('./test/test16.ics');
   const event = Object.values(data)[0];
   assert.ok(event.start.tz);
 });
 
 // Test17.ics – non-stringified start/end
-test('test17.ics non-string date objects', () => {
+it('test17.ics non-string date objects', () => {
   const data = ical.parseFile('./test/test17.ics');
   const event = Object.values(data)[0];
   assert.notEqual(typeof event.start, 'string');
@@ -84,7 +84,7 @@ test('test17.ics non-string date objects', () => {
 });
 
 // Test18.ics – timezone detection scenarios
-test('test18.ics timezone detection', () => {
+it('test18.ics timezone detection', () => {
   const data = ical.parseFile('./test/test18.ics');
   const events = Object.values(data).filter(x => x.type === 'VEVENT');
   assert.equal(events.length, 5);
@@ -98,7 +98,7 @@ test('test18.ics timezone detection', () => {
 });
 
 // Ms_timezones.ics – Microsoft windows zone mapping
-test('ms_timezones.ics mapped zone times', () => {
+it('ms_timezones.ics mapped zone times', () => {
   const data = ical.parseFile('./test/ms_timezones.ics');
   const event = Object.values(data).find(x => x.summary === 'Log Yesterday\'s Jira time');
   assert.equal(event.start.getFullYear(), 2020);
@@ -108,57 +108,57 @@ test('ms_timezones.ics mapped zone times', () => {
 });
 
 // Bad_ms_tz.ics – unexpected ms timezone (should not use Customized Time Zone)
-test('bad_ms_tz.ics invalid custom tz', () => {
+it('bad_ms_tz.ics invalid custom tz', () => {
   const data = ical.parseFile('./test/bad_ms_tz.ics');
   const event = Object.values(data).find(x => x.summary === '[private]');
   assert.notEqual(event.start.tz, 'Customized Time Zone');
 });
 
-test('bad_custom_ms_tz2.ics invalid custom tz 2', () => {
+it('bad_custom_ms_tz2.ics invalid custom tz 2', () => {
   const data = ical.parseFile('./test/bad_custom_ms_tz2.ics');
   const event = Object.values(data).find(x => x.summary === '[private]');
   assert.notEqual(event.start.tz, 'Customized Time Zone 1');
 });
 
-test('Office-2012-owa.ics old ms tz before DST', () => {
+it('Office-2012-owa.ics old ms tz before DST', () => {
   const data = ical.parseFile('./test/Office-2012-owa.ics');
   const event = Object.values(data).find(x => x.summary === ' TEST');
   assert.equal(event.end.toISOString().slice(0, 8), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().slice(0, 8));
 });
 
-test('Office-2012-owa.ics old ms tz after DST', () => {
+it('Office-2012-owa.ics old ms tz after DST', () => {
   const data = ical.parseFile('./test/Office-2012-owa.ics');
   const event = Object.values(data).find(x => x.summary === ' TEST 3');
   assert.equal(event.end.toISOString().slice(0, 8), new Date(Date.UTC(2020, 10, 2, 20, 0, 0)).toISOString().slice(0, 8));
 });
 
-test('bad_custom_ms_tz.ics custom tz recurrence', () => {
+it('bad_custom_ms_tz.ics custom tz recurrence', () => {
   const data = ical.parseFile('./test/bad_custom_ms_tz.ics');
   const event = Object.values(data).find(x => x.summary === '[private]');
   assert.equal(event.start.toISOString().slice(0, 8), new Date(Date.UTC(2021, 2, 25, 10, 35, 0)).toISOString().slice(0, 8));
 });
 
-test('bad_custom_ms_tz.ics no end same as start', () => {
+it('bad_custom_ms_tz.ics no end same as start', () => {
   const data = ical.parseFile('./test/bad_custom_ms_tz.ics');
   const event = Object.values(data).find(x => x.summary === '*masked-away*');
   assert.equal(event.end.toISOString().slice(0, 8), event.start.toISOString().slice(0, 8));
 });
 
-test('bad_custom_ms_tz.ics negative duration', () => {
+it('bad_custom_ms_tz.ics negative duration', () => {
   const data = ical.parseFile('./test/bad_custom_ms_tz.ics');
   const event = Object.values(data).find(x => x.summary === '*masked-away2*');
   assert.equal(event.end.toISOString().slice(0, 8), new Date(Date.UTC(2021, 2, 23, 21, 56, 56)).toISOString().slice(0, 8));
 });
 
 // BadRRULE.ics – invalid date still keeps time portion
-test('badRRULE.ics start time retained', () => {
+it('badRRULE.ics start time retained', () => {
   const data = ical.parseFile('./test/badRRULE.ics');
   const event = Object.values(data).find(x => x.summary === 'Academic Time');
   assert.equal(event.start.toISOString().slice(11), '15:50:00.000Z');
 });
 
 // Test_with_forward_TZ.ics – full day forward of UTC
-test('test_with_forward_TZ.ics east TZ midnight start', () => {
+it('test_with_forward_TZ.ics east TZ midnight start', () => {
   moment.tz.setDefault('Europe/Berlin');
   const data = ical.parseFile('./test/test_with_forward_TZ.ics');
   const event = Object.values(data).find(x => x.summary === 'Fear TWD');
@@ -166,7 +166,7 @@ test('test_with_forward_TZ.ics east TZ midnight start', () => {
 });
 
 // Test19.ics – organizer params
-test('test19.ics organizer params', () => {
+it('test19.ics organizer params', () => {
   const data = ical.parseFile('./test/test19.ics');
   const event = Object.values(data)[0];
   assert.equal(event.organizer.params.CN, 'stomlinson@mozilla.com');
@@ -174,7 +174,7 @@ test('test19.ics organizer params', () => {
 });
 
 // Test20.ics – VEVENT status values
-test('test20.ics event statuses', () => {
+it('test20.ics event statuses', () => {
   const data = ical.parseFile('./test/test20.ics');
   const getByUid = uid => Object.values(data).find(x => x.uid === uid);
   assert.equal(getByUid('31a1ffc9-9b76-465b-ae4a-cadb694c9d37').status, 'TENTATIVE');
@@ -184,7 +184,7 @@ test('test20.ics event statuses', () => {
 });
 
 // Test21.ics – VTIMEZONE usage for floating DTSTART
-test('test21.ics floating start uses VTIMEZONE', () => {
+it('test21.ics floating start uses VTIMEZONE', () => {
   const data = ical.parseFile('./test/test21.ics');
   const event = Object.values(data).find(x => x.uid === 'f683404f-aede-43eb-8774-27f62bb27c92');
   assert.equal(event.start.toJSON(), '2022-10-09T08:00:00.000Z');
@@ -192,7 +192,7 @@ test('test21.ics floating start uses VTIMEZONE', () => {
 });
 
 // Test22.ics – quoted attendee parameters + X-RESPONSE-COMMENT
-test('test22.ics attendee params and response comment', () => {
+it('test22.ics attendee params and response comment', () => {
   const data = ical.parseFile('./test/test22.ics');
   const event = Object.values(data)[0];
   assert.equal(event.attendee.params['X-RESPONSE-COMMENT'], 'Test link: https://example.com/test');
@@ -201,14 +201,14 @@ test('test22.ics attendee params and response comment', () => {
 });
 
 // Test_with_tz_list.ics – tzid list selects correct tz
-test('test_with_tz_list.ics tz list first valid tz used', () => {
+it('test_with_tz_list.ics tz list first valid tz used', () => {
   const data = ical.parseFile('./test/test_with_tz_list.ics');
   const event = Object.values(data).find(x => x.uid === 'E689AEB8C02C4E2CADD8C7D3D303CEAD0');
   assert.equal(event.start.tz, 'Europe/Berlin');
 });
 
 // Test_with_multiple_tzids_in_vtimezone.ics – select correct tz across multiple components
-test('test_with_multiple_tzids_in_vtimezone.ics date/time range', () => {
+it('test_with_multiple_tzids_in_vtimezone.ics date/time range', () => {
   const data = ical.parseFile('./test/test_with_multiple_tzids_in_vtimezone.ics');
   const event = Object.values(data).find(x => x.uid === '1891-1709856000-1709942399@www.washougal.k12.wa.us');
   assert.equal(event.start.toJSON(), '2024-06-27T07:00:00.000Z');
@@ -216,7 +216,7 @@ test('test_with_multiple_tzids_in_vtimezone.ics date/time range', () => {
 });
 
 // Test_date_time_duration.ics – duration with date-time DTSTART
-test('test_date_time_duration.ics duration applied to datetime', () => {
+it('test_date_time_duration.ics duration applied to datetime', () => {
   const data = ical.parseFile('./test/test_date_time_duration.ics');
   const event = Object.values(data).find(x => x.summary === 'period test2');
   assert.equal(event.start.toJSON(), '2024-02-15T09:00:00.000Z');
@@ -224,7 +224,7 @@ test('test_date_time_duration.ics duration applied to datetime', () => {
 });
 
 // Test_date_duration.ics – duration with date DTSTART
-test('test_date_duration.ics duration applied to date', () => {
+it('test_date_duration.ics duration applied to date', () => {
   const data = ical.parseFile('./test/test_date_duration.ics');
   const event = Object.values(data).find(x => x.summary === 'period test2');
   assert.equal(event.start.toDateString(), new Date(2024, 1, 15).toDateString());
@@ -232,14 +232,14 @@ test('test_date_duration.ics duration applied to date', () => {
 });
 
 // Test_with_int_tzid.ics – integer-like tzid preserved
-test('test_with_int_tzid.ics integer tzid preserved', () => {
+it('test_with_int_tzid.ics integer tzid preserved', () => {
   const data = ical.parseFile('./test/test_with_int_tzid.ics');
   const event = Object.values(data)[0];
   assert.equal(event.summary, 'test export import');
 });
 
 // Test23.ics – RRULE with timezone dtstart
-test('test23.ics rrule timezone dtstart', () => {
+it('test23.ics rrule timezone dtstart', () => {
   const data = ical.parseFile('./test/test23.ics');
   const first = Object.values(data).find(x => x.uid === '000021a');
   assert.equal(first.datetype, 'date-time');
@@ -264,14 +264,14 @@ test('test23.ics rrule timezone dtstart', () => {
 });
 
 // Germany_at_end_of_day_repeating.ics – moved recurrence across DST
-test('germany_at_end_of_day_repeating.ics moved recurrence', () => {
+it('germany_at_end_of_day_repeating.ics moved recurrence', () => {
   const data = ical.parseFile('./test/germany_at_end_of_day_repeating.ics');
   const event = Object.values(data).find(x => x.uid === '2m6mt1p89l2anl74915ur3hsgm@google.com');
   assert.equal(event.start.toDateString(), new Date(2024, 9, 22, 23, 0, 0).toDateString());
 });
 
 // Whole_day_moved_over_dst_change_berlin.ics – recurrence shift over DST
-test('whole_day_moved_over_dst_change_berlin.ics moved whole-day recurrence', () => {
+it('whole_day_moved_over_dst_change_berlin.ics moved whole-day recurrence', () => {
   const data = ical.parseFile('./test/whole_day_moved_over_dst_change_berlin.ics');
   const moved = Object.values(data).find(x => x.uid === '14nv8jl8d6dvdbl477lod4fftf@google.com');
   assert.ok(moved && moved.recurrences, 'Missing recurrence map');

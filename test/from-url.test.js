@@ -1,6 +1,6 @@
 const assert = require('node:assert');
 const http = require('node:http');
-const {it: test} = require('mocha');
+const {it} = require('mocha');
 const ical = require('../node-ical.js');
 
 const ICS_TEMPLATE = [
@@ -90,7 +90,7 @@ async function withServer(routeHandlers) {
   };
 }
 
-test('fromURL: successful fetch (callback)', async () => {
+it('fromURL: successful fetch (callback)', async () => {
   const {urlBase, close} = await withServer({
     '/ok.ics'(_request, response) {
       response.writeHead(200, {'Content-Type': 'text/calendar'});
@@ -114,7 +114,7 @@ test('fromURL: successful fetch (callback)', async () => {
   await close();
 });
 
-test('fromURL: 404 status produces error', async () => {
+it('fromURL: 404 status produces error', async () => {
   const {urlBase, close} = await withServer({
     '/missing.ics'(_request, response) {
       response.writeHead(404, {'Content-Type': 'text/plain'});
@@ -134,7 +134,7 @@ test('fromURL: 404 status produces error', async () => {
   await close();
 });
 
-test('fromURL: headers are passed through', async () => {
+it('fromURL: headers are passed through', async () => {
   const {urlBase, close} = await withServer({
     '/secure.ics'(request, response) {
       if (request.headers['x-test-token'] === 'abc') {
@@ -163,7 +163,7 @@ test('fromURL: headers are passed through', async () => {
   await close();
 });
 
-test('fromURL: callback usage without options argument success + 404 error', async () => {
+it('fromURL: callback usage without options argument success + 404 error', async () => {
   const {urlBase, close} = await withServer({
     '/plain.ics'(_request, response) {
       response.writeHead(200, {'Content-Type': 'text/calendar'});
@@ -200,7 +200,7 @@ test('fromURL: callback usage without options argument success + 404 error', asy
   await close();
 });
 
-test('fromURL: promise usage (no callback)', async () => {
+it('fromURL: promise usage (no callback)', async () => {
   const {urlBase, close} = await withServer({
     '/promise.ics'(_request, response) {
       response.writeHead(200, {'Content-Type': 'text/calendar'});
