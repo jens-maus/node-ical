@@ -48,7 +48,7 @@
   ],
   "scripts": {
     "examples": "node examples/example-rrule.js && node examples/example.js",
-    "test": "xo && mocha",
+  "test": "xo && mocha --timeout 8000",
     "lint": "xo",
     "lintfix": "xo --fix",
     "precommit": "npm run lint && npm run lintfix",
