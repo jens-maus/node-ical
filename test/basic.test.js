@@ -1,6 +1,6 @@
-const test = require('node:test');
 const assert_ = require('node:assert');
 const process = require('node:process');
+const {it: test} = require('mocha');
 const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
 

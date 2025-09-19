@@ -1,6 +1,6 @@
-const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
+const {it: test} = require('mocha');
 const ical = require('../node-ical.js');
 
 const ICS_TEMPLATE = [

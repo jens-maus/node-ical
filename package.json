@@ -25,6 +25,7 @@
     "rrule": "2.8.1"
   },
   "devDependencies": {
+    "mocha": "^11.7.2",
     "pre-commit": "^1.2.2",
     "xml-js": "^1.6.11",
     "xo": "^1.2.2"
@@ -47,7 +48,7 @@
   ],
   "scripts": {
     "examples": "node examples/example-rrule.js && node examples/example.js",
-    "test": "xo && node --test",
+    "test": "xo && mocha",
     "lint": "xo",
     "lintfix": "xo --fix",
     "precommit": "npm run lint && npm run lintfix",
