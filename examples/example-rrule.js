@@ -1,9 +1,10 @@
 /* eslint-disable max-depth */
 
+const path = require('node:path');
 const moment = require('moment-timezone');
 const ical = require('../node-ical.js'); // Require('node-ical');
 
-const data = ical.parseFile('./example-rrule.ics');
+const data = ical.parseFile(path.join(__dirname, 'example-rrule.ics'));
 
 // Complicated example demonstrating how to handle recurrence rules and exceptions.
 
