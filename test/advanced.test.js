@@ -41,12 +41,17 @@ describe('parser: advanced cases', () => {
       const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
       assert.equal(event.summary, 'Example of comma-separated exdates');
       assert.ok(event.exdate);
-      const checks = [new Date(2017, 6, 6, 12), new Date(2017, 6, 17, 12), new Date(2017, 6, 20, 12), new Date(2017, 7, 3, 12)];
+      const checks = [
+        new Date(Date.UTC(2017, 6, 6, 12)),
+        new Date(Date.UTC(2017, 6, 17, 12)),
+        new Date(Date.UTC(2017, 6, 20, 12)),
+        new Date(Date.UTC(2017, 7, 3, 12)),
+      ];
       for (const d of checks) {
         assert.ok(event.exdate[d.toISOString().slice(0, 10)]);
       }
 
-      assert.equal(event.exdate[new Date(2017, 4, 5, 12).toISOString().slice(0, 10)], undefined);
+      assert.equal(event.exdate[new Date(Date.UTC(2017, 4, 5, 12)).toISOString().slice(0, 10)], undefined);
     });
 
     it('tolerates EXDATEs with bad times (test14.ics)', () => {
@@ -54,7 +59,10 @@ describe('parser: advanced cases', () => {
       const event = Object.values(data).find(x => x.uid === '1234567-ABCD-ABCD-ABCD-123456789012');
       assert.equal(event.summary, 'Example of exdate with bad times');
       assert.ok(event.exdate);
-      const bads = [new Date(2017, 11, 18, 12), new Date(2017, 11, 19, 12)];
+      const bads = [
+        new Date(Date.UTC(2017, 11, 18, 12)),
+        new Date(Date.UTC(2017, 11, 19, 12)),
+      ];
       for (const d of bads) {
         assert.ok(event.exdate[d.toISOString().slice(0, 10)]);
       }
