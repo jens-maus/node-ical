@@ -30,9 +30,6 @@ async function withServer(routeHandlers) {
 
   const sockets = new Set();
   const server = http.createServer((request, response) => {
-    server.keepAliveTimeout = 0;
-    server.headersTimeout = 1000;
-
     let pathname;
     try {
       pathname = new URL(request.url, 'http://localhost').pathname;
@@ -56,6 +53,9 @@ async function withServer(routeHandlers) {
     response.writeHead(404, {'Content-Type': 'text/plain'});
     response.end('not found');
   });
+
+  server.keepAliveTimeout = 0;
+  server.headersTimeout = 1000;
 
   server.on('connection', socket => {
     sockets.add(socket);
