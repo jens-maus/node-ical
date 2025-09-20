@@ -99,21 +99,22 @@ describe('fromURL', () => {
           response.end(icsBody('Fetch Test Event'));
         },
       });
-
-      await new Promise((resolve, reject) => {
-        ical.fromURL(`${urlBase}/ok.ics`, {}, (error, data) => {
-          if (error) {
-            reject(error);
-          } else {
-            const event = getFirstVEvent(data);
-            assert.ok(event);
-            assert.equal(event.summary, 'Fetch Test Event');
-            resolve();
-          }
+      try {
+        await new Promise((resolve, reject) => {
+          ical.fromURL(`${urlBase}/ok.ics`, {}, (error, data) => {
+            if (error) {
+              reject(error);
+            } else {
+              const event = getFirstVEvent(data);
+              assert.ok(event);
+              assert.equal(event.summary, 'Fetch Test Event');
+              resolve();
+            }
+          });
         });
-      });
-
-      await close();
+      } finally {
+        await close();
+      }
     });
   });
 
@@ -125,17 +126,18 @@ describe('fromURL', () => {
           response.end('nope');
         },
       });
-
-      await new Promise(resolve => {
-        ical.fromURL(`${urlBase}/missing.ics`, {}, (error, data) => {
-          assert.ok(error);
-          assert.match(error.message, /404/);
-          assert.equal(data, null);
-          resolve();
+      try {
+        await new Promise(resolve => {
+          ical.fromURL(`${urlBase}/missing.ics`, {}, (error, data) => {
+            assert.ok(error);
+            assert.match(error.message, /404/);
+            assert.equal(data, null);
+            resolve();
+          });
         });
-      });
-
-      await close();
+      } finally {
+        await close();
+      }
     });
 
     describe('Headers/options', () => {
@@ -151,21 +153,22 @@ describe('fromURL', () => {
             }
           },
         });
-
-        await new Promise((resolve, reject) => {
-          ical.fromURL(`${urlBase}/secure.ics`, {headers: {'X-Test-Token': 'abc'}}, (error, data) => {
-            if (error) {
-              reject(error);
-            } else {
-              const event = getFirstVEvent(data);
-              assert.ok(event);
-              assert.equal(event.summary, 'Secured Event');
-              resolve();
-            }
+        try {
+          await new Promise((resolve, reject) => {
+            ical.fromURL(`${urlBase}/secure.ics`, {headers: {'X-Test-Token': 'abc'}}, (error, data) => {
+              if (error) {
+                reject(error);
+              } else {
+                const event = getFirstVEvent(data);
+                assert.ok(event);
+                assert.equal(event.summary, 'Secured Event');
+                resolve();
+              }
+            });
           });
-        });
-
-        await close();
+        } finally {
+          await close();
+        }
       });
     });
 
@@ -181,30 +184,31 @@ describe('fromURL', () => {
             response.end('missing');
           },
         });
+        try {
+          await new Promise((resolve, reject) => {
+            ical.fromURL(`${urlBase}/plain.ics`, (error, data) => {
+              if (error) {
+                reject(error);
+              } else {
+                const event = getFirstVEvent(data);
+                assert.ok(event);
+                assert.equal(event.summary, 'Callback No Options');
+                resolve();
+              }
+            });
+          });
 
-        await new Promise((resolve, reject) => {
-          ical.fromURL(`${urlBase}/plain.ics`, (error, data) => {
-            if (error) {
-              reject(error);
-            } else {
-              const event = getFirstVEvent(data);
-              assert.ok(event);
-              assert.equal(event.summary, 'Callback No Options');
+          await new Promise(resolve => {
+            ical.fromURL(`${urlBase}/missing.ics`, (error, data) => {
+              assert.ok(error);
+              assert.match(error.message, /404/);
+              assert.equal(data, null);
               resolve();
-            }
+            });
           });
-        });
-
-        await new Promise(resolve => {
-          ical.fromURL(`${urlBase}/missing.ics`, (error, data) => {
-            assert.ok(error);
-            assert.match(error.message, /404/);
-            assert.equal(data, null);
-            resolve();
-          });
-        });
-
-        await close();
+        } finally {
+          await close();
+        }
       });
     });
 
@@ -216,13 +220,14 @@ describe('fromURL', () => {
             response.end(icsBody('Promise Event'));
           },
         });
-
-        const data = await ical.fromURL(`${urlBase}/promise.ics`);
-        const event = getFirstVEvent(data);
-        assert.ok(event);
-        assert.equal(event.summary, 'Promise Event');
-
-        await close();
+        try {
+          const data = await ical.fromURL(`${urlBase}/promise.ics`);
+          const event = getFirstVEvent(data);
+          assert.ok(event);
+          assert.equal(event.summary, 'Promise Event');
+        } finally {
+          await close();
+        }
       });
     });
   });
