@@ -15,7 +15,7 @@ const ICS_TEMPLATE = [
   'SUMMARY:Fetch Test Event',
   'END:VEVENT',
   'END:VCALENDAR',
-].join('\n');
+].join('\r\n');
 
 function icsBody(summary) {
   return ICS_TEMPLATE.replace('Fetch Test Event', summary);
