@@ -1,4 +1,4 @@
-const assert_ = require('node:assert');
+const assert_ = require('node:assert/strict');
 const {describe, it} = require('mocha');
 const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
@@ -119,7 +119,7 @@ describe('parser: basic cases', () => {
     it('parses VTODO completion (test8.ics)', () => {
       const data = ical.parseFile('./test/test8.ics');
       const task = values(data)[0];
-      assert_.equal(task.completion, 100);
+      assert_.equal(Number(task.completion), 100);
       assert_.equal(task.completed.toISOString(), new Date(2013, 6, 16, 10, 57, 45).toISOString());
     });
   });
