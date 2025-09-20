@@ -193,31 +193,31 @@ describe('parser: advanced cases', () => {
       it('applies old MS tz before DST (Office-2012-owa.ics)', () => {
         const data = ical.parseFile('./test/Office-2012-owa.ics');
         const event = Object.values(data).find(x => x.summary === ' TEST');
-        assert.equal(event.end.toISOString().slice(0, 8), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().slice(0, 8));
+        assert.equal(event.end.toISOString().slice(0, 10), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().slice(0, 10));
       });
 
       it('applies old MS tz after DST (Office-2012-owa.ics)', () => {
         const data = ical.parseFile('./test/Office-2012-owa.ics');
         const event = Object.values(data).find(x => x.summary === ' TEST 3');
-        assert.equal(event.end.toISOString().slice(0, 8), new Date(Date.UTC(2020, 10, 2, 20, 0, 0)).toISOString().slice(0, 8));
+        assert.equal(event.end.toISOString().slice(0, 10), new Date(Date.UTC(2020, 10, 2, 20, 0, 0)).toISOString().slice(0, 10));
       });
 
       it('handles custom tz recurrence (bad_custom_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/bad_custom_ms_tz.ics');
         const event = Object.values(data).find(x => x.summary === '[private]');
-        assert.equal(event.start.toISOString().slice(0, 8), new Date(Date.UTC(2021, 2, 25, 10, 35, 0)).toISOString().slice(0, 8));
+        assert.equal(event.start.toISOString().slice(0, 10), new Date(Date.UTC(2021, 2, 25, 10, 35, 0)).toISOString().slice(0, 10));
       });
 
       it('uses start as end when missing (bad_custom_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/bad_custom_ms_tz.ics');
         const event = Object.values(data).find(x => x.summary === '*masked-away*');
-        assert.equal(event.end.toISOString().slice(0, 8), event.start.toISOString().slice(0, 8));
+        assert.equal(event.end.toISOString().slice(0, 10), event.start.toISOString().slice(0, 10));
       });
 
       it('handles negative duration (bad_custom_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/bad_custom_ms_tz.ics');
         const event = Object.values(data).find(x => x.summary === '*masked-away2*');
-        assert.equal(event.end.toISOString().slice(0, 8), new Date(Date.UTC(2021, 2, 23, 21, 56, 56)).toISOString().slice(0, 8));
+        assert.equal(event.end.toISOString().slice(0, 10), new Date(Date.UTC(2021, 2, 23, 21, 56, 56)).toISOString().slice(0, 10));
       });
     });
   });
