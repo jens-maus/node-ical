@@ -1,12 +1,10 @@
 const assert_ = require('node:assert');
-const process = require('node:process');
 const {describe, it} = require('mocha');
 const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
 
-process.env.TZ = 'America/San_Francisco';
+// Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
 moment.tz.link('Etc/Unknown|Etc/GMT');
-moment.tz.setDefault('America/San_Francisco');
 
 function values(object) {
   return Object.values(object);

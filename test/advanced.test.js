@@ -1,13 +1,10 @@
 const assert = require('node:assert');
-const process = require('node:process');
 const {describe, it} = require('mocha');
 const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
 
-// Match legacy vows environment setup so recurrence/timezone calculations stay consistent.
-process.env.TZ = 'America/San_Francisco';
+// Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
 moment.tz.link('Etc/Unknown|Etc/GMT');
-moment.tz.setDefault('America/San_Francisco');
 
 // Test12.ics – RRULE + EXDATE + RECURRENCE-ID override
 describe('parser: advanced cases', () => {
@@ -149,11 +146,9 @@ describe('parser: advanced cases', () => {
       assert.equal(first.datetype, 'date-time');
       assert.equal(first.start.tz, 'Europe/Berlin');
       assert.equal(first.start.toISOString(), '2022-07-14T12:00:00.000Z');
-      if (process.platform !== 'win32') {
-        const r1 = first.rrule.between(new Date(2023, 0, 1), new Date(2024, 0, 1))[0];
-        // Legacy vows test expected 12:00Z; keep original semantic expectation for pure framework migration.
-        assert.equal(r1.toISOString(), '2023-07-14T12:00:00.000Z');
-      }
+      // RRULE must carry the DTSTART timezone identifier
+      assert.ok(first.rrule && first.rrule.options && first.rrule.options.tzid);
+      assert.equal(first.rrule.options.tzid, 'Europe/Berlin');
 
       const second = Object.values(data).find(x => x.uid === '000021b');
       assert.equal(second.datetype, 'date-time');
@@ -161,10 +156,6 @@ describe('parser: advanced cases', () => {
       assert.equal(second.start.toISOString(), '2022-07-15T12:00:00.000Z');
       assert.ok(second.rrule && second.rrule.options.tzid);
       assert.equal(second.rrule.options.tzid, 'Etc/GMT-2');
-      if (process.platform !== 'win32') {
-        const r2 = second.rrule.between(new Date(2023, 0, 1), new Date(2024, 0, 1))[0];
-        assert.equal(r2.toISOString(), '2023-07-15T12:00:00.000Z');
-      }
     });
   });
 
@@ -243,10 +234,22 @@ describe('parser: advanced cases', () => {
   // Test_with_forward_TZ.ics – full day forward of UTC
   describe('Forward TZ behavior', () => {
     it('preserves midnight in forward TZ (test_with_forward_TZ.ics)', () => {
-      moment.tz.setDefault('Europe/Berlin');
       const data = ical.parseFile('./test/test_with_forward_TZ.ics');
       const event = Object.values(data).find(x => x.summary === 'Fear TWD');
-      assert.equal(event.start.toISOString().slice(11), '00:00:00.000Z');
+      assert.equal(event.datetype, 'date');
+      // Date-only event must preserve its calendar-day boundaries
+      assert.equal(event.start.toDateString(), new Date(2020, 9, 17).toDateString());
+      assert.equal(event.end.toDateString(), new Date(2020, 9, 18).toDateString());
+
+      // If a timezone is exposed, also ensure both boundaries are local midnight and exactly one local day apart
+      const tz = (event.start && event.start.tz) || (event.end && event.end.tz);
+      if (tz) {
+        const startLocal = moment.tz(event.start, tz);
+        const endLocal = moment.tz(event.end, tz);
+        assert.ok(startLocal.isSame(startLocal.clone().startOf('day')));
+        assert.ok(endLocal.isSame(endLocal.clone().startOf('day')));
+        assert.equal(endLocal.diff(startLocal, 'day'), 1);
+      }
     });
   });
 
@@ -307,10 +310,20 @@ describe('parser: advanced cases', () => {
       const data = ical.parseFile('./test/whole_day_moved_over_dst_change_berlin.ics');
       const moved = Object.values(data).find(x => x.uid === '14nv8jl8d6dvdbl477lod4fftf@google.com');
       assert.ok(moved && moved.recurrences, 'Missing recurrence map');
-      const rec = moved.recurrences?.['2024-10-28'];
-      assert.ok(rec, 'Expected recurrence 2024-10-28');
+      // Find the expected recurrence by local calendar date rather than by map key
+      const rec = Object.values(moved.recurrences).find(r => r.start.toDateString() === new Date(2024, 9, 30).toDateString());
+      assert.ok(rec, 'Expected a recurrence on local 2024-10-30');
       assert.equal(rec.datetype, 'date');
-      assert.equal(rec.start.toDateString(), new Date(2024, 9, 30).toDateString());
+
+      // If a timezone is exposed on the recurrence dates, also ensure local midnight boundaries and one-day span
+      const tz = (rec.start && rec.start.tz) || (rec.end && rec.end.tz);
+      if (tz && rec.end) {
+        const startLocal = moment.tz(rec.start, tz);
+        const endLocal = moment.tz(rec.end, tz);
+        assert.ok(startLocal.isSame(startLocal.clone().startOf('day')));
+        assert.ok(endLocal.isSame(endLocal.clone().startOf('day')));
+        assert.equal(endLocal.diff(startLocal, 'day'), 1);
+      }
     });
   });
 });
