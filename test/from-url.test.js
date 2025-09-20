@@ -139,96 +139,96 @@ describe('fromURL', () => {
         await close();
       }
     });
+  });
 
-    describe('Headers/options', () => {
-      it('forwards headers to HTTP request', async () => {
-        const {urlBase, close} = await withServer({
-          '/secure.ics'(request, response) {
-            if (request.headers['x-test-token'] === 'abc') {
-              response.writeHead(200, {'Content-Type': 'text/calendar'});
-              response.end(icsBody('Secured Event'));
+  describe('Headers/options', () => {
+    it('forwards headers to HTTP request', async () => {
+      const {urlBase, close} = await withServer({
+        '/secure.ics'(request, response) {
+          if (request.headers['x-test-token'] === 'abc') {
+            response.writeHead(200, {'Content-Type': 'text/calendar'});
+            response.end(icsBody('Secured Event'));
+          } else {
+            response.writeHead(401, {'Content-Type': 'text/plain'});
+            response.end('unauthorized');
+          }
+        },
+      });
+      try {
+        await new Promise((resolve, reject) => {
+          ical.fromURL(`${urlBase}/secure.ics`, {headers: {'X-Test-Token': 'abc'}}, (error, data) => {
+            if (error) {
+              reject(error);
             } else {
-              response.writeHead(401, {'Content-Type': 'text/plain'});
-              response.end('unauthorized');
-            }
-          },
-        });
-        try {
-          await new Promise((resolve, reject) => {
-            ical.fromURL(`${urlBase}/secure.ics`, {headers: {'X-Test-Token': 'abc'}}, (error, data) => {
-              if (error) {
-                reject(error);
-              } else {
-                const event = getFirstVEvent(data);
-                assert.ok(event);
-                assert.equal(event.summary, 'Secured Event');
-                resolve();
-              }
-            });
-          });
-        } finally {
-          await close();
-        }
-      });
-    });
-
-    describe('Callback API', () => {
-      it('supports callback without options and reports 404', async () => {
-        const {urlBase, close} = await withServer({
-          '/plain.ics'(_request, response) {
-            response.writeHead(200, {'Content-Type': 'text/calendar'});
-            response.end(icsBody('Callback No Options'));
-          },
-          '/missing.ics'(_request, response) {
-            response.writeHead(404, {'Content-Type': 'text/plain'});
-            response.end('missing');
-          },
-        });
-        try {
-          await new Promise((resolve, reject) => {
-            ical.fromURL(`${urlBase}/plain.ics`, (error, data) => {
-              if (error) {
-                reject(error);
-              } else {
-                const event = getFirstVEvent(data);
-                assert.ok(event);
-                assert.equal(event.summary, 'Callback No Options');
-                resolve();
-              }
-            });
-          });
-
-          await new Promise(resolve => {
-            ical.fromURL(`${urlBase}/missing.ics`, (error, data) => {
-              assert.ok(error);
-              assert.match(error.message, /404/);
-              assert.equal(data, null);
+              const event = getFirstVEvent(data);
+              assert.ok(event);
+              assert.equal(event.summary, 'Secured Event');
               resolve();
-            });
+            }
           });
-        } finally {
-          await close();
-        }
-      });
-    });
-
-    describe('Promise API', () => {
-      it('resolves with parsed data (promise)', async () => {
-        const {urlBase, close} = await withServer({
-          '/promise.ics'(_request, response) {
-            response.writeHead(200, {'Content-Type': 'text/calendar'});
-            response.end(icsBody('Promise Event'));
-          },
         });
-        try {
-          const data = await ical.fromURL(`${urlBase}/promise.ics`);
-          const event = getFirstVEvent(data);
-          assert.ok(event);
-          assert.equal(event.summary, 'Promise Event');
-        } finally {
-          await close();
-        }
+      } finally {
+        await close();
+      }
+    });
+  });
+
+  describe('Callback API', () => {
+    it('supports callback without options and reports 404', async () => {
+      const {urlBase, close} = await withServer({
+        '/plain.ics'(_request, response) {
+          response.writeHead(200, {'Content-Type': 'text/calendar'});
+          response.end(icsBody('Callback No Options'));
+        },
+        '/missing.ics'(_request, response) {
+          response.writeHead(404, {'Content-Type': 'text/plain'});
+          response.end('missing');
+        },
       });
+      try {
+        await new Promise((resolve, reject) => {
+          ical.fromURL(`${urlBase}/plain.ics`, (error, data) => {
+            if (error) {
+              reject(error);
+            } else {
+              const event = getFirstVEvent(data);
+              assert.ok(event);
+              assert.equal(event.summary, 'Callback No Options');
+              resolve();
+            }
+          });
+        });
+
+        await new Promise(resolve => {
+          ical.fromURL(`${urlBase}/missing.ics`, (error, data) => {
+            assert.ok(error);
+            assert.match(error.message, /404/);
+            assert.equal(data, null);
+            resolve();
+          });
+        });
+      } finally {
+        await close();
+      }
+    });
+  });
+
+  describe('Promise API', () => {
+    it('resolves with parsed data (promise)', async () => {
+      const {urlBase, close} = await withServer({
+        '/promise.ics'(_request, response) {
+          response.writeHead(200, {'Content-Type': 'text/calendar'});
+          response.end(icsBody('Promise Event'));
+        },
+      });
+      try {
+        const data = await ical.fromURL(`${urlBase}/promise.ics`);
+        const event = getFirstVEvent(data);
+        assert.ok(event);
+        assert.equal(event.summary, 'Promise Event');
+      } finally {
+        await close();
+      }
     });
   });
 });
