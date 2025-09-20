@@ -1,6 +1,6 @@
 const assert = require('node:assert');
 const http = require('node:http');
-const {it} = require('mocha');
+const {describe, it} = require('mocha');
 const ical = require('../node-ical.js');
 
 const ICS_TEMPLATE = [
@@ -90,129 +90,140 @@ async function withServer(routeHandlers) {
   };
 }
 
-it('fromURL: successful fetch (callback)', async () => {
-  const {urlBase, close} = await withServer({
-    '/ok.ics'(_request, response) {
-      response.writeHead(200, {'Content-Type': 'text/calendar'});
-      response.end(icsBody('Fetch Test Event'));
-    },
+describe('fromURL', () => {
+  describe('Callback API', () => {
+    it('returns parsed VEVENT on 200 (callback)', async () => {
+      const {urlBase, close} = await withServer({
+        '/ok.ics'(_request, response) {
+          response.writeHead(200, {'Content-Type': 'text/calendar'});
+          response.end(icsBody('Fetch Test Event'));
+        },
+      });
+
+      await new Promise((resolve, reject) => {
+        ical.fromURL(`${urlBase}/ok.ics`, {}, (error, data) => {
+          if (error) {
+            reject(error);
+          } else {
+            const event = getFirstVEvent(data);
+            assert.ok(event);
+            assert.equal(event.summary, 'Fetch Test Event');
+            resolve();
+          }
+        });
+      });
+
+      await close();
+    });
   });
 
-  await new Promise((resolve, reject) => {
-    ical.fromURL(`${urlBase}/ok.ics`, {}, (error, data) => {
-      if (error) {
-        reject(error);
-      } else {
+  describe('Error handling', () => {
+    it('yields error and null data on 404', async () => {
+      const {urlBase, close} = await withServer({
+        '/missing.ics'(_request, response) {
+          response.writeHead(404, {'Content-Type': 'text/plain'});
+          response.end('nope');
+        },
+      });
+
+      await new Promise(resolve => {
+        ical.fromURL(`${urlBase}/missing.ics`, {}, (error, data) => {
+          assert.ok(error);
+          assert.match(error.message, /404/);
+          assert.equal(data, null);
+          resolve();
+        });
+      });
+
+      await close();
+    });
+
+    describe('Headers/options', () => {
+      it('forwards headers to HTTP request', async () => {
+        const {urlBase, close} = await withServer({
+          '/secure.ics'(request, response) {
+            if (request.headers['x-test-token'] === 'abc') {
+              response.writeHead(200, {'Content-Type': 'text/calendar'});
+              response.end(icsBody('Secured Event'));
+            } else {
+              response.writeHead(401, {'Content-Type': 'text/plain'});
+              response.end('unauthorized');
+            }
+          },
+        });
+
+        await new Promise((resolve, reject) => {
+          ical.fromURL(`${urlBase}/secure.ics`, {headers: {'X-Test-Token': 'abc'}}, (error, data) => {
+            if (error) {
+              reject(error);
+            } else {
+              const event = getFirstVEvent(data);
+              assert.ok(event);
+              assert.equal(event.summary, 'Secured Event');
+              resolve();
+            }
+          });
+        });
+
+        await close();
+      });
+    });
+
+    describe('Callback API', () => {
+      it('supports callback without options and reports 404', async () => {
+        const {urlBase, close} = await withServer({
+          '/plain.ics'(_request, response) {
+            response.writeHead(200, {'Content-Type': 'text/calendar'});
+            response.end(icsBody('Callback No Options'));
+          },
+          '/missing.ics'(_request, response) {
+            response.writeHead(404, {'Content-Type': 'text/plain'});
+            response.end('missing');
+          },
+        });
+
+        await new Promise((resolve, reject) => {
+          ical.fromURL(`${urlBase}/plain.ics`, (error, data) => {
+            if (error) {
+              reject(error);
+            } else {
+              const event = getFirstVEvent(data);
+              assert.ok(event);
+              assert.equal(event.summary, 'Callback No Options');
+              resolve();
+            }
+          });
+        });
+
+        await new Promise(resolve => {
+          ical.fromURL(`${urlBase}/missing.ics`, (error, data) => {
+            assert.ok(error);
+            assert.match(error.message, /404/);
+            assert.equal(data, null);
+            resolve();
+          });
+        });
+
+        await close();
+      });
+    });
+
+    describe('Promise API', () => {
+      it('resolves with parsed data (promise)', async () => {
+        const {urlBase, close} = await withServer({
+          '/promise.ics'(_request, response) {
+            response.writeHead(200, {'Content-Type': 'text/calendar'});
+            response.end(icsBody('Promise Event'));
+          },
+        });
+
+        const data = await ical.fromURL(`${urlBase}/promise.ics`);
         const event = getFirstVEvent(data);
         assert.ok(event);
-        assert.equal(event.summary, 'Fetch Test Event');
-        resolve();
-      }
+        assert.equal(event.summary, 'Promise Event');
+
+        await close();
+      });
     });
   });
-
-  await close();
 });
-
-it('fromURL: 404 status produces error', async () => {
-  const {urlBase, close} = await withServer({
-    '/missing.ics'(_request, response) {
-      response.writeHead(404, {'Content-Type': 'text/plain'});
-      response.end('nope');
-    },
-  });
-
-  await new Promise(resolve => {
-    ical.fromURL(`${urlBase}/missing.ics`, {}, (error, data) => {
-      assert.ok(error);
-      assert.match(error.message, /404/);
-      assert.equal(data, null);
-      resolve();
-    });
-  });
-
-  await close();
-});
-
-it('fromURL: headers are passed through', async () => {
-  const {urlBase, close} = await withServer({
-    '/secure.ics'(request, response) {
-      if (request.headers['x-test-token'] === 'abc') {
-        response.writeHead(200, {'Content-Type': 'text/calendar'});
-        response.end(icsBody('Secured Event'));
-      } else {
-        response.writeHead(401, {'Content-Type': 'text/plain'});
-        response.end('unauthorized');
-      }
-    },
-  });
-
-  await new Promise((resolve, reject) => {
-    ical.fromURL(`${urlBase}/secure.ics`, {headers: {'X-Test-Token': 'abc'}}, (error, data) => {
-      if (error) {
-        reject(error);
-      } else {
-        const event = getFirstVEvent(data);
-        assert.ok(event);
-        assert.equal(event.summary, 'Secured Event');
-        resolve();
-      }
-    });
-  });
-
-  await close();
-});
-
-it('fromURL: callback usage without options argument success + 404 error', async () => {
-  const {urlBase, close} = await withServer({
-    '/plain.ics'(_request, response) {
-      response.writeHead(200, {'Content-Type': 'text/calendar'});
-      response.end(icsBody('Callback No Options'));
-    },
-    '/missing.ics'(_request, response) {
-      response.writeHead(404, {'Content-Type': 'text/plain'});
-      response.end('missing');
-    },
-  });
-
-  await new Promise((resolve, reject) => {
-    ical.fromURL(`${urlBase}/plain.ics`, (error, data) => {
-      if (error) {
-        reject(error);
-      } else {
-        const event = getFirstVEvent(data);
-        assert.ok(event);
-        assert.equal(event.summary, 'Callback No Options');
-        resolve();
-      }
-    });
-  });
-
-  await new Promise(resolve => {
-    ical.fromURL(`${urlBase}/missing.ics`, (error, data) => {
-      assert.ok(error);
-      assert.match(error.message, /404/);
-      assert.equal(data, null);
-      resolve();
-    });
-  });
-
-  await close();
-});
-
-it('fromURL: promise usage (no callback)', async () => {
-  const {urlBase, close} = await withServer({
-    '/promise.ics'(_request, response) {
-      response.writeHead(200, {'Content-Type': 'text/calendar'});
-      response.end(icsBody('Promise Event'));
-    },
-  });
-
-  const data = await ical.fromURL(`${urlBase}/promise.ics`);
-  const event = getFirstVEvent(data);
-  assert.ok(event);
-  assert.equal(event.summary, 'Promise Event');
-
-  await close();
-});
-
