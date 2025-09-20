@@ -1,4 +1,4 @@
-const assert = require('node:assert');
+const assert = require('node:assert/strict');
 const {describe, it} = require('mocha');
 const moment = require('moment-timezone');
 const ical = require('../node-ical.js');

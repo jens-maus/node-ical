@@ -1,4 +1,4 @@
-const assert = require('node:assert');
+const assert = require('node:assert/strict');
 const http = require('node:http');
 const {describe, it} = require('mocha');
 const ical = require('../node-ical.js');
