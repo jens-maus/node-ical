@@ -171,10 +171,10 @@ describe('parser: advanced cases', () => {
       it('maps Windows zones to times (ms_timezones.ics)', () => {
         const data = ical.parseFile('./test/ms_timezones.ics');
         const event = Object.values(data).find(x => x.summary === 'Log Yesterday\'s Jira time');
-        assert.equal(event.start.getFullYear(), 2020);
-        assert.equal(event.start.getMonth(), 5);
-        assert.equal(event.start.getUTCHours(), 7);
-        assert.equal(event.end.getUTCMinutes(), 30);
+        assert.strictEqual(event.start.getUTCFullYear(), 2020);
+        assert.strictEqual(event.start.getUTCMonth(), 5);
+        assert.strictEqual(event.start.getUTCHours(), 7);
+        assert.strictEqual(event.end.getUTCMinutes(), 30);
       });
 
       // Bad_ms_tz.ics – unexpected ms timezone (should not use Customized Time Zone)

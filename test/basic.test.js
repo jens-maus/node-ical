@@ -47,9 +47,9 @@ describe('parser: basic cases', () => {
     it('parses tvcountdown event (test3.ics)', () => {
       const data = ical.parseFile('./test/test3.ics');
       const ev = findItem(values(data), x => x.uid === '20110505T220000Z-83@tvcountdown.com');
-      assert_.equal(ev.start.getFullYear(), 2011);
-      assert_.equal(ev.start.getMonth(), 4);
-      assert_.equal(ev.end.getMonth(), 4);
+      assert_.equal(ev.start.getUTCFullYear(), 2011);
+      assert_.equal(ev.start.getUTCMonth(), 4);
+      assert_.equal(ev.end.getUTCMonth(), 4);
       assert_.equal(ev.datetype, 'date-time');
     });
 
@@ -85,7 +85,7 @@ describe('parser: basic cases', () => {
       assert_.equal(vfb.url, 'http://www.host.com/calendar/busytime/jsmith.ifb');
       const first = vfb.freebusy[0];
       assert_.equal(first.type, 'BUSY');
-      assert_.equal(first.start.getFullYear(), 1998);
+      assert_.equal(first.start.getUTCFullYear(), 1998);
       assert_.equal(first.start.getUTCMonth(), 2);
       assert_.equal(first.end.getUTCMinutes(), 30);
 
@@ -155,12 +155,12 @@ describe('parser: basic cases', () => {
       const fb = values(data)[0];
       assert_.equal(fb.url, 'http://mail.example.com/yvr-2a@example.com/20140416');
       assert_.equal(fb.organizer, 'mailto:yvr-2a@example.com');
-      assert_.equal(fb.start.getFullYear(), 2014);
-      assert_.equal(fb.start.getMonth(), 3);
-      assert_.equal(fb.end.getMonth(), 6);
+      assert_.equal(fb.start.getUTCFullYear(), 2014);
+      assert_.equal(fb.start.getUTCMonth(), 3);
+      assert_.equal(fb.end.getUTCMonth(), 6);
       const busy = fb.freebusy.find(x => x.type === 'BUSY');
-      assert_.equal(busy.start.getFullYear(), 2014);
-      assert_.equal(busy.start.getMonth(), 3);
+      assert_.equal(busy.start.getUTCFullYear(), 2014);
+      assert_.equal(busy.start.getUTCMonth(), 3);
     });
   });
 });
