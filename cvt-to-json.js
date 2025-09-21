@@ -77,4 +77,17 @@ for (const key of Object.keys(wtzOld)) {
   }
 }
 
-fs.writeFileSync('windowsZones.json', JSON.stringify(zoneTable));
+// Write JSON with one top-level property per line, values minified
+{
+  // Sort keys for deterministic output (stable diffs)
+  const keys = Object.keys(zoneTable).sort();
+  const lines = ['{'];
+  for (const [index, key] of keys.entries()) {
+    const value = JSON.stringify(zoneTable[key]); // Minified value
+    const comma = index < keys.length - 1 ? ',' : '';
+    lines.push(`  ${JSON.stringify(key)}: ${value}${comma}`);
+  }
+
+  lines.push('}');
+  fs.writeFileSync('windowsZones.json', lines.join('\n') + '\n');
+}
