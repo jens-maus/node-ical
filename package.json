@@ -25,8 +25,9 @@
     "rrule": "2.8.1"
   },
   "devDependencies": {
+    "lint-staged": "^16.1.6",
     "mocha": "^11.7.2",
-    "pre-commit": "^1.2.2",
+    "simple-git-hooks": "^2.13.1",
     "xml-js": "^1.6.11",
     "xo": "^1.2.2"
   },
@@ -43,16 +44,20 @@
       "unicorn/prefer-spread": "off"
     }
   },
-  "pre-commit": [
-    "lintfix"
-  ],
   "scripts": {
     "examples": "node examples/example-rrule.js && node examples/example.js",
-  "test": "xo && mocha --timeout 8000",
+    "test": "xo && mocha --timeout 8000",
     "lint": "xo",
     "lintfix": "xo --fix",
-    "precommit": "npm run lint && npm run lintfix",
+    "prepare": "simple-git-hooks",
     "build": "build/updatejson.sh"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged",
+    "pre-push": "npm test"
+  },
+  "lint-staged": {
+    "**/*.{js,cjs,mjs,ts,tsx}": "xo --fix"
   },
   "readmeFilename": "README.md"
 }
