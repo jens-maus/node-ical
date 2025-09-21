@@ -54,30 +54,12 @@ for (const zone of v) {
 const wtzOld = require(p.join(__dirname, 'build/windowsZonesOld.json'));
 // Loop thru the legacy aliases table and merge into the zone table
 for (const key of Object.keys(wtzOld)) {
-  // Get the new zone and look it up on the iana table
-  // Look in new table for existing entry
-  let wzone = zoneTable[key];
-  // Look in old table for latest name
-  const lookup = wtzOld[key];
-  // Use latest name in original table to find  correct name
-  let iana = zoneTable[lookup];
-  //   Console.log(" lookup key="+key +" new ="+ lookup +"="+wzone+" iana="+(!iana? 'undefined':JSON.stringify(iana)))
-  iana &&= iana.iana[0];
-
-  // If not set
-  if (wzone === undefined) {
-    // Initialize
-    wzone = {iana: []}; // T, type: zone.attributes.territory};
-  }
-
-  if (wzone.iana.length === 0) {
-    wzone.iana.push(iana);
-  }
-
-  if (iana !== null) {
-  // Console.log("saving "+iana)
-  // Save back new info using new key
-    zoneTable[key] = wzone;
+  const windowsId = wtzOld[key];
+  const target = zoneTable[windowsId];
+  const primaryIana = target && Array.isArray(target.iana) ? target.iana[0] : undefined;
+  // Only add alias if we can resolve to a primary IANA zone
+  if (primaryIana) {
+    zoneTable[key] = {iana: [primaryIana]};
   }
 }
 
