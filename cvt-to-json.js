@@ -47,8 +47,12 @@ for (const zone of v) {
   zoneTable[zone.attributes.other] = wzone;
 }
 
+// Legacy/display-name aliases -> canonical Windows ID map.
+// Many ICS or MS products use human-readable labels instead of the Windows ID.
+// We map those legacy labels to their canonical Windows ID and then resolve
+// to the same primary IANA zone as the canonical entry.
 const wtzOld = require(p.join(__dirname, 'build/windowsZonesOld.json'));
-// Loop thru the old zones table
+// Loop thru the legacy aliases table and merge into the zone table
 for (const key of Object.keys(wtzOld)) {
   // Get the new zone and look it up on the iana table
   // Look in new table for existing entry
