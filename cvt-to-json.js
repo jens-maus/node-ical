@@ -2,6 +2,7 @@
 // Save as json for quick import when needed
 const fs = require('node:fs');
 const p = require('node:path');
+const process = require('node:process');
 
 const wtz = require(p.join(__dirname, 'windowsZones.json'));
 const v = getObjects(wtz, 'name', 'mapZone');
@@ -53,6 +54,8 @@ for (const zone of v) {
 // to the same primary IANA zone as the canonical entry.
 const wtzOld = require(p.join(__dirname, 'build/windowsZonesOld.json'));
 // Loop thru the legacy aliases table and merge into the zone table
+const unresolvedLegacy = [];
+let mergedLegacy = 0;
 for (const key of Object.keys(wtzOld)) {
   const windowsId = wtzOld[key];
   const target = zoneTable[windowsId];
@@ -60,6 +63,9 @@ for (const key of Object.keys(wtzOld)) {
   // Only add alias if we can resolve to a primary IANA zone
   if (primaryIana) {
     zoneTable[key] = {iana: [primaryIana]};
+    mergedLegacy++;
+  } else {
+    unresolvedLegacy.push({label: key, windowsId});
   }
 }
 
@@ -76,4 +82,23 @@ for (const key of Object.keys(wtzOld)) {
 
   lines.push('}');
   fs.writeFileSync('windowsZones.json', lines.join('\n') + '\n');
+}
+
+// Emit warnings (and optionally fail) for any unresolved legacy aliases
+if (unresolvedLegacy.length > 0) {
+  const header = `windowsZones: ${unresolvedLegacy.length} legacy alias(es) could not be resolved to a canonical Windows ID -> IANA mapping.`;
+  console.warn(header);
+  for (const {label, windowsId} of unresolvedLegacy) {
+    console.warn(`  - Skipped legacy label ${JSON.stringify(label)} -> ${JSON.stringify(windowsId)} (no primary IANA found)`);
+  }
+
+  // In CI or when explicitly requested, fail hard to prevent regressions
+  const strict = process.env.CI === 'true' || process.argv.includes('--strict');
+  if (strict) {
+    console.error('windowsZones: Failing build due to unresolved legacy aliases (strict mode).');
+    process.exitCode = 1;
+  }
+} else if (mergedLegacy > 0) {
+  // Helpful summary in non-verbose runs
+  console.log(`windowsZones: merged ${mergedLegacy} legacy alias(es).`);
 }

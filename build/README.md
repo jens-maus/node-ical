@@ -24,6 +24,25 @@ To keep `node-ical` resilient, we preserve a set of these legacy labels and map 
 3. It then loads `build/windowsZonesOld.json` and, for each legacy label (top-level key), looks up the canonical Windows ID (value) and injects a mapping entry into the final `zoneTable` so that legacy labels resolve to the same IANA zone as the canonical ID.
 4. The script writes `windowsZones.json` in a one-entry-per-line format with sorted keys for stable diffs.
 
+## Validation and strict mode
+
+During the merge, any legacy alias whose Windows ID cannot be resolved to a primary IANA zone is skipped. The generator will:
+
+- Print a warning for each skipped alias, and
+- In strict mode, fail the build to prevent regressions.
+
+Enable strict mode via the npm script or environment flag:
+
+```bash
+npm run build:strict
+# or
+CI=true npm run build
+# or (low-level)
+node cvt-to-json.js --strict
+```
+
+Note: CI runs the generator in strict mode to catch unresolved aliases early in pull requests.
+
 ## When to edit `windowsZonesOld.json`
 
 - Add: When you encounter an ICS or MS product label that doesn’t resolve in `windowsZones.json`, add a key for that label with the value set to the canonical Windows ID.

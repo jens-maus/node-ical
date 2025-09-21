@@ -27,6 +27,12 @@ jobs:
     - name: Install Test
       run: npm install
       
+    - name: Generate windowsZones (strict)
+      run: build/updatejson.sh
+      shell: bash
+      env:
+        CI: true
+
     - name: Run UnitTests
       run: npm test
       env:
