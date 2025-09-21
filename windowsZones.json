@@ -25,6 +25,7 @@
   "(UTC+03:00) Tbilisi": {"iana":["Asia/Tbilisi"]},
   "(UTC+03:30) Tehran": {"iana":["Asia/Tehran"]},
   "(UTC+04:00) Abu Dhabi, Muscat": {"iana":["Asia/Dubai"]},
+  "(UTC+04:00) Baku": {"iana":["Asia/Baku"]},
   "(UTC+04:00) Baku, Tbilisi, Yerevan": {"iana":["Asia/Yerevan"]},
   "(UTC+04:00) Port Louis": {"iana":["Indian/Mauritius"]},
   "(UTC+04:00) Yerevan": {"iana":[null]},
