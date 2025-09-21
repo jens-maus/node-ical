@@ -28,8 +28,7 @@ jobs:
       run: npm install
       
     - name: Generate windowsZones (strict)
-      run: build/updatejson.sh
-      shell: bash
+      run: node build/update-windows-zones.mjs
       env:
         CI: true
 
