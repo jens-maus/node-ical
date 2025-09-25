@@ -25,9 +25,9 @@
     "rrule": "2.8.1"
   },
   "devDependencies": {
+    "fast-xml-parser": "^5.2.5",
     "mocha": "^11.7.2",
     "pre-commit": "^1.2.2",
-    "xml-js": "^1.6.11",
     "xo": "^1.2.2"
   },
   "xo": {
@@ -48,11 +48,12 @@
   ],
   "scripts": {
     "examples": "node examples/example-rrule.js && node examples/example.js",
-  "test": "xo && mocha --timeout 8000",
+    "test": "xo && mocha --timeout 8000",
     "lint": "xo",
     "lintfix": "xo --fix",
     "precommit": "npm run lint && npm run lintfix",
-    "build": "build/updatejson.sh"
+    "build": "node build/update-windows-zones.mjs",
+    "build:strict": "CI=true node build/update-windows-zones.mjs"
   },
   "readmeFilename": "README.md"
 }
