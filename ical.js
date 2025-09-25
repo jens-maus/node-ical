@@ -1,8 +1,8 @@
 /* eslint-disable max-depth, max-params, no-warning-comments, complexity */
 
 const {randomUUID} = require('node:crypto');
-const moment = require('moment-timezone');
 const rrule = require('rrule').RRule;
+const tzUtil = require('./tz-utils.js');
 
 /** **************
  *  A tolerant, minimal icalendar parser
@@ -132,7 +132,7 @@ function getTimeZone(value) {
   // If this is the custom timezone from MS Outlook
   if (tz === 'tzone://Microsoft/Custom' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
     // Set it to the local timezone, because we can't tell
-    tz = moment.tz.guess();
+    tz = tzUtil.guessLocalZone();
   }
 
   // Remove quotes if found
@@ -159,7 +159,7 @@ function getTimeZone(value) {
   // Timezone not confirmed yet
   if (found === '') {
     // Lookup tz
-    found = moment.tz.names().find(zone => zone === tz);
+    found = tzUtil.findExactZoneMatch(tz);
   }
 
   return found === '' ? tz : found;
@@ -230,7 +230,7 @@ const dateParameter = function (name) {
         // If this is the custom timezone from MS Outlook
         if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
           // Set it to the local timezone, because we can't tell
-          tz = moment.tz.guess();
+          tz = tzUtil.guessLocalZone();
           parameters[0] = 'TZID=' + tz;
         }
 
@@ -263,16 +263,16 @@ const dateParameter = function (name) {
         // Timezone not confirmed yet
         if (found === '') {
           // Lookup tz
-          found = moment.tz.names().find(zone => zone === tz);
+          found = tzUtil.findExactZoneMatch(tz);
         }
 
         // Timezone confirmed or forced to offset
         // Prefer explicit numeric offset, then TZID, otherwise fall back to naive local time
         const offsetString = Array.isArray(offset) ? offset[0] : offset;
         if (typeof offsetString === 'string' && offsetString.length > 0) {
-          newDate = moment.parseZone(`${value}${offsetString}`, 'YYYYMMDDTHHmmssZ').toDate();
-        } else if (tz && moment.tz.zone(tz)) {
-          newDate = moment.tz(value, 'YYYYMMDDTHHmmss', tz).toDate();
+          newDate = tzUtil.parseWithOffset(value, offsetString);
+        } else if (tz && tzUtil.isValidIana(tz)) {
+          newDate = tzUtil.parseDateTimeInZone(value, tz);
         } else {
           newDate = new Date(
             Number.parseInt(comps[1], 10),
@@ -298,8 +298,8 @@ const dateParameter = function (name) {
           ? (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.at(-1) : vTimezone.tzid)
           : null;
 
-        newDate = normalizedTzId && moment.tz.zone(normalizedTzId)
-          ? moment.tz(value, 'YYYYMMDDTHHmmss', normalizedTzId).toDate()
+        newDate = normalizedTzId && tzUtil.isValidIana(normalizedTzId)
+          ? tzUtil.parseDateTimeInZone(value, normalizedTzId)
           : new Date(
             Number.parseInt(comps[1], 10),
             Number.parseInt(comps[2], 10) - 1,
@@ -449,7 +449,7 @@ module.exports = {
 
         if (!curr.end) { // RFC5545, 3.6.1
           // Set the end according to the datetype of event
-          curr.end = (curr.datetype === 'date-time') ? new Date(curr.start) : moment.utc(curr.start).add(1, 'days').toDate();
+          curr.end = (curr.datetype === 'date-time') ? new Date(curr.start) : tzUtil.utcAdd(curr.start, 1, 'days');
 
           // If there was a duration specified
           // see RFC5545, 3.3.6 (no year and month)
@@ -466,8 +466,7 @@ module.exports = {
             const duration = curr.duration.match(/-?\d{1,10}[WDHMS]/g);
 
             // Use the duration to create the end value, from the start
-            const startMoment = moment.utc(curr.start);
-            let newEnd = startMoment;
+            let newEnd = curr.start;
 
             // Is the 1st character a negative sign?
             const indicator = curr.duration.startsWith('-') ? -1 : 1;
@@ -478,11 +477,11 @@ module.exports = {
                 throw new Error(`Invalid duration unit: ${unit}`);
               }
 
-              newEnd = newEnd.add(Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
+              newEnd = tzUtil.utcAdd(newEnd, Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
             }
 
             // End is a Date type, not moment
-            curr.end = newEnd.toDate();
+            curr.end = new Date(newEnd);
           }
         }
 
@@ -601,7 +600,7 @@ module.exports = {
               curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60_000));
             } else {
               // Get rid of any time (shouldn't be any, but be sure)
-              const x = moment(curr.start).format('MMMM/Do/YYYY');
+              const x = tzUtil.formatMMMMDoYYYY(curr.start);
               const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
               if (comps) {
                 curr.start = new Date(comps[3], comps[1] - 1, comps[2]);

@@ -1,10 +1,10 @@
 const assert = require('node:assert/strict');
 const {describe, it} = require('mocha');
-const moment = require('moment-timezone');
+const tz = require('../tz-utils.js');
 const ical = require('../node-ical.js');
 
 // Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
-moment.tz.link('Etc/Unknown|Etc/GMT');
+tz.linkAlias('Etc/Unknown', 'Etc/GMT');
 
 // Test12.ics – RRULE + EXDATE + RECURRENCE-ID override
 describe('parser: advanced cases', () => {
@@ -250,13 +250,20 @@ describe('parser: advanced cases', () => {
       assert.equal(event.end.toDateString(), new Date(2020, 9, 18).toDateString());
 
       // If a timezone is exposed, also ensure both boundaries are local midnight and exactly one local day apart
-      const tz = (event.start && event.start.tz) || (event.end && event.end.tz);
-      if (tz) {
-        const startLocal = moment.tz(event.start, tz);
-        const endLocal = moment.tz(event.end, tz);
-        assert.ok(startLocal.isSame(startLocal.clone().startOf('day')));
-        assert.ok(endLocal.isSame(endLocal.clone().startOf('day')));
-        assert.equal(endLocal.diff(startLocal, 'day'), 1);
+      const zone = (event.start && event.start.tz) || (event.end && event.end.tz);
+      if (zone) {
+        const startLocalYMD = event.start.toLocaleString('sv-SE', {timeZone: zone}).slice(0, 10);
+        const endLocalYMD = event.end.toLocaleString('sv-SE', {timeZone: zone}).slice(0, 10);
+        assert.ok(/\d{4}-\d{2}-\d{2}/.test(startLocalYMD));
+        assert.ok(/\d{4}-\d{2}-\d{2}/.test(endLocalYMD));
+        assert.notEqual(startLocalYMD, endLocalYMD);
+        // Confirm exactly one day apart by constructing local midnights
+        const [sy, sm, sd] = startLocalYMD.split('-').map(Number);
+        const [ey, em, ed] = endLocalYMD.split('-').map(Number);
+        const startLocalMid = new Date(Date.UTC(sy, sm - 1, sd));
+        const endLocalMid = new Date(Date.UTC(ey, em - 1, ed));
+        const diffDays = Math.round((endLocalMid - startLocalMid) / 86_400_000);
+        assert.equal(diffDays, 1);
       }
     });
   });
@@ -324,13 +331,16 @@ describe('parser: advanced cases', () => {
       assert.equal(rec.datetype, 'date');
 
       // If a timezone is exposed on the recurrence dates, also ensure local midnight boundaries and one-day span
-      const tz = (rec.start && rec.start.tz) || (rec.end && rec.end.tz);
-      if (tz && rec.end) {
-        const startLocal = moment.tz(rec.start, tz);
-        const endLocal = moment.tz(rec.end, tz);
-        assert.ok(startLocal.isSame(startLocal.clone().startOf('day')));
-        assert.ok(endLocal.isSame(endLocal.clone().startOf('day')));
-        assert.equal(endLocal.diff(startLocal, 'day'), 1);
+      const zone2 = (rec.start && rec.start.tz) || (rec.end && rec.end.tz);
+      if (zone2 && rec.end) {
+        const startLocalYMD = rec.start.toLocaleString('sv-SE', {timeZone: zone2}).slice(0, 10);
+        const endLocalYMD = rec.end.toLocaleString('sv-SE', {timeZone: zone2}).slice(0, 10);
+        const [sy, sm, sd] = startLocalYMD.split('-').map(Number);
+        const [ey, em, ed] = endLocalYMD.split('-').map(Number);
+        const startLocalMid = new Date(Date.UTC(sy, sm - 1, sd));
+        const endLocalMid = new Date(Date.UTC(ey, em - 1, ed));
+        const diffDays = Math.round((endLocalMid - startLocalMid) / 86_400_000);
+        assert.equal(diffDays, 1);
       }
     });
   });

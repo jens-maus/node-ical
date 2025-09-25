@@ -90,7 +90,7 @@ async function withServer(routeHandlers) {
   };
 }
 
-describe('fromURL', () => {
+describe('integration: fromURL', () => {
   describe('Callback API', () => {
     it('returns parsed VEVENT on 200 (callback)', async () => {
       const {urlBase, close} = await withServer({

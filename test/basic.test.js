@@ -1,10 +1,10 @@
 const assert_ = require('node:assert/strict');
 const {describe, it} = require('mocha');
-const moment = require('moment-timezone');
+const tz = require('../tz-utils.js');
 const ical = require('../node-ical.js');
 
 // Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
-moment.tz.link('Etc/Unknown|Etc/GMT');
+tz.linkAlias('Etc/Unknown', 'Etc/GMT');
 
 function values(object) {
   return Object.values(object);
@@ -90,10 +90,10 @@ describe('parser: basic cases', () => {
       assert_.equal(first.end.getUTCMinutes(), 30);
 
       const tzEvent = findItem(values(data), item => item.uid === 'EC9439B1-FF65-11D6-9973-003065F99D04');
-      assert_.ok(moment.tz.zone(tzEvent.start.tz));
+      assert_.ok(tz.isValidIana(tzEvent.start.tz));
       const ref = '2002-10-28T22:00:00Z';
-      const start = moment(tzEvent.start).tz(tzEvent.start.tz);
-      assert_.equal(start.utc().format(), ref);
+      const isoNoMs = tzEvent.start.toISOString().replace(/\.\d{3}Z$/, 'Z');
+      assert_.equal(isoNoMs, ref);
     });
   });
 
