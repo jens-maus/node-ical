@@ -263,3 +263,7 @@ ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, function (err, da
     }
 });
 ```
+
+## Under the hood
+
+**Windows/IANA time zones**: node-ical maps Windows time zone IDs and common legacy display-name labels to IANA via a generated `windowsZones.json`. It’s built from CLDR (`windowsZones.xml`) and augmented with legacy aliases for resilience; see `build/README.md` for details.

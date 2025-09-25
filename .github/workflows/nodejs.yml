@@ -27,6 +27,11 @@ jobs:
     - name: Install Test
       run: npm install
       
+    - name: Generate windowsZones (strict)
+      run: node build/update-windows-zones.mjs
+      env:
+        CI: true
+
     - name: Run UnitTests
       run: npm test
       env:
