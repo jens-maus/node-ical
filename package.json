@@ -21,13 +21,13 @@
     "node": ">=18"
   },
   "dependencies": {
-    "moment-timezone": "^0.6.0",
     "rrule": "2.8.1"
   },
   "devDependencies": {
     "fast-xml-parser": "^5.2.5",
     "lint-staged": "^16.1.6",
     "mocha": "^11.7.2",
+    "moment-timezone": "^0.6.0",
     "simple-git-hooks": "^2.13.1",
     "xo": "^1.2.2"
   },
