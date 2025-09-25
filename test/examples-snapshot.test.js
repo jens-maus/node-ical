@@ -1,5 +1,6 @@
 const assert = require('node:assert');
 const {spawnSync} = require('node:child_process');
+const process = require('node:process');
 const path = require('node:path');
 const fs = require('node:fs');
 const {describe, it} = require('mocha');
@@ -17,7 +18,13 @@ const snapshotDir = path.join(__dirname, 'snapshots');
 
 function runExample(script) {
   const absPath = path.join(__dirname, '../examples', script);
-  const result = spawnSync('node', [absPath], {encoding: 'utf8'});
+  const result = spawnSync('node', [absPath], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      TZ: 'Europe/Berlin',
+    },
+  });
   if (result.error) {
     throw result.error;
   }
