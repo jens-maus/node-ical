@@ -24,8 +24,11 @@
     "rrule": "2.8.1"
   },
   "devDependencies": {
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.18",
     "fast-xml-parser": "^5.2.5",
     "lint-staged": "^16.1.6",
+    "luxon": "^3.7.2",
     "mocha": "^11.7.2",
     "moment-timezone": "^0.6.0",
     "simple-git-hooks": "^2.13.1",
@@ -45,7 +48,7 @@
     }
   },
   "scripts": {
-    "examples": "node examples/example-rrule.js && node examples/example.js",
+    "examples": "node examples/example-rrule-moment.js && node examples/example-rrule-luxon.js && node examples/example-rrule-dayjs.js && node examples/example-rrule-datefns.js && node examples/example-rrule-vanilla.js && node examples/example.js",
     "test": "xo && mocha --timeout 8000",
     "lint": "xo",
     "lintfix": "xo --fix",

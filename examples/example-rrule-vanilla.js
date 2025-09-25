@@ -1,21 +1,45 @@
 /*
- * Example: Expanding recurring calendar events
+ * Example: Expanding recurring calendar events (using native JavaScript Date)
  *
  * This script shows how to turn VEVENTs (including recurring ones) into concrete
- * event instances within a given date range. It demonstrates how to:
+ * event instances within a given date range using only native JavaScript Date objects.
+ * It demonstrates how to:
  *
  * - Expand RRULEs into individual dates within a range
  * - Apply per-date overrides (RECURRENCE-ID via `recurrences`)
  * - Skip exception dates (`exdate`)
- * - Print each instance with title, start/end time, and humanized duration
+ * - Print each instance with title, start/end time, and duration
+ *
+ * Why native Date? Sometimes you want minimal dependencies and are comfortable
+ * with JavaScript's built-in Date API. This example shows that node-ical works
+ * perfectly well without requiring any external date libraries.
  *
  * Why a date range? Recurring rules can describe infinite series. Limiting to a
  * fixed window (here: calendar year 2017) keeps expansion finite and practical.
  */
 
 const path = require('node:path');
-const moment = require('moment-timezone');
 const ical = require('../node-ical.js');
+
+// Helper function to format duration from milliseconds to hours:minutes
+function formatDuration(ms) {
+  const hours = Math.floor(ms / (1000 * 60 * 60));
+  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+  return `${hours}:${String(minutes).padStart(2, '0')} hours`;
+}
+
+// Helper function to format date in a readable way
+function formatDate(date) {
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+}
 
 // Load an example iCal file with various recurring events.
 const data = ical.parseFile(path.join(__dirname, 'example-rrule.ics'));
@@ -24,29 +48,29 @@ const data = ical.parseFile(path.join(__dirname, 'example-rrule.ics'));
 const events = Object.values(data).filter(item => item.type === 'VEVENT');
 
 // Use a fixed date range to keep expansion finite (recurrences can be unbounded).
-const rangeStart = moment('2017-01-01');
-const rangeEnd = moment('2017-12-31');
+const rangeStart = new Date('2017-01-01T00:00:00.000Z');
+const rangeEnd = new Date('2017-12-31T23:59:59.999Z');
 
 for (const event of events) {
   const title = event.summary;
-  let startDate = moment(event.start);
-  let endDate = moment(event.end);
+  let startDate = new Date(event.start);
+  let endDate = new Date(event.end);
 
   // Calculate the duration of the event for use with recurring events.
-  const duration = endDate.valueOf() - startDate.valueOf();
+  const duration = endDate.getTime() - startDate.getTime();
 
   // Simple case: no RRULE — print the single event.
   if (!event.rrule) {
     console.log(`title:${title}`);
-    console.log(`startDate:${startDate.format('MMMM Do YYYY, h:mm:ss a')}`);
-    console.log(`endDate:${endDate.format('MMMM Do YYYY, h:mm:ss a')}`);
-    console.log(`duration:${moment.duration(duration).humanize()}`);
+    console.log(`startDate:${formatDate(startDate)}`);
+    console.log(`endDate:${formatDate(endDate)}`);
+    console.log(`duration:${formatDuration(duration)}`);
     console.log();
     continue;
   }
 
   // Expand RRULE start dates within the range.
-  const dates = event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, () => true);
+  const dates = event.rrule.between(rangeStart, rangeEnd, true, () => true);
 
   // The dates array holds valid instances in-range. Overrides may move an instance into range,
   // so include override dates not already yielded by rrule (avoid duplicates).
@@ -54,9 +78,9 @@ for (const event of events) {
     for (const r of Object.keys(event.recurrences)) {
       const rDate = new Date(r);
       // Avoid duplicates: only add if not already present from rrule.
-      const insideRange = moment(rDate).isBetween(rangeStart, rangeEnd) === true;
+      const insideRange = rDate >= rangeStart && rDate <= rangeEnd;
       const alreadyPresent = dates.some(d => d.getTime() === rDate.getTime());
-      if (!insideRange && !alreadyPresent) {
+      if (insideRange && !alreadyPresent) {
         dates.push(rDate);
       }
     }
@@ -68,7 +92,7 @@ for (const event of events) {
     let showRecurrence = true;
     let curDuration = duration;
 
-    startDate = moment(date);
+    startDate = new Date(date);
 
     // Look up overrides/EXDATEs by date (YYYY-MM-DD), as represented by node-ical.
     const dateLookupKey = date.toISOString().slice(0, 10);
@@ -77,8 +101,8 @@ for (const event of events) {
     if (curEvent.recurrences && curEvent.recurrences[dateLookupKey]) {
       // We found an override, so for this recurrence, use a potentially different title, start date, and duration.
       curEvent = curEvent.recurrences[dateLookupKey];
-      startDate = moment(curEvent.start);
-      curDuration = moment(curEvent.end).valueOf() - startDate.valueOf();
+      startDate = new Date(curEvent.start);
+      curDuration = new Date(curEvent.end).getTime() - startDate.getTime();
     } else if (curEvent.exdate && curEvent.exdate[dateLookupKey]) {
       // If there's no recurrence override, check for an exception date. Exception dates represent exceptions to the rule.
       // This date is an exception date, which means we should skip it in the recurrence pattern.
@@ -87,18 +111,18 @@ for (const event of events) {
 
     // Set the title and the end date from either the regular event or the recurrence override.
     const recurrenceTitle = curEvent.summary;
-    endDate = moment(startDate.valueOf() + curDuration);
+    endDate = new Date(startDate.getTime() + curDuration);
 
     // Skip instances outside the range after applying overrides.
-    if (endDate.isBefore(rangeStart) || startDate.isAfter(rangeEnd)) {
+    if (endDate < rangeStart || startDate > rangeEnd) {
       showRecurrence = false;
     }
 
     if (showRecurrence) {
       console.log(`title:${recurrenceTitle}`);
-      console.log(`startDate:${startDate.format('MMMM Do YYYY, h:mm:ss a')}`);
-      console.log(`endDate:${endDate.format('MMMM Do YYYY, h:mm:ss a')}`);
-      console.log(`duration:${moment.duration(curDuration).humanize()}`);
+      console.log(`startDate:${formatDate(startDate)}`);
+      console.log(`endDate:${formatDate(endDate)}`);
+      console.log(`duration:${formatDuration(curDuration)}`);
       console.log();
     }
   }
