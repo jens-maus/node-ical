@@ -54,12 +54,12 @@
     "build:strict": "CI=true node build/update-windows-zones.mjs"
   },
   "simple-git-hooks": {
-    "pre-commit": "npx lint-staged",
+    "pre-commit": "npx --no lint-staged",
     "pre-push": "npm test"
   },
   "lint-staged": {
-    "**/*.{js,cjs,mjs,ts,tsx}": "xo --fix",
-    "ignores": ["**/*.d.ts"]
+    "!**/*.d.ts": [],
+    "**/*.{js,cjs,mjs,ts,tsx}": "xo --fix"
   },
   "readmeFilename": "README.md"
 }
