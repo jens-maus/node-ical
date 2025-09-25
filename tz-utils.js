@@ -141,6 +141,12 @@ function parseDateTimeInZone(yyyymmddThhmmss, zone) {
       }
     }
 
+    // Handle 24:00 edge case which some TZs may produce for midnight
+    // This seems only happen with node < 22 and only for certain zones
+    if (Object.hasOwn(out, 'hour') && out.hour === 24) {
+      out.hour = 0;
+    }
+
     return out;
   };
 
