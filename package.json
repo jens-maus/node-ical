@@ -29,7 +29,6 @@
     "lint-staged": "^16.1.6",
     "mocha": "^11.7.2",
     "simple-git-hooks": "^2.13.1",
-    "xml-js": "^1.6.11",
     "xo": "^1.2.2"
   },
   "xo": {
@@ -59,7 +58,8 @@
     "pre-push": "npm test"
   },
   "lint-staged": {
-    "**/*.{js,cjs,mjs,ts,tsx}": "xo --fix"
+    "**/*.{js,cjs,mjs,ts,tsx}": "xo --fix",
+    "ignores": ["**/*.d.ts"]
   },
   "readmeFilename": "README.md"
 }
