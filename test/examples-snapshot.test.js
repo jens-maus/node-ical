@@ -36,15 +36,20 @@ function runExample(script) {
   return result.stdout.trim();
 }
 
+// Normalize newlines to LF for consistent snapshot comparison across platforms
+function normalizeNewlines(text) {
+  return text.replaceAll('\r\n', '\n');
+}
+
 describe('RRULE example output snapshots', function () {
   this.timeout(10_000);
 
   for (const script of exampleScripts) {
     it(`${script} output matches snapshot`, function () {
-      const output = runExample(script);
+      const output = normalizeNewlines(runExample(script));
       const snapshotFile = path.join(snapshotDir, script.replace('.js', '.txt'));
       if (fs.existsSync(snapshotFile)) {
-        const expected = fs.readFileSync(snapshotFile, 'utf8').trim();
+        const expected = normalizeNewlines(fs.readFileSync(snapshotFile, 'utf8')).trim();
         assert.strictEqual(output, expected, `Output of ${script} does not match snapshot. If this is intentional, update the snapshot.`);
       } else {
         // If no snapshot exists, create it
