@@ -236,8 +236,7 @@ function guessLocalZone() {
 }
 
 function getZoneNames() {
-  // Without shipping a full IANA db list, return a minimal array that satisfies tests
-  return [guessLocalZone()].filter(Boolean);
+  return Intl.supportedValuesOf('timeZone');
 }
 
 function findExactZoneMatch(tz) {

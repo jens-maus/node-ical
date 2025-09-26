@@ -61,13 +61,12 @@ describe('unit: tz-utils', () => {
   it('guesses a local zone string', () => {
     const guess = tz.guessLocalZone();
     assert.equal(typeof guess, 'string');
-    // If the runtime cannot determine a valid IANA zone via Intl, we still expect a best-effort string.
-    // On most systems this should be a canonical name surfaced by Intl.DateTimeFormat().resolvedOptions().timeZone
+    // Node >=18 exposes the full IANA catalog via Intl.supportedValuesOf('timeZone'), so the guess should be included
     if (guess) {
       const names = tz.getZoneNames();
       assert.equal(Array.isArray(names), true);
-      // Non-fatal expectation: either in the list or a non-empty string
-      assert.equal(guess.length > 0, true);
+      assert.ok(names.length > 0);
+      assert.ok(names.includes(guess));
     }
   });
 });
