@@ -29,8 +29,9 @@ const events = Object
   .filter(item => item.type === 'VEVENT' && !item.recurrenceid);
 
 // Use a fixed date range to keep expansion finite (recurrences can be unbounded).
-const rangeStart = DateTime.fromISO('2017-01-01').startOf('day');
-const rangeEnd = DateTime.fromISO('2017-12-31').endOf('day');
+// Pin the bounds to UTC so converting via toJSDate() stays stable across environments.
+const rangeStart = DateTime.fromISO('2017-01-01', {zone: 'UTC'}).startOf('day');
+const rangeEnd = DateTime.fromISO('2017-12-31', {zone: 'UTC'}).endOf('day');
 
 for (const event of events) {
   const title = event.summary;
