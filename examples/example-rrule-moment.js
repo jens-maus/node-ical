@@ -47,12 +47,21 @@ for (const event of events) {
     continue;
   }
 
-  // Expand RRULE start dates within the range, keyed by calendar day to avoid duplicates.
+  // Expand RRULE start dates within the range, keying each occurrence by its exact start time.
   const instanceDates = new Map();
   for (const date of event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, () => true)) {
-    const key = moment(date).format('YYYY-MM-DD');
-    if (!instanceDates.has(key)) {
-      instanceDates.set(key, moment(date));
+    const occurrence = moment(date);
+    const iso = occurrence.toISOString();
+    const lookupKey = iso.slice(0, 10);
+    if (event.recurrences && event.recurrences[lookupKey]) {
+      continue;
+    }
+
+    if (!instanceDates.has(iso)) {
+      instanceDates.set(iso, {
+        occurrenceStart: occurrence,
+        lookupKey,
+      });
     }
   }
 
@@ -66,27 +75,32 @@ for (const event of events) {
       }
 
       const insideRange = !recurStart.isBefore(rangeStart) && !recurStart.isAfter(rangeEnd);
-      const recurrenceKey = recurId.format('YYYY-MM-DD');
-      if (insideRange && !instanceDates.has(recurrenceKey)) {
-        instanceDates.set(recurrenceKey, recurId);
+      if (!insideRange) {
+        continue;
       }
+
+      const recurIso = recurId.toISOString();
+      instanceDates.set(recurIso, {
+        occurrenceStart: recurStart,
+        lookupKey: recurIso.slice(0, 10),
+      });
     }
   }
 
   // Build and print each resulting instance in chronological order.
   const dates = Array
     .from(instanceDates.values())
-    .sort((a, b) => a.valueOf() - b.valueOf());
+    .sort((a, b) => a.occurrenceStart.valueOf() - b.occurrenceStart.valueOf());
 
-  for (const date of dates) {
+  for (const {occurrenceStart, lookupKey} of dates) {
     let curEvent = event;
     let showRecurrence = true;
     let curDuration = duration;
 
-    startDate = moment(date);
+    startDate = occurrenceStart.clone();
 
     // Look up overrides/EXDATEs by date (YYYY-MM-DD), as represented by node-ical.
-    const dateLookupKey = startDate.toDate().toISOString().slice(0, 10);
+    const dateLookupKey = lookupKey;
 
     // Apply per-date override if present; otherwise check EXDATE.
     if (curEvent.recurrences && curEvent.recurrences[dateLookupKey]) {
