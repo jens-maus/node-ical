@@ -49,7 +49,7 @@ for (const event of events) {
 
   // Expand RRULE start dates within the range, keying each occurrence by its exact start time.
   const instanceDates = new Map();
-  for (const date of event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, () => true)) {
+  for (const date of event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true)) {
     const occurrence = moment(date);
     const iso = occurrence.toISOString();
     const lookupKey = iso.slice(0, 10);
