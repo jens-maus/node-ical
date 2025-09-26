@@ -166,8 +166,13 @@ const dateParameter = function (name) {
             ? (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.at(-1) : vTimezone.tzid)
             : null;
 
-          return normalizedTzId && tzUtil.isValidIana(normalizedTzId)
-            ? tzUtil.parseDateTimeInZone(value, normalizedTzId)
+          if (!normalizedTzId) {
+            return new Date(year, monthIndex, day, hour, minute, second);
+          }
+
+          const tzInfo = tzUtil.resolveTZID(normalizedTzId);
+          return tzInfo.iana
+            ? tzUtil.parseDateTimeInZone(value, tzInfo.iana)
             : new Date(year, monthIndex, day, hour, minute, second);
         };
 
