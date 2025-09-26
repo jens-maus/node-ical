@@ -46,7 +46,11 @@ function offsetLabelToMinutes(offset) {
     return undefined;
   }
 
-  const trimmed = String(offset).trim().replace(/^(?:utc|gmt)/i, '').replace(/^\((?:utc|gmt)\)?/i, '').trim();
+  const trimmed = String(offset)
+    .trim()
+    .replace(/^\(?(?:utc|gmt)\)?\s*/i, '')
+    .replace(/\)$/, '')
+    .trim();
   const match = trimmed.match(/^([+-])(\d{1,2})(?::?(\d{2}))?$/);
   if (!match) {
     return undefined;
