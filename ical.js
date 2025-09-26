@@ -388,6 +388,9 @@ module.exports = {
             };
             // Get the list of duration elements
             const duration = curr.duration.match(/-?\d{1,10}[WDHMS]/g);
+            if (!duration || duration.length === 0) {
+              throw new Error('Invalid DURATION format: ' + curr.duration);
+            }
 
             // Use the duration to create the end value, from the start
             let newEnd = curr.start;
