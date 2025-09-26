@@ -33,11 +33,6 @@ startDate:August 10, 2017 at 6:00 PM GMT+2
 endDate:August 11, 2017 at 2:00 AM GMT+2
 duration:8:00 hours
 
-title:Last meeting in June moved to Monday July 3 and shortened to half day
-startDate:July 3, 2017 at 4:00 PM GMT+2
-endDate:July 3, 2017 at 7:00 PM GMT+2
-duration:3:00 hours
-
 title:Single event on Dec 1
 startDate:December 1, 2017 at 8:00 PM GMT+1
 endDate:December 1, 2017 at 10:00 PM GMT+1

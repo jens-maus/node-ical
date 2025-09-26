@@ -33,11 +33,6 @@ startDate:Thursday, August 10, 2017 6:00 PM
 endDate:Friday, August 11, 2017 2:00 AM
 duration:8:00 hours
 
-title:Last meeting in June moved to Monday July 3 and shortened to half day
-startDate:Monday, July 3, 2017 4:00 PM
-endDate:Monday, July 3, 2017 7:00 PM
-duration:3:00 hours
-
 title:Single event on Dec 1
 startDate:Friday, December 1, 2017 8:00 PM
 endDate:Friday, December 1, 2017 10:00 PM

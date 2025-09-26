@@ -21,7 +21,9 @@ const ical = require('../node-ical.js');
 const data = ical.parseFile(path.join(__dirname, 'example-rrule.ics'));
 
 // Extract VEVENT components for iteration.
-const events = Object.values(data).filter(item => item.type === 'VEVENT');
+const events = Object
+  .values(data)
+  .filter(item => item.type === 'VEVENT' && !item.recurrenceid);
 
 // Use a fixed date range to keep expansion finite (recurrences can be unbounded).
 const rangeStart = moment('2017-01-01');
@@ -45,24 +47,37 @@ for (const event of events) {
     continue;
   }
 
-  // Expand RRULE start dates within the range.
-  const dates = event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, () => true);
+  // Expand RRULE start dates within the range, keyed by calendar day to avoid duplicates.
+  const instanceDates = new Map();
+  for (const date of event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, () => true)) {
+    const key = moment(date).format('YYYY-MM-DD');
+    if (!instanceDates.has(key)) {
+      instanceDates.set(key, moment(date));
+    }
+  }
 
-  // The dates array holds valid instances in-range. Overrides may move an instance into range,
-  // so include override dates not already yielded by rrule (avoid duplicates).
+  // Overrides may move an instance into range; merge by RECURRENCE-ID day so each occurrence prints once.
   if (event.recurrences) {
-    for (const r of Object.keys(event.recurrences)) {
-      const rDate = new Date(r);
-      // Avoid duplicates: only add if not already present from rrule.
-      const insideRange = moment(rDate).isBetween(rangeStart, rangeEnd) === true;
-      const alreadyPresent = dates.some(d => d.getTime() === rDate.getTime());
-      if (!insideRange && !alreadyPresent) {
-        dates.push(rDate);
+    for (const recurrence of Object.values(event.recurrences)) {
+      const recurStart = recurrence?.start ? moment(recurrence.start) : null;
+      const recurId = recurrence?.recurrenceid ? moment(recurrence.recurrenceid) : null;
+      if (!recurStart?.isValid() || !recurId?.isValid()) {
+        continue;
+      }
+
+      const insideRange = !recurStart.isBefore(rangeStart) && !recurStart.isAfter(rangeEnd);
+      const recurrenceKey = recurId.format('YYYY-MM-DD');
+      if (insideRange && !instanceDates.has(recurrenceKey)) {
+        instanceDates.set(recurrenceKey, recurId);
       }
     }
   }
 
-  // Build and print each resulting instance.
+  // Build and print each resulting instance in chronological order.
+  const dates = Array
+    .from(instanceDates.values())
+    .sort((a, b) => a.valueOf() - b.valueOf());
+
   for (const date of dates) {
     let curEvent = event;
     let showRecurrence = true;
@@ -71,7 +86,7 @@ for (const event of events) {
     startDate = moment(date);
 
     // Look up overrides/EXDATEs by date (YYYY-MM-DD), as represented by node-ical.
-    const dateLookupKey = date.toISOString().slice(0, 10);
+    const dateLookupKey = startDate.toDate().toISOString().slice(0, 10);
 
     // Apply per-date override if present; otherwise check EXDATE.
     if (curEvent.recurrences && curEvent.recurrences[dateLookupKey]) {
