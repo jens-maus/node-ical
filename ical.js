@@ -97,74 +97,6 @@ const addTZ = function (dt, parameters) {
   return dt;
 };
 
-let zoneTable = null;
-function getIanaTZFromMS(msTZName) {
-  zoneTable ||= require('./windowsZones.json');
-
-  // Get hash entry
-  let he = zoneTable[msTZName];
-  // Handle comma separated list, if we still don't have a match
-  if (!he && msTZName.includes(',')) {
-    // Just use the first string in name list
-    const firstLocationName = msTZName.split(',')[0];
-    // Loop thru the zonetable entries, save all that match
-    const temporaryLookup = Object.keys(zoneTable).filter(tzEntry => {
-      if (tzEntry.includes(firstLocationName)) {
-        return true;
-      }
-
-      return false;
-    });
-    // If we found any
-    if (temporaryLookup.length > 0) {
-      // Use the first or only
-      he = zoneTable[temporaryLookup[0]];
-    }
-  }
-
-  // If found return iana name, else null
-  return he ? he.iana[0] : null;
-}
-
-function getTimeZone(value) {
-  let tz = value;
-  let found = '';
-  // If this is the custom timezone from MS Outlook
-  if (tz === 'tzone://Microsoft/Custom' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-    // Set it to the local timezone, because we can't tell
-    tz = tzUtil.guessLocalZone();
-  }
-
-  // Remove quotes if found
-  tz = tz.replace(/^"(.*)"$/, '$1');
-
-  // Watch out for windows timezones, or multiple with comma separatos
-  if (tz && (tz.includes(' ') || tz.includes(','))) {
-    const tz1 = getIanaTZFromMS(tz);
-    if (tz1) {
-      tz = tz1;
-    }
-  }
-
-  // Watch out for offset timezones
-  // If the conversion above didn't find any matching IANA tz
-  // And offset is still present
-  if (tz && tz.startsWith('(')) {
-    // Extract just the offset
-    const regex = /[+|-]\d*:\d*/;
-    found = tz.match(regex);
-    tz = null;
-  }
-
-  // Timezone not confirmed yet
-  if (found === '') {
-    // Lookup tz
-    found = tzUtil.findExactZoneMatch(tz);
-  }
-
-  return found === '' ? tz : found;
-}
-
 function isDateOnly(value, parameters) {
   const dateOnly = ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/.test(value) === true);
   return dateOnly;
@@ -224,8 +156,6 @@ const dateParameter = function (name) {
       } else if (parameters && parameters[0] && parameters[0].includes('TZID=') && parameters[0].split('=')[1]) {
         // Get the timezone from the parameters TZID value
         let tz = parameters[0].split('=')[1];
-        let found = '';
-        let offset = '';
 
         // If this is the custom timezone from MS Outlook
         if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
@@ -237,42 +167,22 @@ const dateParameter = function (name) {
         // Remove quotes if found
         tz = tz.replace(/^"(.*)"$/, '$1');
 
-        // Watch out for windows timezones
-        if (tz && (tz.includes(' ') || tz.includes(','))) {
-          const tz1 = getTimeZone(tz);
-          if (tz1) {
-            tz = tz1;
-            // We have a confirmed timezone, don't use offset, may confuse DST/STD time
-            offset = '';
-            // Fix the parameters for later use
-            parameters[0] = 'TZID=' + tz;
-          }
+        // Normalize TZID metadata so we can either attach a canonical zone or fall back to the raw offset label.
+        const tzInfo = tzUtil.resolveTZID(tz);
+
+        if (tzInfo.iana) {
+          tz = tzInfo.iana;
+          parameters[0] = 'TZID=' + tzInfo.iana;
+        } else {
+          tz = tzInfo.raw;
         }
 
-        // Watch out for offset timezones
-        // If the conversion above didn't find any matching IANA tz
-        // And offset is still present
-        if (tz && tz.startsWith('(')) {
-          // Extract just the offset
-          const regex = /[+|-]\d*:\d*/;
-          offset = tz.match(regex);
-          found = offset;
-          tz = null;
-        }
-
-        // Timezone not confirmed yet
-        if (found === '') {
-          // Lookup tz
-          found = tzUtil.findExactZoneMatch(tz);
-        }
-
-        // Timezone confirmed or forced to offset
-        // Prefer explicit numeric offset, then TZID, otherwise fall back to naive local time
-        const offsetString = Array.isArray(offset) ? offset[0] : offset;
-        if (typeof offsetString === 'string' && offsetString.length > 0) {
+        // Prefer an explicit numeric offset because it keeps DTSTART wall-time semantics accurate across DST transitions.
+        const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
+        if (offsetString) {
           newDate = tzUtil.parseWithOffset(value, offsetString);
-        } else if (tz && tzUtil.isValidIana(tz)) {
-          newDate = tzUtil.parseDateTimeInZone(value, tz);
+        } else if (tzInfo.iana) {
+          newDate = tzUtil.parseDateTimeInZone(value, tzInfo.iana);
         } else {
           newDate = new Date(
             Number.parseInt(comps[1], 10),
@@ -613,14 +523,20 @@ module.exports = {
             try {
               // If the original date has a TZID, add it
               if (curr.start.tz) {
-                const tz = getTimeZone(curr.start.tz);
-                // If a timezone is provided, rrule requires the time to be local
-                // but without Z suffix (cf. RFC5545, 3.3.5)
-                const adjustedTimeString = curr.start
-                  .toLocaleString('sv-SE', {timeZone: tz}) // 'sv-SE' outputs 'YYYY-MM-DD' date format
-                  .replaceAll(' ', 'T')
-                  .replaceAll(/[-:Z]/g, '');
-                rule += `;DTSTART;TZID=${tz}:${adjustedTimeString}`;
+                const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+                const localStamp = tzUtil.formatDateForRrule(curr.start, tzInfo);
+                const tzidLabel = tzInfo.iana || tzInfo.etc || tzInfo.original;
+
+                if (localStamp && tzidLabel) {
+                  // RFC5545 requires DTSTART to be expressed in local time when a TZID is present.
+                  rule += `;DTSTART;TZID=${tzidLabel}:${localStamp}`;
+                } else if (localStamp) {
+                  // Fall back to a floating DTSTART (still without a trailing Z) if we lack a dependable TZ label.
+                  rule += `;DTSTART=${localStamp}`;
+                } else {
+                  // Ultimate fallback: emit a UTC value (legacy behaviour) rather than crashing.
+                  rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/g, '')}`;
+                }
               } else {
                 rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/g, '')}`;
               }

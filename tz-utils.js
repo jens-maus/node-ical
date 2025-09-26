@@ -3,6 +3,212 @@
 
 // Minimal alias map to emulate the subset of moment.tz.link behavior tests rely on
 const aliasMap = new Map();
+const windowsZones = require('./windowsZones.json');
+
+/**
+ * Resolve a Windows/legacy timezone label to the canonical IANA identifier exported in windowsZones.json.
+ *
+ * @param {string} label
+ * @returns {string|null}
+ */
+function mapWindowsZone(label) {
+  const direct = windowsZones[label];
+  if (direct && Array.isArray(direct.iana) && direct.iana.length > 0) {
+    return direct.iana[0];
+  }
+
+  if (label.includes(',')) {
+    const first = label.split(',')[0];
+    const candidate = Object.keys(windowsZones).find(zone => zone.includes(first));
+    if (candidate) {
+      const data = windowsZones[candidate];
+      if (data && Array.isArray(data.iana) && data.iana.length > 0) {
+        return data.iana[0];
+      }
+    }
+  }
+
+  return null;
+}
+
+function pad2(value) {
+  return String(value).padStart(2, '0');
+}
+
+/**
+ * Convert textual UTC offsets ("+05:30", "UTC-4", "(UTC+02:00)") into signed minute counts.
+ *
+ * @param {string} offset
+ * @returns {number|undefined}
+ */
+function offsetLabelToMinutes(offset) {
+  if (!offset) {
+    return undefined;
+  }
+
+  const trimmed = String(offset).trim().replace(/^(?:utc|gmt)/i, '').replace(/^\((?:utc|gmt)\)?/i, '').trim();
+  const match = trimmed.match(/^([+-])(\d{1,2})(?::?(\d{2}))?$/);
+  if (!match) {
+    return undefined;
+  }
+
+  const [, sign, hoursPart, minutesPart] = match;
+  const hours = Number(hoursPart);
+  const minutes = minutesPart ? Number(minutesPart) : 0;
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return undefined;
+  }
+
+  const total = (hours * 60) + minutes;
+  return sign === '-' ? -total : total;
+}
+
+function minutesToOffset(totalMinutes) {
+  if (!Number.isFinite(totalMinutes)) {
+    return undefined;
+  }
+
+  const sign = totalMinutes < 0 ? '-' : '+';
+  const absolute = Math.abs(totalMinutes);
+  const hours = Math.floor(absolute / 60);
+  const minutes = absolute % 60;
+  return `${sign}${pad2(hours)}:${pad2(minutes)}`;
+}
+
+function minutesToEtcZone(totalMinutes) {
+  if (!Number.isFinite(totalMinutes)) {
+    return undefined;
+  }
+
+  if (totalMinutes === 0) {
+    return 'Etc/GMT';
+  }
+
+  if (totalMinutes % 60 !== 0) {
+    return undefined;
+  }
+
+  const hours = Math.abs(totalMinutes) / 60;
+  const sign = totalMinutes > 0 ? '-' : '+'; // Etc/GMT zones invert sign
+  return `Etc/GMT${sign}${hours}`;
+}
+
+/**
+ * Interpret a TZID value (IANA, Windows display name, or offset label) and return structured metadata.
+ *
+ * @param {string} value
+ * @returns {{original: string|undefined, iana: string|undefined, offset: string|undefined, offsetMinutes: number|undefined, etc: string|undefined}}
+ */
+function resolveTZID(value) {
+  if (typeof value !== 'string' || value.length === 0) {
+    return {
+      original: undefined,
+      iana: undefined,
+      offset: undefined,
+      offsetMinutes: undefined,
+      etc: undefined,
+    };
+  }
+
+  let tz = value;
+  if (tz === 'tzone://Microsoft/Custom' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
+    tz = guessLocalZone();
+  }
+
+  tz = tz.replace(/^"(.*)"$/, '$1');
+  const original = tz;
+
+  if (tz && (tz.includes(' ') || tz.includes(','))) {
+    const mapped = mapWindowsZone(tz);
+    if (mapped) {
+      tz = mapped;
+    }
+  }
+
+  let offsetMinutes;
+  if (tz && tz.startsWith('(')) {
+    const offsetMatch = tz.match(/([+-]\d{1,2}:\d{2})/);
+    if (offsetMatch) {
+      offsetMinutes = offsetLabelToMinutes(offsetMatch[1]);
+    }
+
+    tz = null;
+  }
+
+  const exact = findExactZoneMatch(tz);
+  const iana = exact || (tz && isValidIana(tz) ? tz : undefined);
+  const offset = minutesToOffset(offsetMinutes);
+  const etc = minutesToEtcZone(offsetMinutes);
+
+  return {
+    original,
+    iana,
+    offset,
+    offsetMinutes,
+    etc,
+  };
+}
+
+/**
+ * Format a Date as a local wall-time string (`YYYYMMDDTHHmmss`) suitable for RRULE DTSTART emission.
+ * Prefers Intl when a valid IANA zone exists; otherwise falls back to offset arithmetic.
+ *
+ * @param {Date} date
+ * @param {{iana?: string, offsetMinutes?: number}} tzInfo
+ * @returns {string|undefined}
+ */
+function formatDateForRrule(date, tzInfo = {}) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+
+  if (tzInfo.iana && isValidIana(tzInfo.iana)) {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tzInfo.iana,
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+
+    const parts = formatter.formatToParts(date);
+    const numericParts = new Map([
+      ['year', 'year'],
+      ['month', 'month'],
+      ['day', 'day'],
+      ['hour', 'hour'],
+      ['minute', 'minute'],
+      ['second', 'second'],
+    ]);
+    const out = {};
+    for (const part of parts) {
+      const target = numericParts.get(part.type);
+      if (!target) {
+        continue;
+      }
+
+      out[target] = Number(part.value);
+    }
+
+    if (out.hour === 24) {
+      out.hour = 0;
+    }
+
+    if (out.year && out.month && out.day && out.hour !== undefined && out.minute !== undefined && out.second !== undefined) {
+      return `${out.year}${pad2(out.month)}${pad2(out.day)}T${pad2(out.hour)}${pad2(out.minute)}${pad2(out.second)}`;
+    }
+  }
+
+  if (Number.isFinite(tzInfo.offsetMinutes)) {
+    const local = new Date(date.getTime() + (tzInfo.offsetMinutes * 60_000));
+    return `${local.getUTCFullYear()}${pad2(local.getUTCMonth() + 1)}${pad2(local.getUTCDate())}T${pad2(local.getUTCHours())}${pad2(local.getUTCMinutes())}${pad2(local.getUTCSeconds())}`;
+  }
+
+  return undefined;
+}
 
 function attachTz(date, tzid) {
   if (date && tzid && date.tz !== tzid) {
@@ -263,4 +469,6 @@ module.exports = {
   utcAdd,
   formatMMMMDoYYYY,
   linkAlias,
+  resolveTZID,
+  formatDateForRrule,
 };
