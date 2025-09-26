@@ -122,7 +122,10 @@ for (const event of events) {
       // We found an override, so for this recurrence, use a potentially different title, start date, and duration.
       curEvent = curEvent.recurrences[dateLookupKey];
       startDate = dayjs(curEvent.start);
-      curDuration = dayjs.duration(dayjs(curEvent.end).diff(startDate));
+      const overrideEnd = curEvent.end ? dayjs(curEvent.end) : null;
+      if (overrideEnd?.isValid()) {
+        curDuration = dayjs.duration(overrideEnd.diff(startDate));
+      }
     } else if (curEvent.exdate && curEvent.exdate[dateLookupKey]) {
       // If there's no recurrence override, check for an exception date. Exception dates represent exceptions to the rule.
       // This date is an exception date, which means we should skip it in the recurrence pattern.
