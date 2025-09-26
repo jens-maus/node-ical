@@ -417,33 +417,6 @@ function utcAdd(date, amount, unit) {
   return new Date(date.getTime() + (amount * factor));
 }
 
-function formatMMMMDoYYYY(date) {
-  // Keep behavior close to previous moment format to avoid triggering regex branch differently
-  // Example output: "January/1st/2020"
-  const d = new Date(date);
-  const month = new Intl.DateTimeFormat('en', {month: 'long'}).format(d);
-  const day = d.getDate();
-  const year = d.getFullYear();
-  const suffix = (n => {
-    const j = n % 10;
-    const k = n % 100;
-    if (j === 1 && k !== 11) {
-      return 'st';
-    }
-
-    if (j === 2 && k !== 12) {
-      return 'nd';
-    }
-
-    if (j === 3 && k !== 13) {
-      return 'rd';
-    }
-
-    return 'th';
-  })(day);
-  return month + '/' + day + suffix + '/' + year;
-}
-
 function linkAlias(arg1, arg2) {
   // Support both linkAlias('Etc/Unknown|Etc/GMT') and linkAlias('Etc/Unknown','Etc/GMT')
   if (arg2 === undefined) {
@@ -467,7 +440,6 @@ module.exports = {
   parseDateTimeInZone,
   parseWithOffset,
   utcAdd,
-  formatMMMMDoYYYY,
   linkAlias,
   resolveTZID,
   formatDateForRrule,

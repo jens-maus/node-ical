@@ -509,12 +509,16 @@ module.exports = {
               // Luxon expects local time, not utc, so gets start date wrong if not adjusted
               curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60_000));
             } else {
-              // Get rid of any time (shouldn't be any, but be sure)
-              const x = tzUtil.formatMMMMDoYYYY(curr.start);
-              const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
-              if (comps) {
-                curr.start = new Date(comps[3], comps[1] - 1, comps[2]);
-              }
+              // Strip any residual time component by rebuilding local midnight
+              curr.start = new Date(
+                curr.start.getFullYear(),
+                curr.start.getMonth(),
+                curr.start.getDate(),
+                0,
+                0,
+                0,
+                0,
+              );
             }
           }
 
