@@ -25,6 +25,37 @@ describe('unit: tz-utils', () => {
     assert.equal(plusOneDay.toISOString(), '2024-01-02T00:00:00.000Z');
   });
 
+  describe('DST transitions', () => {
+    it('skips the missing hour during spring forward', () => {
+      const berlin = 'Europe/Berlin';
+      const localGap = '20240331T023000';
+      const resolved = tz.parseDateTimeInZone(localGap, berlin);
+
+      assert.ok(resolved instanceof Date);
+      assert.equal(resolved.toISOString(), '2024-03-31T01:30:00.000Z');
+      assert.equal(resolved.tz, berlin);
+    });
+
+    it('disambiguates the repeated hour during fall back', () => {
+      const berlin = 'Europe/Berlin';
+      const ambiguous = '20241027T023000';
+      const resolved = tz.parseDateTimeInZone(ambiguous, berlin);
+
+      assert.ok(resolved instanceof Date);
+      assert.equal(resolved.toISOString(), '2024-10-27T01:30:00.000Z');
+      assert.equal(resolved.tz, berlin);
+    });
+
+    it('keeps UTC math consistent across the fall-back repetition', () => {
+      const firstOccurrence = tz.parseWithOffset('20241027T023000', '+02:00');
+      const secondOccurrence = tz.parseWithOffset('20241027T023000', '+01:00');
+
+      assert.equal(firstOccurrence.toISOString(), '2024-10-27T00:30:00.000Z');
+      assert.equal(secondOccurrence.toISOString(), '2024-10-27T01:30:00.000Z');
+      assert.equal(tz.utcAdd(firstOccurrence, 1, 'hours').toISOString(), secondOccurrence.toISOString());
+    });
+  });
+
   it('guesses a local zone string', () => {
     const guess = tz.guessLocalZone();
     assert.equal(typeof guess, 'string');
