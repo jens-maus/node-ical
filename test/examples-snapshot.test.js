@@ -36,11 +36,12 @@ function runExample(script) {
   return result.stdout.trim();
 }
 
-// Normalize newlines to LF for consistent snapshot comparison across platforms
+// Normalize output to LF so Windows/macOS/Linux all compare the same snapshot
 function normalizeNewlines(text) {
   return text.replaceAll('\r\n', '\n');
 }
 
+// RRULE example scripts should stay in sync after dedupe/override logic changes
 describe('RRULE example output snapshots', function () {
   this.timeout(10_000);
 
@@ -52,7 +53,7 @@ describe('RRULE example output snapshots', function () {
         const expected = normalizeNewlines(fs.readFileSync(snapshotFile, 'utf8')).trim();
         assert.strictEqual(output, expected, `Output of ${script} does not match snapshot. If this is intentional, update the snapshot.`);
       } else {
-        // If no snapshot exists, create it
+        // If no snapshot exists yet (new example variant), write the baseline and skip this assertion
         fs.writeFileSync(snapshotFile, output, 'utf8');
         this.skip();
       }

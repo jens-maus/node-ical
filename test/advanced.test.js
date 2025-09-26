@@ -6,9 +6,9 @@ const ical = require('../node-ical.js');
 // Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
 tz.linkAlias('Etc/Unknown', 'Etc/GMT');
 
-// Test12.ics – RRULE + EXDATE + RECURRENCE-ID override
+// Tests 12–14 cover recurrence overrides, EXDATE handling, and ordering edge cases after the timezone refactor.
 describe('parser: advanced cases', () => {
-  // Recurrence and exceptions
+  // Recurrence and exceptions remain intact with Intl-backed date parsing
   describe('Recurrence and exceptions', () => {
     it('handles RRULE + EXDATEs + RECURRENCE-ID override (test12.ics)', () => {
       const data = ical.parseFile('./test/test12.ics');
@@ -24,7 +24,7 @@ describe('parser: advanced cases', () => {
       assert.equal(event.recurrences[key].summary, 'More Treasure Hunting');
     });
 
-    // Test13.ics – RECURRENCE-ID before RRULE
+    // Test13.ics – RECURRENCE-ID appears before RRULE and must still bind correctly
     it('handles RECURRENCE-ID before RRULE (test13.ics)', () => {
       const data = ical.parseFile('./test/test13.ics');
       const event = Object.values(data).find(x => x.uid === '6m2q7kb2l02798oagemrcgm6pk@google.com' && x.summary === 'repeated');
@@ -35,7 +35,7 @@ describe('parser: advanced cases', () => {
       assert.equal(event.recurrences[key].summary, 'bla bla');
     });
 
-    // Test14.ics – comma-separated EXDATEs + bad times EXDATEs
+    // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
     it('parses comma-separated EXDATEs (test14.ics)', () => {
       const data = ical.parseFile('./test/test14.ics');
       const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
@@ -72,7 +72,7 @@ describe('parser: advanced cases', () => {
   // Test15.ics – Microsoft Exchange timezone naming
   // Moved under the consolidated 'Microsoft time zones' section below to reduce nesting.
 
-  // Test16.ics – quoted parameter values
+  // Test16.ics – quoted parameter values survive the parameter parser rewrite
   describe('Metadata and parsing robustness', () => {
     it('parses quoted parameter values (test16.ics)', () => {
       const data = ical.parseFile('./test/test16.ics');
@@ -80,7 +80,7 @@ describe('parser: advanced cases', () => {
       assert.ok(event.start.tz);
     });
 
-    // Test17.ics – non-stringified start/end
+    // Test17.ics – start/end should surface as Date objects, not serialized strings
     it('produces Date objects (non-strings) (test17.ics)', () => {
       const data = ical.parseFile('./test/test17.ics');
       const event = Object.values(data)[0];
@@ -89,7 +89,7 @@ describe('parser: advanced cases', () => {
     });
   });
 
-  // Test18.ics – timezone detection scenarios
+  // Test18.ics – timezone detection scenarios exercise resolveTZID fallbacks
   describe('Timezone detection', () => {
     it('infers/retains timezone per event (test18.ics)', () => {
       const data = ical.parseFile('./test/test18.ics');
@@ -104,7 +104,7 @@ describe('parser: advanced cases', () => {
       assert.equal(map[uids[3]].datetype, 'date');
     });
 
-    // Synthetic TZID with minute offset should map to canonical IANA zone
+    // Synthetic TZID with minute offset should resolve to a canonical IANA zone via Intl hints
     it('parses TZID with minute offset (synthetic)', () => {
       const offsetLabel = '"(UTC+05:30) Chennai, Kolkata, Mumbai, New Delhi"';
       const ics = `BEGIN:VCALENDAR
@@ -131,7 +131,7 @@ END:VCALENDAR`;
     });
   });
 
-  // Test19.ics – organizer params
+  // Test19.ics – organizer params must propagate untouched
   describe('Organizer and status', () => {
     it('preserves organizer params (test19.ics)', () => {
       const data = ical.parseFile('./test/test19.ics');
@@ -140,7 +140,7 @@ END:VCALENDAR`;
       assert.equal(event.organizer.val, 'mailto:stomlinson@mozilla.com');
     });
 
-    // Test20.ics – VEVENT status values
+    // Test20.ics – VEVENT status values remain intact across parsing
     it('parses VEVENT status values (test20.ics)', () => {
       const data = ical.parseFile('./test/test20.ics');
       const getByUid = uid => Object.values(data).find(x => x.uid === uid);
@@ -151,7 +151,7 @@ END:VCALENDAR`;
     });
   });
 
-  // Test21.ics – VTIMEZONE usage for floating DTSTART
+  // Test21.ics – VTIMEZONE entries apply to floating DTSTART values with Intl helpers
   describe('Floating DTSTART with VTIMEZONE', () => {
     it('applies VTIMEZONE to floating DTSTART (test21.ics)', () => {
       const data = ical.parseFile('./test/test21.ics');
@@ -161,7 +161,7 @@ END:VCALENDAR`;
     });
   });
 
-  // Test22.ics – quoted attendee parameters + X-RESPONSE-COMMENT
+  // Test22.ics – quoted attendee parameters + X-RESPONSE-COMMENT retain metadata
   describe('Attendee params', () => {
     it('parses attendee params incl. X-RESPONSE-COMMENT (test22.ics)', () => {
       const data = ical.parseFile('./test/test22.ics');
@@ -172,7 +172,7 @@ END:VCALENDAR`;
     });
   });
 
-  // Test23.ics – RRULE with timezone dtstart
+  // Test23.ics – RRULE with timezone DTSTART carries tzid through rrule options
   describe('RRULE with timezone DTSTART', () => {
     it('handles RRULE with timezone DTSTART (test23.ics)', () => {
       const data = ical.parseFile('./test/test23.ics');
@@ -193,7 +193,7 @@ END:VCALENDAR`;
     });
   });
 
-  // Ms_timezones.ics – Microsoft windows zone mapping and custom tz handling
+  // Ms_timezones.ics – Microsoft Windows zone mapping and custom tz handling flow through tz-utils
   describe('Microsoft time zones', () => {
     it('maps Exchange tz to IANA (test15.ics)', () => {
       const data = ical.parseFile('./test/test15.ics');

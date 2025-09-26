@@ -14,7 +14,7 @@ describe('unit: tz-utils', () => {
   });
 
   it('parses local wall time within a named zone (standard time)', () => {
-    // Europe/Berlin is UTC+1 in January (standard time)
+    // Europe/Berlin observes UTC+1 in January, so Intl-backed parsing should subtract one hour
     const d = tz.parseDateTimeInZone('20240101T120000', 'Europe/Berlin');
     assert.equal(d.toISOString(), '2024-01-01T11:00:00.000Z');
   });
@@ -32,6 +32,7 @@ describe('unit: tz-utils', () => {
       const resolved = tz.parseDateTimeInZone(localGap, berlin);
 
       assert.ok(resolved instanceof Date);
+      // 02:30 local never occurs on the DST start date, so we land on the next representable instant (03:30 local / 01:30Z)
       assert.equal(resolved.toISOString(), '2024-03-31T01:30:00.000Z');
       assert.equal(resolved.tz, berlin);
     });
@@ -42,6 +43,7 @@ describe('unit: tz-utils', () => {
       const resolved = tz.parseDateTimeInZone(ambiguous, berlin);
 
       assert.ok(resolved instanceof Date);
+      // The first occurrence keeps the summer offset (UTC+2) so 02:30 local resolves to 01:30Z
       assert.equal(resolved.toISOString(), '2024-10-27T01:30:00.000Z');
       assert.equal(resolved.tz, berlin);
     });
@@ -59,8 +61,8 @@ describe('unit: tz-utils', () => {
   it('guesses a local zone string', () => {
     const guess = tz.guessLocalZone();
     assert.equal(typeof guess, 'string');
-    // If the environment cannot determine a valid zone, we at least ensure it returns a string.
-    // Preferably it should be a valid IANA name on most systems.
+    // If the runtime cannot determine a valid IANA zone via Intl, we still expect a best-effort string.
+    // On most systems this should be a canonical name surfaced by Intl.DateTimeFormat().resolvedOptions().timeZone
     if (guess) {
       const names = tz.getZoneNames();
       assert.equal(Array.isArray(names), true);
