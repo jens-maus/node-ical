@@ -10,7 +10,10 @@ tz.linkAlias('Etc/Unknown', 'Etc/GMT');
 describe('parser: advanced cases', () => {
   // Recurrence and exceptions remain intact with Intl-backed date parsing
   describe('Recurrence and exceptions', () => {
-    it('handles RRULE + EXDATEs + RECURRENCE-ID override (test12.ics)', () => {
+    it('handles RRULE + EXDATEs + RECURRENCE-ID override (test12.ics)', function () {
+      // Windows CI occasionally takes longer to initialise Intl time zone data on Node 20.
+      // Give this parsing-heavy regression test extra breathing room to avoid spurious timeouts.
+      this.timeout(20_000);
       const data = ical.parseFile('./test/test12.ics');
       const event = Object.values(data).find(x => x.uid === '0000001' && x.summary === 'Treasure Hunting');
       assert.ok(event.rrule);
