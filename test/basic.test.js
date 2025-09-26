@@ -120,7 +120,8 @@ describe('parser: basic cases', () => {
       const data = ical.parseFile('./test/test8.ics');
       const task = values(data)[0];
       assert_.equal(Number(task.completion), 100);
-      assert_.equal(task.completed.toISOString(), new Date(2013, 6, 16, 10, 57, 45).toISOString());
+      // Monaco is UTC+2 in July, so completed time should be 08:57:45Z
+      assert_.equal(task.completed.toISOString(), '2013-07-16T08:57:45.000Z');
     });
   });
 
