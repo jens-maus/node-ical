@@ -379,7 +379,11 @@ function parseDateTimeInZone(yyyymmddThhmmss, zone) {
 function parseWithOffset(yyyymmddThhmmss, offset) {
   // Offset like +hh:mm, -hh:mm, +hhmm, -hhmm, optionally prefixed by UTC/GMT
   const s = String(yyyymmddThhmmss);
-  const m = s.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?$/);
+  let m = s.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?$/);
+  // Some feeds emit extended ISO `YYYY-MM-DD[T ]HH:mm[:ss]` strings alongside numeric offsets.
+  // Mirror parseDateTimeInZone by accepting that form too so we don't fall back to local Date semantics.
+  m ||= s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+
   if (!m) {
     return undefined;
   }
