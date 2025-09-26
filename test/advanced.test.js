@@ -278,8 +278,8 @@ END:VCALENDAR`;
       // If a timezone is exposed, also ensure both boundaries are local midnight and exactly one local day apart
       const zone = (event.start && event.start.tz) || (event.end && event.end.tz);
       if (zone) {
-        const startLocalYMD = event.start.toLocaleString('sv-SE', {timeZone: zone}).slice(0, 10);
-        const endLocalYMD = event.end.toLocaleString('sv-SE', {timeZone: zone}).slice(0, 10);
+        const startLocalYMD = event.start.toLocaleDateString('sv-SE', {timeZone: zone});
+        const endLocalYMD = event.end.toLocaleDateString('sv-SE', {timeZone: zone});
         assert.ok(/\d{4}-\d{2}-\d{2}/.test(startLocalYMD));
         assert.ok(/\d{4}-\d{2}-\d{2}/.test(endLocalYMD));
         assert.notEqual(startLocalYMD, endLocalYMD);
@@ -359,8 +359,8 @@ END:VCALENDAR`;
       // If a timezone is exposed on the recurrence dates, also ensure local midnight boundaries and one-day span
       const zone2 = (rec.start && rec.start.tz) || (rec.end && rec.end.tz);
       if (zone2 && rec.end) {
-        const startLocalYMD = rec.start.toLocaleString('sv-SE', {timeZone: zone2}).slice(0, 10);
-        const endLocalYMD = rec.end.toLocaleString('sv-SE', {timeZone: zone2}).slice(0, 10);
+        const startLocalYMD = rec.start.toLocaleDateString('sv-SE', {timeZone: zone2});
+        const endLocalYMD = rec.end.toLocaleDateString('sv-SE', {timeZone: zone2});
         const [sy, sm, sd] = startLocalYMD.split('-').map(Number);
         const [ey, em, ed] = endLocalYMD.split('-').map(Number);
         const startLocalMid = new Date(Date.UTC(sy, sm - 1, sd));
