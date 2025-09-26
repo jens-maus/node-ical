@@ -142,82 +142,91 @@ const dateParameter = function (name) {
     // Typical RFC date-time format
     const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(value);
     if (comps !== null) {
+      const year = Number.parseInt(comps[1], 10);
+      const monthIndex = Number.parseInt(comps[2], 10) - 1;
+      const day = Number.parseInt(comps[3], 10);
+      const hour = Number.parseInt(comps[4], 10);
+      const minute = Number.parseInt(comps[5], 10);
+      const second = Number.parseInt(comps[6], 10);
+
       if (comps[7] === 'Z') {
         // GMT
-        newDate = new Date(Date.UTC(
-          Number.parseInt(comps[1], 10),
-          Number.parseInt(comps[2], 10) - 1,
-          Number.parseInt(comps[3], 10),
-          Number.parseInt(comps[4], 10),
-          Number.parseInt(comps[5], 10),
-          Number.parseInt(comps[6], 10),
-        ));
+        newDate = new Date(Date.UTC(year, monthIndex, day, hour, minute, second));
         newDate.tz = 'Etc/UTC';
-      } else if (parameters && parameters[0] && parameters[0].includes('TZID=') && parameters[0].split('=')[1]) {
-        // Get the timezone from the parameters TZID value
-        let tz = parameters[0].split('=')[1];
-
-        // If this is the custom timezone from MS Outlook
-        if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-          // Set it to the local timezone, because we can't tell
-          tz = tzUtil.guessLocalZone();
-          parameters[0] = 'TZID=' + tz;
-        }
-
-        // Remove quotes if found
-        tz = tz.replace(/^"(.*)"$/, '$1');
-
-        // Normalize TZID metadata so we can either attach a canonical zone or fall back to the raw offset label.
-        const tzInfo = tzUtil.resolveTZID(tz);
-
-        if (tzInfo.iana) {
-          tz = tzInfo.iana;
-          parameters[0] = 'TZID=' + tzInfo.iana;
-        } else {
-          tz = tzInfo.raw;
-        }
-
-        // Prefer an explicit numeric offset because it keeps DTSTART wall-time semantics accurate across DST transitions.
-        const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
-        if (offsetString) {
-          newDate = tzUtil.parseWithOffset(value, offsetString);
-        } else if (tzInfo.iana) {
-          newDate = tzUtil.parseDateTimeInZone(value, tzInfo.iana);
-        } else {
-          newDate = new Date(
-            Number.parseInt(comps[1], 10),
-            Number.parseInt(comps[2], 10) - 1,
-            Number.parseInt(comps[3], 10),
-            Number.parseInt(comps[4], 10),
-            Number.parseInt(comps[5], 10),
-            Number.parseInt(comps[6], 10),
-          );
-        }
-
-        // Make sure to correct the parameters if the TZID= is changed
-        newDate = addTZ(newDate, parameters);
       } else {
-        // Get the time zone from the stack
-        const stackItemWithTimeZone
-          = (stack || []).find(item => Object.values(item).find(subItem => subItem.type === 'VTIMEZONE')) || {};
-        const vTimezone
-          = Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
+        const fallbackWithStackTimezone = () => {
+          // Get the time zone from the stack
+          const stackItemWithTimeZone
+            = (stack || []).find(item => Object.values(item).find(subItem => subItem.type === 'VTIMEZONE')) || {};
+          const vTimezone
+            = Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
 
-        // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
-        const normalizedTzId = vTimezone
-          ? (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.at(-1) : vTimezone.tzid)
-          : null;
+          // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
+          const normalizedTzId = vTimezone
+            ? (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.at(-1) : vTimezone.tzid)
+            : null;
 
-        newDate = normalizedTzId && tzUtil.isValidIana(normalizedTzId)
-          ? tzUtil.parseDateTimeInZone(value, normalizedTzId)
-          : new Date(
-            Number.parseInt(comps[1], 10),
-            Number.parseInt(comps[2], 10) - 1,
-            Number.parseInt(comps[3], 10),
-            Number.parseInt(comps[4], 10),
-            Number.parseInt(comps[5], 10),
-            Number.parseInt(comps[6], 10),
-          );
+          return normalizedTzId && tzUtil.isValidIana(normalizedTzId)
+            ? tzUtil.parseDateTimeInZone(value, normalizedTzId)
+            : new Date(year, monthIndex, day, hour, minute, second);
+        };
+
+        if (parameters) {
+          const parameterMap = parseParameters(parameters);
+          let tz = parameterMap.TZID;
+
+          const findTZIDIndex = () => {
+            if (!Array.isArray(parameters)) {
+              return -1;
+            }
+
+            return parameters.findIndex(parameter => typeof parameter === 'string' && parameter.toUpperCase().startsWith('TZID='));
+          };
+
+          let tzParameterIndex = findTZIDIndex();
+          const setTZIDParameter = newTZID => {
+            if (!Array.isArray(parameters)) {
+              return;
+            }
+
+            const normalized = 'TZID=' + newTZID;
+            if (tzParameterIndex >= 0) {
+              parameters[tzParameterIndex] = normalized;
+            } else {
+              parameters.push(normalized);
+              tzParameterIndex = parameters.length - 1;
+            }
+          };
+
+          if (tz) {
+            tz = tz.toString().replace(/^"(.*)"$/, '$1');
+
+            if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
+              tz = tzUtil.guessLocalZone();
+            }
+
+            const tzInfo = tzUtil.resolveTZID(tz);
+            const resolvedTZID = tzInfo.iana || tzInfo.original || tz;
+            setTZIDParameter(resolvedTZID);
+
+            // Prefer an explicit numeric offset because it keeps DTSTART wall-time semantics accurate across DST transitions.
+            const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
+            if (offsetString) {
+              newDate = tzUtil.parseWithOffset(value, offsetString);
+            } else if (tzInfo.iana) {
+              newDate = tzUtil.parseDateTimeInZone(value, tzInfo.iana);
+            } else {
+              newDate = new Date(year, monthIndex, day, hour, minute, second);
+            }
+
+            // Make sure to correct the parameters if the TZID= is changed
+            newDate = addTZ(newDate, parameters);
+          } else {
+            newDate = fallbackWithStackTimezone();
+          }
+        } else {
+          newDate = fallbackWithStackTimezone();
+        }
       }
     }
 
