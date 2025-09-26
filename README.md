@@ -243,12 +243,12 @@ When expanding recurrences (RRULEs), node-ical takes the timezone from the DTSTA
 
     If your runtime ships [Temporal](https://tc39.es/proposal-temporal/), you can also round-trip via:
 
-        ```js
-        const zoned = Temporal.ZonedDateTime.from({
-            timeZone: event.start.tz ?? 'UTC',
-            instant: Temporal.Instant.fromEpochMilliseconds(event.start.valueOf()),
-        }).startOfDay();
-        ```
+    ```js
+    const zoned = Temporal.ZonedDateTime.from({
+        timeZone: event.start.tz ?? 'UTC',
+        instant: Temporal.Instant.fromEpochMilliseconds(event.start.valueOf()),
+    }).startOfDay();
+    ```
 
 Consumers that previously relied on implicit midnight UTC should update their handling to restore the local day using the attached timezone.
 
