@@ -245,7 +245,8 @@ When expanding recurrences (RRULEs), node-ical takes the timezone from the DTSTA
 
 Consumers that previously relied on implicit midnight UTC should update their handling to restore the local day using the attached timezone.
 
-See the following example scripts for practical demonstration:
+-See the following example scripts for practical demonstration:
+- [`examples/example-rrule-basic.js`](./examples/example-rrule-basic.js) – minimal RRULE expansion with native `Date`
 - [`examples/example-rrule-moment.js`](./examples/example-rrule-moment.js)
 - [`examples/example-rrule-luxon.js`](./examples/example-rrule-luxon.js)
 - [`examples/example-rrule-dayjs.js`](./examples/example-rrule-dayjs.js)

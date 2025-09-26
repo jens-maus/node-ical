@@ -7,6 +7,7 @@ const {describe, it} = require('mocha');
 
 const exampleScripts = [
   'example.js',
+  'example-rrule-basic.js',
   'example-rrule-moment.js',
   'example-rrule-luxon.js',
   'example-rrule-dayjs.js',
