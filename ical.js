@@ -508,26 +508,40 @@ module.exports = {
         if (rule.includes('DTSTART') === false) {
           // This a whole day event
           if (curr.datetype === 'date') {
+            const originalStart = curr.start;
             // Get the timezone offset
             // The internal date is stored in UTC format
-            const offset = curr.start.getTimezoneOffset();
+            const offset = originalStart.getTimezoneOffset();
+            let nextStart;
+
             // Only east of gmt is a problem
             if (offset < 0) {
               // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
               // Make the internally stored DATE the actual date (not UTC offseted)
               // Luxon expects local time, not utc, so gets start date wrong if not adjusted
-              curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60_000));
+              nextStart = new Date(originalStart.getTime() + (Math.abs(offset) * 60_000));
             } else {
               // Strip any residual time component by rebuilding local midnight
-              curr.start = new Date(
-                curr.start.getFullYear(),
-                curr.start.getMonth(),
-                curr.start.getDate(),
+              nextStart = new Date(
+                originalStart.getFullYear(),
+                originalStart.getMonth(),
+                originalStart.getDate(),
                 0,
                 0,
                 0,
                 0,
               );
+            }
+
+            curr.start = nextStart;
+
+            // Preserve any metadata that was attached to the original Date instance.
+            if (originalStart && originalStart.tz) {
+              curr.start.tz = originalStart.tz;
+            }
+
+            if (originalStart && originalStart.dateOnly === true) {
+              curr.start.dateOnly = true;
             }
           }
 
