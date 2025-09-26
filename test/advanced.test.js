@@ -103,6 +103,32 @@ describe('parser: advanced cases', () => {
       assert.equal(map[uids[2]].start.tz, 'America/New_York');
       assert.equal(map[uids[3]].datetype, 'date');
     });
+
+    // Synthetic TZID with minute offset should map to canonical IANA zone
+    it('parses TZID with minute offset (synthetic)', () => {
+      const offsetLabel = '"(UTC+05:30) Chennai, Kolkata, Mumbai, New Delhi"';
+      const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:offset-minutes
+DTSTART;TZID=${offsetLabel}:20260325T000000
+RRULE:FREQ=DAILY;COUNT=2
+SUMMARY:Offset example
+END:VEVENT
+END:VCALENDAR`;
+
+      const data = ical.parseICS(ics);
+      const event = Object.values(data).find(x => x.uid === 'offset-minutes');
+      assert.ok(event, 'Expected to find the synthetic event by UID');
+
+      const {start, rrule} = event;
+      assert.equal(start.toISOString(), '2026-03-24T18:30:00.000Z');
+      assert.equal(start.tz, 'Asia/Calcutta');
+
+      assert.ok(rrule, 'Expected the RRULE to be parsed');
+      assert.equal(rrule.options.count, 2);
+      assert.equal(rrule.options.tzid, 'Asia/Calcutta');
+    });
   });
 
   // Test19.ics – organizer params
