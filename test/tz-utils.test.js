@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const process = require('node:process');
 const {describe, it} = require('mocha');
 const tz = require('../tz-utils.js');
 
@@ -58,15 +59,21 @@ describe('unit: tz-utils', () => {
     });
   });
 
-  it('guesses a local zone string', () => {
-    const guess = tz.guessLocalZone();
-    assert.equal(typeof guess, 'string');
-    // Node >=18 exposes the full IANA catalog via Intl.supportedValuesOf('timeZone'), so the guess should be included
-    if (guess) {
-      const names = tz.getZoneNames();
-      assert.equal(Array.isArray(names), true);
-      assert.ok(names.length > 0);
-      assert.ok(names.includes(guess));
+  it('guesses a local zone string when TZ is set', () => {
+    // Set process.env.TZ to a known valid IANA zone
+    const zone = 'Europe/Berlin';
+    const oldTZ = process.env.TZ;
+    process.env.TZ = zone;
+    try {
+      assert.equal(tz.guessLocalZone(), zone);
+      assert.ok(tz.getZoneNames().includes(zone));
+    } finally {
+      // Restore previous TZ
+      if (oldTZ === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = oldTZ;
+      }
     }
   });
 });
