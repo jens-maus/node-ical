@@ -235,6 +235,12 @@ function guessLocalZone() {
   return new Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
+/**
+ * Return the full list of IANA time zone names known to the runtime.
+ *
+ * We depend on Node 18+, so `Intl.supportedValuesOf('timeZone')` is guaranteed
+ * to exist and yields the canonical list without requiring extra guards.
+ */
 function getZoneNames() {
   return Intl.supportedValuesOf('timeZone');
 }
