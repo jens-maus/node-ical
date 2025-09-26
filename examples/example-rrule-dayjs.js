@@ -42,8 +42,8 @@ const events = Object
   .filter(item => item.type === 'VEVENT' && !item.recurrenceid);
 
 // Use a fixed date range to keep expansion finite (recurrences can be unbounded).
-const rangeStart = dayjs('2017-01-01');
-const rangeEnd = dayjs('2017-12-31');
+const rangeStart = dayjs('2017-01-01').startOf('day');
+const rangeEnd = dayjs('2017-12-31').endOf('day');
 
 for (const event of events) {
   const title = event.summary;
