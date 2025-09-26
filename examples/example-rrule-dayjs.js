@@ -20,17 +20,13 @@
 const path = require('node:path');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
-const timezone = require('dayjs/plugin/timezone');
 const duration = require('dayjs/plugin/duration');
-const relativeTime = require('dayjs/plugin/relativeTime');
 const localizedFormat = require('dayjs/plugin/localizedFormat');
 const ical = require('../node-ical.js');
 
 // Extend Day.js with plugins for timezone and duration support
 dayjs.extend(utc);
-dayjs.extend(timezone);
 dayjs.extend(duration);
-dayjs.extend(relativeTime);
 dayjs.extend(localizedFormat);
 
 // Load an example iCal file with various recurring events.
