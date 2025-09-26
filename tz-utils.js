@@ -275,7 +275,7 @@ function attachTz(date, tzid) {
   if (date && tzid && date.tz !== tzid) {
     Object.defineProperty(date, 'tz', {
       value: tzid,
-      enumerable: true,
+      enumerable: false,
       configurable: true,
       writable: false,
     });
