@@ -6,24 +6,81 @@ const aliasMap = new Map();
 const windowsZones = require('./windowsZones.json');
 
 /**
+ * Normalize a Windows timezone display label so that visually similar strings compare equally.
+ * Collapses whitespace, trims the result, and lowercases the value for case-insensitive lookups.
+ *
+ * @param {string} label
+ * @returns {string}
+ */
+function normalizeWindowsLabel(label) {
+  return String(label)
+    .replaceAll(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Build an index of normalized Windows timezone labels (and common variants) to their data entries.
+ * This lets us resolve the canonical IANA identifier without relying on fuzzy substring matching.
+ *
+ * @param {Record<string, {iana: string[]}>} source
+ * @returns {Map<string, {iana: string[]}>}
+ */
+function buildWindowsLabelIndex(source) {
+  const index = new Map();
+
+  const addVariant = (label, data) => {
+    const normalized = normalizeWindowsLabel(label);
+    if (!normalized || index.has(normalized)) {
+      return;
+    }
+
+    index.set(normalized, data);
+  };
+
+  for (const [label, data] of Object.entries(source)) {
+    addVariant(label, data);
+
+    const withoutOffset = label.replace(/^\(utc[^)]*\)\s*/i, '').replace(/^\(gmt[^)]*\)\s*/i, '');
+    if (withoutOffset !== label) {
+      addVariant(withoutOffset, data);
+
+      if (withoutOffset.includes(',')) {
+        for (const segment of withoutOffset.split(',')) {
+          addVariant(segment, data);
+        }
+      }
+    }
+  }
+
+  return index;
+}
+
+const windowsLabelIndex = buildWindowsLabelIndex(windowsZones);
+
+/**
  * Resolve a Windows/legacy timezone label to the canonical IANA identifier exported in windowsZones.json.
  *
  * @param {string} label
  * @returns {string|null}
  */
 function mapWindowsZone(label) {
-  const direct = windowsZones[label];
-  if (direct && Array.isArray(direct.iana) && direct.iana.length > 0) {
-    return direct.iana[0];
+  const exact = windowsZones[label];
+  if (exact && Array.isArray(exact.iana) && exact.iana.length > 0) {
+    return exact.iana[0];
+  }
+
+  const normalized = normalizeWindowsLabel(label);
+  const indexed = windowsLabelIndex.get(normalized);
+  if (indexed && Array.isArray(indexed.iana) && indexed.iana.length > 0) {
+    return indexed.iana[0];
   }
 
   if (label.includes(',')) {
-    const first = label.split(',')[0];
-    const candidate = Object.keys(windowsZones).find(zone => zone.includes(first));
-    if (candidate) {
-      const data = windowsZones[candidate];
-      if (data && Array.isArray(data.iana) && data.iana.length > 0) {
-        return data.iana[0];
+    for (const segment of label.split(',')) {
+      const variant = windowsLabelIndex.get(normalizeWindowsLabel(segment));
+      if (variant && Array.isArray(variant.iana) && variant.iana.length > 0) {
+        return variant.iana[0];
       }
     }
   }
