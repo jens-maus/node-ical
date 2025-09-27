@@ -96,6 +96,9 @@ function pad2(value) {
 // Simple per-zone formatter cache to reduce Intl constructor churn
 const dtfCache = new Map();
 
+// Memoize IANA zone validity checks to avoid repeated Intl constructor throws
+const validIanaCache = new Map();
+
 /**
  * Get a cached Intl.DateTimeFormat instance for the specified timezone.
  * Creates and caches a new formatter if one doesn't exist for the zone.
@@ -434,14 +437,25 @@ function isValidIana(zone) {
     return false;
   }
 
+  // Normalize any aliases before validation so cache keys stay consistent
+  const tz = resolveZone(zone);
+  if (!tz) {
+    return false;
+  }
+
+  // Memoized hits avoid repeated Intl constructor work and exception cost
+  if (validIanaCache.has(tz)) {
+    return validIanaCache.get(tz);
+  }
+
   try {
     // Rely on Intl throwing for invalid timeZone identifiers
     // This is more portable across Node builds than Temporal alone
-    const tz = resolveZone(zone);
-
     new Intl.DateTimeFormat('en-US', {timeZone: tz}).format(new Date(0));
+    validIanaCache.set(tz, true);
     return true;
   } catch {
+    validIanaCache.set(tz, false);
     return false;
   }
 }
