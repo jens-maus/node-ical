@@ -573,7 +573,9 @@ function parseWithOffset(yyyymmddThhmmss, offset) {
   }
 
   const utcMs = Date.UTC(year, month - 1, day, hour, minute, second) - (totalMinutes * 60_000);
-  return new Date(utcMs);
+  const normalizedOffset = minutesToOffset(totalMinutes);
+  // Preserve original offset metadata so downstream consumers can recover it
+  return attachTz(new Date(utcMs), normalizedOffset);
 }
 
 function utcAdd(date, amount, unit) {
