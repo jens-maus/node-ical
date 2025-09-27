@@ -336,7 +336,13 @@ function formatDateForRrule(date, tzInfo = {}) {
  * @returns {Date|undefined}
  */
 function attachTz(date, tzid) {
-  if (date && tzid && date.tz !== tzid) {
+  if (!date || !tzid) {
+    return date;
+  }
+
+  const hasSameValue = date.tz === tzid;
+  const isEnumerable = Object.prototype.propertyIsEnumerable.call(date, 'tz');
+  if (!hasSameValue || isEnumerable) {
     Object.defineProperty(date, 'tz', {
       value: tzid,
       enumerable: false,
@@ -565,4 +571,5 @@ module.exports = {
   linkAlias,
   resolveTZID,
   formatDateForRrule,
+  attachTz,
 };

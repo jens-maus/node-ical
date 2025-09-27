@@ -81,17 +81,21 @@ const storeParameter = function (name) {
 };
 
 const addTZ = function (dt, parameters) {
-  if (dt && dt.tz) {
-    // Date already has a timezone property
+  if (!dt) {
     return dt;
   }
 
   const p = parseParameters(parameters);
-  if (parameters && p && dt && p.TZID !== undefined) {
-    dt.tz = p.TZID.toString();
+  if (parameters && p && p.TZID !== undefined) {
+    let tzid = p.TZID.toString();
     // Remove surrounding quotes if found at the beginning and at the end of the string
     // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
-    dt.tz = dt.tz.replace(/^"(.*)"$/, '$1');
+    tzid = tzid.replace(/^"(.*)"$/, '$1');
+    return tzUtil.attachTz(dt, tzid);
+  }
+
+  if (dt.tz) {
+    return tzUtil.attachTz(dt, dt.tz);
   }
 
   return dt;
@@ -152,7 +156,7 @@ const dateParameter = function (name) {
       if (comps[7] === 'Z') {
         // GMT
         newDate = new Date(Date.UTC(year, monthIndex, day, hour, minute, second));
-        newDate.tz = 'Etc/UTC';
+        tzUtil.attachTz(newDate, 'Etc/UTC');
       } else {
         const fallbackWithStackTimezone = () => {
           // Get the time zone from the stack
@@ -552,7 +556,7 @@ module.exports = {
 
             // Preserve any metadata that was attached to the original Date instance.
             if (originalStart && originalStart.tz) {
-              curr.start.tz = originalStart.tz;
+              tzUtil.attachTz(curr.start, originalStart?.tz);
             }
 
             if (originalStart && originalStart.dateOnly === true) {
