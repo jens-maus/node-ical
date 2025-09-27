@@ -483,6 +483,11 @@ function parseDateTimeInZone(yyyymmddThhmmss, zone) {
   }
 
   const tz = resolveZone(zone);
+  // Defensive: bail out early if the zone can't be resolved to a valid IANA identifier
+  if (!isValidIana(tz)) {
+    return undefined;
+  }
+
   // Initial guess: interpret local fields as if they were UTC
   const t = Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second);
 
