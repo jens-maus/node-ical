@@ -77,6 +77,7 @@ function mapWindowsZone(label) {
   }
 
   if (label.includes(',')) {
+    // Some feeds pass comma-separated display names; try each segment individually.
     for (const segment of label.split(',')) {
       const variant = windowsLabelIndex.get(normalizeWindowsLabel(segment));
       if (variant && Array.isArray(variant.iana) && variant.iana.length > 0) {
@@ -152,6 +153,61 @@ function minutesToEtcZone(totalMinutes) {
   const hours = Math.abs(totalMinutes) / 60;
   const sign = totalMinutes > 0 ? '-' : '+'; // Etc/GMT zones invert sign
   return `Etc/GMT${sign}${hours}`;
+}
+
+/**
+ * Convert a `{year, month, day, hour, minute, second}` structure into UTC milliseconds.
+ *
+ * @param {{year: number, month: number, day: number, hour?: number, minute?: number, second?: number}} parts
+ * @returns {number}
+ */
+function ymdhmsToUtcMs(parts = {}) {
+  const {
+    year,
+    month,
+    day,
+    hour = 0,
+    minute = 0,
+    second = 0,
+  } = parts;
+
+  return Date.UTC(year, month - 1, day, hour, minute, second);
+}
+
+/**
+ * Fixed-point iteration that aligns an initial UTC guess to the desired local wall time.
+ * Runs up to three passes to survive DST gaps/folds and returns the closest valid instant.
+ *
+ * @param {number} initialUtcMs
+ * @param {{year: number, month: number, day: number, hour: number, minute: number, second: number}} targetParts
+ * @param {(date: Date) => {year: number, month: number, day: number, hour: number, minute: number, second: number}} getLocalParts
+ * @returns {Date}
+ */
+function convergeLocalInstant(initialUtcMs, targetParts, getLocalParts) {
+  const targetUtc = ymdhmsToUtcMs(targetParts);
+  let t = initialUtcMs;
+  let estimate;
+  let delta = 0;
+
+  for (let i = 0; i < 3; i++) {
+    estimate = new Date(t);
+    const current = getLocalParts(estimate);
+    delta = ymdhmsToUtcMs(current) - targetUtc;
+    if (delta === 0) {
+      return estimate;
+    }
+
+    t -= delta;
+  }
+
+  const finalCandidate = new Date(t);
+  const finalDelta = ymdhmsToUtcMs(getLocalParts(finalCandidate)) - targetUtc;
+  if (finalDelta >= 0) {
+    return finalCandidate;
+  }
+
+  // Fall back to the last estimate, which will be the closest instant before the fold/gap.
+  return estimate;
 }
 
 /**
@@ -271,6 +327,14 @@ function formatDateForRrule(date, tzInfo = {}) {
   return undefined;
 }
 
+/**
+ * Attach non-enumerable timezone metadata to a Date instance so downstream consumers
+ * can recover the originating TZID without leaking it into JSON/string output.
+ *
+ * @param {Date} date
+ * @param {string|undefined} tzid
+ * @returns {Date|undefined}
+ */
 function attachTz(date, tzid) {
   if (date && tzid && date.tz !== tzid) {
     Object.defineProperty(date, 'tz', {
@@ -370,9 +434,8 @@ function parseDateTimeInZone(yyyymmddThhmmss, zone) {
 
   const tz = resolveZone(zone);
   // Initial guess: interpret local fields as if they were UTC
-  let t = Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second);
+  const t = Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second);
 
-  const ymdhmsToUtcMs = f => Date.UTC(f.year, f.month - 1, f.day, f.hour, f.minute, f.second);
   const getLocalParts = date => {
     const df = new Intl.DateTimeFormat('en-CA', {
       timeZone: tz,
@@ -422,19 +485,8 @@ function parseDateTimeInZone(yyyymmddThhmmss, zone) {
     return out;
   };
 
-  // Iterate a couple times to converge even across DST transitions
-  const target = fields;
-  for (let i = 0; i < 2; i++) {
-    const current = getLocalParts(new Date(t));
-    const delta = ymdhmsToUtcMs(current) - ymdhmsToUtcMs(target);
-    if (delta === 0) {
-      break;
-    }
-
-    t -= delta;
-  }
-
-  return attachTz(new Date(t), zone);
+  const converged = convergeLocalInstant(t, fields, getLocalParts);
+  return attachTz(converged, zone);
 }
 
 function parseWithOffset(yyyymmddThhmmss, offset) {
