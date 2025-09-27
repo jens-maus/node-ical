@@ -178,6 +178,11 @@ function ymdhmsToUtcMs(parts = {}) {
  * Fixed-point iteration that aligns an initial UTC guess to the desired local wall time.
  * Runs up to three passes to survive DST gaps/folds and returns the closest valid instant.
  *
+ * For spring-forward gaps (e.g., 2:30 AM during DST transition when clocks jump to 3:30 AM):
+ * - Returns the first valid instant after the gap
+ * For fall-back folds (e.g., 1:30 AM occurs twice when clocks fall back):
+ * - Returns the first occurrence (standard time interpretation)
+ *
  * @param {number} initialUtcMs
  * @param {{year: number, month: number, day: number, hour: number, minute: number, second: number}} targetParts
  * @param {(date: Date) => {year: number, month: number, day: number, hour: number, minute: number, second: number}} getLocalParts
