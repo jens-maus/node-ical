@@ -126,6 +126,44 @@ function getFormatter(tz) {
 }
 
 /**
+ * Work around the legacy Intl bug where some Node.js releases prior to v22 emit "24" for the
+ * hour component at local midnight (verified with Node 20 against zones like Africa/Abidjan).
+ * Node 22+ normalizes the output to "00", so this helper becomes unnecessary once we require
+ * Node 22 or newer and can be safely removed at that point.
+ *
+ * @param {Date} date
+ * @param {Intl.DateTimeFormat} formatter
+ * @param {{year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number}} parts
+ * @returns {{year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number}}
+ */
+function normalizeMidnightParts(date, formatter, parts) {
+  if (!parts || typeof formatter?.formatToParts !== 'function') {
+    return parts;
+  }
+
+  const next = new Date(date.getTime() + 1000);
+  const nextParts = formatter.formatToParts(next);
+  for (const p of nextParts) {
+    if (p.type === 'year') {
+      parts.year = Number(p.value);
+    }
+
+    if (p.type === 'month') {
+      parts.month = Number(p.value);
+    }
+
+    if (p.type === 'day') {
+      parts.day = Number(p.value);
+    }
+  }
+
+  parts.hour = 0;
+  parts.minute = 0;
+  parts.second = 0;
+  return parts;
+}
+
+/**
  * Convert textual UTC offsets ("+05:30", "UTC-4", "(UTC+02:00)") into signed minute counts.
  *
  * @param {string} offset
@@ -358,7 +396,7 @@ function formatDateForRrule(date, tzInfo = {}) {
     }
 
     if (out.hour === 24) {
-      out.hour = 0;
+      normalizeMidnightParts(date, formatter, out);
     }
 
     if (out.year && out.month && out.day && out.hour !== undefined && out.minute !== undefined && out.second !== undefined) {
@@ -539,7 +577,7 @@ function parseDateTimeInZone(yyyymmddThhmmss, zone) {
     // Handle 24:00 edge case which some TZs may produce for midnight
     // This seems only happen with node < 22 and only for certain zones
     if (Object.hasOwn(out, 'hour') && out.hour === 24) {
-      out.hour = 0;
+      normalizeMidnightParts(date, df, out);
     }
 
     return out;
@@ -625,4 +663,9 @@ module.exports = {
   resolveTZID,
   formatDateForRrule,
   attachTz,
+};
+
+// Expose some internals for testing
+module.exports.__test__ = {
+  normalizeMidnightParts,
 };
