@@ -93,6 +93,35 @@ function pad2(value) {
   return String(value).padStart(2, '0');
 }
 
+// Simple per-zone formatter cache to reduce Intl constructor churn
+const dtfCache = new Map();
+
+/**
+ * Get a cached Intl.DateTimeFormat instance for the specified timezone.
+ * Creates and caches a new formatter if one doesn't exist for the zone.
+ *
+ * @param {string} tz - The IANA timezone identifier.
+ * @returns {Intl.DateTimeFormat} The cached formatter instance.
+ */
+function getFormatter(tz) {
+  let formatter = dtfCache.get(tz);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    dtfCache.set(tz, formatter);
+  }
+
+  return formatter;
+}
+
 /**
  * Convert textual UTC offsets ("+05:30", "UTC-4", "(UTC+02:00)") into signed minute counts.
  *
@@ -304,16 +333,7 @@ function formatDateForRrule(date, tzInfo = {}) {
   }
 
   if (tzInfo.iana && isValidIana(tzInfo.iana)) {
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tzInfo.iana,
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    const formatter = getFormatter(tzInfo.iana);
 
     const parts = formatter.formatToParts(date);
     const numericParts = new Map([
@@ -467,16 +487,7 @@ function parseDateTimeInZone(yyyymmddThhmmss, zone) {
   const t = Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second);
 
   const getLocalParts = date => {
-    const df = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    const df = getFormatter(tz);
 
     const parts = df.formatToParts(date);
     const out = {};
