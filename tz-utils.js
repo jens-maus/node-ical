@@ -252,6 +252,16 @@ function resolveTZID(value) {
     tz = null;
   }
 
+  if (offsetMinutes === undefined && tz) {
+    // Handle raw offset TZIDs like "UTC+02:00", "+0530", or "GMT-4" that skip the
+    // Windows-style parentheses but still represent fixed offsets.
+    const mins = offsetLabelToMinutes(tz);
+    if (Number.isFinite(mins)) {
+      offsetMinutes = mins;
+      tz = null;
+    }
+  }
+
   const exact = findExactZoneMatch(tz);
   const iana = exact || (tz && isValidIana(tz) ? tz : undefined);
   const offset = minutesToOffset(offsetMinutes);
