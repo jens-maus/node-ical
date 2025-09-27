@@ -14,6 +14,10 @@ describe('unit: tz-utils', () => {
     assert.equal(d.toISOString(), '2024-01-01T10:00:00.000Z');
   });
 
+  it('throws on malformed offset strings', () => {
+    assert.throws(() => tz.parseWithOffset('20240101T120000', 'bogus'), /Invalid offset string: bogus/);
+  });
+
   it('parses local wall time within a named zone (standard time)', () => {
     // Europe/Berlin observes UTC+1 in January, so Intl-backed parsing should subtract one hour
     const d = tz.parseDateTimeInZone('20240101T120000', 'Europe/Berlin');

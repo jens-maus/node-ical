@@ -523,14 +523,11 @@ function parseWithOffset(yyyymmddThhmmss, offset) {
   const hour = Number(m[4]);
   const minute = Number(m[5]);
   const second = Number(m[6] || 0);
-  // Convert offset to minutes
-  const o = String(offset).trim().replace(/^\(?(?:utc|gmt)\)?\s*/i, '');
-  const om = o.match(/^([+-])?(\d{1,2})(?::?(\d{2}))?$/);
-  const sign = om && om[1] === '-' ? -1 : 1;
-  const oh = om ? Number(om[2]) : 0;
-  const omm = om && om[3] ? Number(om[3]) : 0;
-  const minutesComponent = (oh * 60) + omm;
-  const totalMinutes = sign * minutesComponent;
+  const totalMinutes = offsetLabelToMinutes(offset);
+  if (!Number.isFinite(totalMinutes)) {
+    throw new TypeError('Invalid offset string: ' + offset);
+  }
+
   const utcMs = Date.UTC(year, month - 1, day, hour, minute, second) - (totalMinutes * 60_000);
   return new Date(utcMs);
 }
