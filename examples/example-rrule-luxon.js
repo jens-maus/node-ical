@@ -55,14 +55,15 @@ for (const event of events) {
   const instanceDates = new Map();
   for (const date of event.rrule.between(rangeStart.toJSDate(), rangeEnd.toJSDate(), true)) {
     const occurrence = DateTime.fromJSDate(date);
-    const iso = occurrence.toISO();
-    const lookupKey = iso.slice(0, 10);
+    const occurrenceUtc = occurrence.toUTC();
+    const occurrenceStamp = occurrenceUtc.toISO();
+    const lookupKey = occurrenceUtc.toISODate();
     if (event.recurrences && event.recurrences[lookupKey]) {
       continue;
     }
 
-    if (!instanceDates.has(iso)) {
-      instanceDates.set(iso, {
+    if (!instanceDates.has(occurrenceStamp)) {
+      instanceDates.set(occurrenceStamp, {
         occurrenceStart: occurrence,
         lookupKey,
       });
@@ -83,10 +84,11 @@ for (const event of events) {
         continue;
       }
 
-      const recurIso = recurId.toISO();
-      instanceDates.set(recurIso, {
+      const recurUtc = recurId.toUTC();
+      const recurStamp = recurUtc.toISO();
+      instanceDates.set(recurStamp, {
         occurrenceStart: recurStart,
-        lookupKey: recurIso.slice(0, 10),
+        lookupKey: recurUtc.toISODate(),
       });
     }
   }
