@@ -171,9 +171,16 @@ const dateParameter = function (name) {
           }
 
           const tzInfo = tzUtil.resolveTZID(normalizedTzId);
-          return tzInfo.iana
-            ? tzUtil.parseDateTimeInZone(value, tzInfo.iana)
-            : new Date(year, monthIndex, day, hour, minute, second);
+          const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
+          if (offsetString) {
+            return tzUtil.parseWithOffset(value, offsetString);
+          }
+
+          if (tzInfo.iana) {
+            return tzUtil.parseDateTimeInZone(value, tzInfo.iana);
+          }
+
+          return new Date(year, monthIndex, day, hour, minute, second);
         };
 
         if (parameters) {
