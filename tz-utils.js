@@ -121,6 +121,15 @@ function offsetLabelToMinutes(offset) {
     return undefined;
   }
 
+  // Minutes must be < 60; IANA/ICS max absolute offset is 14:00
+  if (minutes >= 60) {
+    return undefined;
+  }
+
+  if (hours > 14 || (hours === 14 && minutes !== 0)) {
+    return undefined;
+  }
+
   const total = (hours * 60) + minutes;
   return sign === '-' ? -total : total;
 }
