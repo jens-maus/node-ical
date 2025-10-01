@@ -27,7 +27,7 @@
   "devDependencies": {
     "fast-xml-parser": "^5.2.5",
     "lint-staged": "^16.1.6",
-    "mocha": "^11.7.2",
+    "mocha": "^11.7.3",
     "simple-git-hooks": "^2.13.1",
     "xo": "^1.2.2"
   },
