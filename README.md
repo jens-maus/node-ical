@@ -198,7 +198,10 @@ ical.fromURL(url, options, function(err, data) {
 
 Fetch the specified URL using the native fetch API (```options``` are passed to the underlying `fetch()` call) and call the function with the result (either an error or the data). Requires Node.js 18+ (or any environment that provides a global `fetch`).
 
-#### Example 1 - Print list of upcoming node conferences (see example.js) (parses the file synchronous)
+#### Example: Print list of upcoming node conferences
+
+See [`examples/example.js`](./examples/example.js) for a synchronous example script.
+
 ```javascript
 const ical = require('node-ical');
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -215,54 +218,49 @@ ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, function (err, da
 });
 ```
 
-### Recurrence rule (RRule)
+### Recurrence rule (RRULE) and Timezone Handling
 
-Recurrence rule will be created with timezone **if present in `DTSTART`**
+When expanding recurrences (RRULEs), node-ical takes the timezone from the DTSTART field into account:
 
-To get correct date from recurrences in the recurrence rule, you need to take the original timezone and your local timezone into account
+- **If a timezone is present in DTSTART**, all recurrence dates are calculated in that timezone.
+- **If no timezone is present**, recurrences are calculated in UTC. The original offset from DTSTART and the current offset of the recurrence date are considered.
+- For correct results in complex timezone scenarios, always specify the timezone explicitly in DTSTART.
 
-If no timezone were provided when recurrence rule were created, recurrence dates should take original start timezoneoffset and the current dates timezoneoffset into account
+### Working with the parsed dates
 
-```javascript
-const ical = require('node-ical');
-const moment = require('moment-timezone');
+- Every parsed `start`/`end` value is a JavaScript `Date` that represents the **exact instant in UTC**. When DTSTART carries an IANA timezone, the parser attaches a non-enumerable `tz` property (for example `event.start.tz === 'Europe/Zurich'`). All-day values also expose `dateOnly === true`, which makes it easy to distinguish floating all-day events from timed ones.
+- Prior to v0.22, all-day DTSTART values were normalised to `00:00:00Z` and their timezone metadata was lost. The modern behaviour preserves the original instant *and* its timezone, which keeps RRULE expansions and DST transitions correct. Treat this as a breaking behaviour change when migrating from older releases.
+- To render the day in the originating timezone (for example, to display an all-day event on “25 March” in its local time), derive it explicitly:
 
-ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, function (err, data) {
-    for (let k in data) {
-        if (!Object.prototype.hasOwnProperty.call(data, k)) continue;
+    ```js
+    const localDay = new Intl.DateTimeFormat('de-CH', {
+        timeZone: event.start.tz ?? 'UTC',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(event.start);
+    ```
 
-        const event = data[k];
-        if (event.type !== 'VEVENT' || !event.rrule) continue;
-        
-        const dates = event.rrule.between(new Date(2021, 0, 1, 0, 0, 0, 0), new Date(2021, 11, 31, 0, 0, 0, 0))
-        if (dates.length === 0) continue;
+    If your runtime ships [Temporal](https://tc39.es/proposal-temporal/), you can also round-trip via:
 
-        console.log('Summary:', event.summary);
-        console.log('Original start:', event.start);
-        console.log('RRule start:', `${event.rrule.origOptions.dtstart} [${event.rrule.origOptions.tzid}]`)
+    ```js
+    const zoned = Temporal.ZonedDateTime.from({
+        timeZone: event.start.tz ?? 'UTC',
+        instant: Temporal.Instant.fromEpochMilliseconds(event.start.valueOf()),
+    }).startOfDay();
+    ```
 
-        dates.forEach(date => {
-            let newDate
-            if (event.rrule.origOptions.tzid) {
-                // tzid present (calculate offset from recurrence start)
-                const dateTimezone = moment.tz.zone('UTC')
-                const localTimezone = moment.tz.guess()
-                const tz = event.rrule.origOptions.tzid === localTimezone ? event.rrule.origOptions.tzid : localTimezone
-                const timezone = moment.tz.zone(tz)
-                const offset = timezone.utcOffset(date) - dateTimezone.utcOffset(date)
-                newDate = moment(date).add(offset, 'minutes').toDate()
-            } else {
-                // tzid not present (calculate offset from original start)
-                newDate = new Date(date.setHours(date.getHours() - ((event.start.getTimezoneOffset() - date.getTimezoneOffset()) / 60)))
-            }
-            const start = moment(newDate)
-            console.log('Recurrence start:', start)
-        })
+Consumers that previously relied on implicit midnight UTC should update their handling to restore the local day using the attached timezone.
 
-        console.log('-----------------------------------------------------------------------------------------');
-    }
-});
-```
+See the following example scripts for practical demonstration:
+- [`examples/example-rrule-basic.js`](./examples/example-rrule-basic.js) – minimal RRULE expansion with native `Date`
+- [`examples/example-rrule-moment.js`](./examples/example-rrule-moment.js)
+- [`examples/example-rrule-luxon.js`](./examples/example-rrule-luxon.js)
+- [`examples/example-rrule-dayjs.js`](./examples/example-rrule-dayjs.js)
+- [`examples/example-rrule-datefns.js`](./examples/example-rrule-datefns.js)
+- [`examples/example-rrule-vanilla.js`](./examples/example-rrule-vanilla.js)
+
+Each library may display timezones differently, but the recurrence logic is the same.
 
 ## Under the hood
 

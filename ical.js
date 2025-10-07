@@ -1,8 +1,8 @@
 /* eslint-disable max-depth, max-params, no-warning-comments, complexity */
 
 const {randomUUID} = require('node:crypto');
-const moment = require('moment-timezone');
 const rrule = require('rrule').RRule;
+const tzUtil = require('./tz-utils.js');
 
 /** **************
  *  A tolerant, minimal icalendar parser
@@ -81,89 +81,25 @@ const storeParameter = function (name) {
 };
 
 const addTZ = function (dt, parameters) {
-  if (dt && dt.tz) {
-    // Date already has a timezone property
+  if (!dt) {
     return dt;
   }
 
   const p = parseParameters(parameters);
-  if (parameters && p && dt && p.TZID !== undefined) {
-    dt.tz = p.TZID.toString();
+  if (parameters && p && p.TZID !== undefined) {
+    let tzid = p.TZID.toString();
     // Remove surrounding quotes if found at the beginning and at the end of the string
     // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
-    dt.tz = dt.tz.replace(/^"(.*)"$/, '$1');
+    tzid = tzid.replace(/^"(.*)"$/, '$1');
+    return tzUtil.attachTz(dt, tzid);
+  }
+
+  if (dt.tz) {
+    return tzUtil.attachTz(dt, dt.tz);
   }
 
   return dt;
 };
-
-let zoneTable = null;
-function getIanaTZFromMS(msTZName) {
-  zoneTable ||= require('./windowsZones.json');
-
-  // Get hash entry
-  let he = zoneTable[msTZName];
-  // Handle comma separated list, if we still don't have a match
-  if (!he && msTZName.includes(',')) {
-    // Just use the first string in name list
-    const firstLocationName = msTZName.split(',')[0];
-    // Loop thru the zonetable entries, save all that match
-    const temporaryLookup = Object.keys(zoneTable).filter(tzEntry => {
-      if (tzEntry.includes(firstLocationName)) {
-        return true;
-      }
-
-      return false;
-    });
-    // If we found any
-    if (temporaryLookup.length > 0) {
-      // Use the first or only
-      he = zoneTable[temporaryLookup[0]];
-    }
-  }
-
-  // If found return iana name, else null
-  return he ? he.iana[0] : null;
-}
-
-function getTimeZone(value) {
-  let tz = value;
-  let found = '';
-  // If this is the custom timezone from MS Outlook
-  if (tz === 'tzone://Microsoft/Custom' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-    // Set it to the local timezone, because we can't tell
-    tz = moment.tz.guess();
-  }
-
-  // Remove quotes if found
-  tz = tz.replace(/^"(.*)"$/, '$1');
-
-  // Watch out for windows timezones, or multiple with comma separatos
-  if (tz && (tz.includes(' ') || tz.includes(','))) {
-    const tz1 = getIanaTZFromMS(tz);
-    if (tz1) {
-      tz = tz1;
-    }
-  }
-
-  // Watch out for offset timezones
-  // If the conversion above didn't find any matching IANA tz
-  // And offset is still present
-  if (tz && tz.startsWith('(')) {
-    // Extract just the offset
-    const regex = /[+|-]\d*:\d*/;
-    found = tz.match(regex);
-    tz = null;
-  }
-
-  // Timezone not confirmed yet
-  if (found === '') {
-    // Lookup tz
-    found = moment.tz.names().find(zone => zone === tz);
-  }
-
-  return found === '' ? tz : found;
-}
 
 function isDateOnly(value, parameters) {
   const dateOnly = ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/.test(value) === true);
@@ -210,104 +146,103 @@ const dateParameter = function (name) {
     // Typical RFC date-time format
     const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(value);
     if (comps !== null) {
+      const year = Number.parseInt(comps[1], 10);
+      const monthIndex = Number.parseInt(comps[2], 10) - 1;
+      const day = Number.parseInt(comps[3], 10);
+      const hour = Number.parseInt(comps[4], 10);
+      const minute = Number.parseInt(comps[5], 10);
+      const second = Number.parseInt(comps[6], 10);
+
       if (comps[7] === 'Z') {
         // GMT
-        newDate = new Date(Date.UTC(
-          Number.parseInt(comps[1], 10),
-          Number.parseInt(comps[2], 10) - 1,
-          Number.parseInt(comps[3], 10),
-          Number.parseInt(comps[4], 10),
-          Number.parseInt(comps[5], 10),
-          Number.parseInt(comps[6], 10),
-        ));
-        newDate.tz = 'Etc/UTC';
-      } else if (parameters && parameters[0] && parameters[0].includes('TZID=') && parameters[0].split('=')[1]) {
-        // Get the timezone from the parameters TZID value
-        let tz = parameters[0].split('=')[1];
-        let found = '';
-        let offset = '';
-
-        // If this is the custom timezone from MS Outlook
-        if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-          // Set it to the local timezone, because we can't tell
-          tz = moment.tz.guess();
-          parameters[0] = 'TZID=' + tz;
-        }
-
-        // Remove quotes if found
-        tz = tz.replace(/^"(.*)"$/, '$1');
-
-        // Watch out for windows timezones
-        if (tz && (tz.includes(' ') || tz.includes(','))) {
-          const tz1 = getTimeZone(tz);
-          if (tz1) {
-            tz = tz1;
-            // We have a confirmed timezone, don't use offset, may confuse DST/STD time
-            offset = '';
-            // Fix the parameters for later use
-            parameters[0] = 'TZID=' + tz;
-          }
-        }
-
-        // Watch out for offset timezones
-        // If the conversion above didn't find any matching IANA tz
-        // And offset is still present
-        if (tz && tz.startsWith('(')) {
-          // Extract just the offset
-          const regex = /[+|-]\d*:\d*/;
-          offset = tz.match(regex);
-          found = offset;
-          tz = null;
-        }
-
-        // Timezone not confirmed yet
-        if (found === '') {
-          // Lookup tz
-          found = moment.tz.names().find(zone => zone === tz);
-        }
-
-        // Timezone confirmed or forced to offset
-        // Prefer explicit numeric offset, then TZID, otherwise fall back to naive local time
-        const offsetString = Array.isArray(offset) ? offset[0] : offset;
-        if (typeof offsetString === 'string' && offsetString.length > 0) {
-          newDate = moment.parseZone(`${value}${offsetString}`, 'YYYYMMDDTHHmmssZ').toDate();
-        } else if (tz && moment.tz.zone(tz)) {
-          newDate = moment.tz(value, 'YYYYMMDDTHHmmss', tz).toDate();
-        } else {
-          newDate = new Date(
-            Number.parseInt(comps[1], 10),
-            Number.parseInt(comps[2], 10) - 1,
-            Number.parseInt(comps[3], 10),
-            Number.parseInt(comps[4], 10),
-            Number.parseInt(comps[5], 10),
-            Number.parseInt(comps[6], 10),
-          );
-        }
-
-        // Make sure to correct the parameters if the TZID= is changed
-        newDate = addTZ(newDate, parameters);
+        newDate = new Date(Date.UTC(year, monthIndex, day, hour, minute, second));
+        tzUtil.attachTz(newDate, 'Etc/UTC');
       } else {
-        // Get the time zone from the stack
-        const stackItemWithTimeZone
-          = (stack || []).find(item => Object.values(item).find(subItem => subItem.type === 'VTIMEZONE')) || {};
-        const vTimezone
-          = Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
+        const fallbackWithStackTimezone = () => {
+          // Get the time zone from the stack
+          const stackItemWithTimeZone
+            = (stack || []).find(item => Object.values(item).find(subItem => subItem.type === 'VTIMEZONE')) || {};
+          const vTimezone
+            = Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
 
-        // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
-        const normalizedTzId = vTimezone
-          ? (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.at(-1) : vTimezone.tzid)
-          : null;
+          // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
+          const normalizedTzId = vTimezone
+            ? (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.at(-1) : vTimezone.tzid)
+            : null;
 
-        newDate = normalizedTzId && moment.tz.zone(normalizedTzId)
-          ? moment.tz(value, 'YYYYMMDDTHHmmss', normalizedTzId).toDate()
-          : new Date(
-            Number.parseInt(comps[1], 10),
-            Number.parseInt(comps[2], 10) - 1,
-            Number.parseInt(comps[3], 10),
-            Number.parseInt(comps[4], 10),
-            Number.parseInt(comps[5], 10),
-            Number.parseInt(comps[6], 10),
-          );
+          if (!normalizedTzId) {
+            return new Date(year, monthIndex, day, hour, minute, second);
+          }
+
+          const tzInfo = tzUtil.resolveTZID(normalizedTzId);
+          const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
+          if (offsetString) {
+            return tzUtil.parseWithOffset(value, offsetString);
+          }
+
+          if (tzInfo.iana) {
+            return tzUtil.parseDateTimeInZone(value, tzInfo.iana);
+          }
+
+          return new Date(year, monthIndex, day, hour, minute, second);
+        };
+
+        if (parameters) {
+          const parameterMap = parseParameters(parameters);
+          let tz = parameterMap.TZID;
+
+          const findTZIDIndex = () => {
+            if (!Array.isArray(parameters)) {
+              return -1;
+            }
+
+            return parameters.findIndex(parameter => typeof parameter === 'string' && parameter.toUpperCase().startsWith('TZID='));
+          };
+
+          let tzParameterIndex = findTZIDIndex();
+          const setTZIDParameter = newTZID => {
+            if (!Array.isArray(parameters)) {
+              return;
+            }
+
+            const normalized = 'TZID=' + newTZID;
+            if (tzParameterIndex >= 0) {
+              parameters[tzParameterIndex] = normalized;
+            } else {
+              parameters.push(normalized);
+              tzParameterIndex = parameters.length - 1;
+            }
+          };
+
+          if (tz) {
+            tz = tz.toString().replace(/^"(.*)"$/, '$1');
+
+            if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
+              tz = tzUtil.guessLocalZone();
+            }
+
+            const tzInfo = tzUtil.resolveTZID(tz);
+            const resolvedTZID = tzInfo.iana || tzInfo.original || tz;
+            setTZIDParameter(resolvedTZID);
+
+            // Prefer an explicit numeric offset because it keeps DTSTART wall-time semantics accurate across DST transitions.
+            const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
+            if (offsetString) {
+              newDate = tzUtil.parseWithOffset(value, offsetString);
+            } else if (tzInfo.iana) {
+              newDate = tzUtil.parseDateTimeInZone(value, tzInfo.iana);
+            } else {
+              newDate = new Date(year, monthIndex, day, hour, minute, second);
+            }
+
+            // Make sure to correct the parameters if the TZID= is changed
+            newDate = addTZ(newDate, parameters);
+          } else {
+            newDate = fallbackWithStackTimezone();
+          }
+        } else {
+          newDate = fallbackWithStackTimezone();
+        }
       }
     }
 
@@ -449,7 +384,7 @@ module.exports = {
 
         if (!curr.end) { // RFC5545, 3.6.1
           // Set the end according to the datetype of event
-          curr.end = (curr.datetype === 'date-time') ? new Date(curr.start) : moment.utc(curr.start).add(1, 'days').toDate();
+          curr.end = (curr.datetype === 'date-time') ? new Date(curr.start) : tzUtil.utcAdd(curr.start, 1, 'days');
 
           // If there was a duration specified
           // see RFC5545, 3.3.6 (no year and month)
@@ -464,10 +399,12 @@ module.exports = {
             };
             // Get the list of duration elements
             const duration = curr.duration.match(/-?\d{1,10}[WDHMS]/g);
+            if (!duration || duration.length === 0) {
+              throw new Error('Invalid DURATION format: ' + curr.duration);
+            }
 
             // Use the duration to create the end value, from the start
-            const startMoment = moment.utc(curr.start);
-            let newEnd = startMoment;
+            let newEnd = curr.start;
 
             // Is the 1st character a negative sign?
             const indicator = curr.duration.startsWith('-') ? -1 : 1;
@@ -478,11 +415,11 @@ module.exports = {
                 throw new Error(`Invalid duration unit: ${unit}`);
               }
 
-              newEnd = newEnd.add(Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
+              newEnd = tzUtil.utcAdd(newEnd, Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
             }
 
             // End is a Date type, not moment
-            curr.end = newEnd.toDate();
+            curr.end = new Date(newEnd);
           }
         }
 
@@ -590,22 +527,40 @@ module.exports = {
         if (rule.includes('DTSTART') === false) {
           // This a whole day event
           if (curr.datetype === 'date') {
+            const originalStart = curr.start;
             // Get the timezone offset
             // The internal date is stored in UTC format
-            const offset = curr.start.getTimezoneOffset();
+            const offset = originalStart.getTimezoneOffset();
+            let nextStart;
+
             // Only east of gmt is a problem
             if (offset < 0) {
               // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
               // Make the internally stored DATE the actual date (not UTC offseted)
               // Luxon expects local time, not utc, so gets start date wrong if not adjusted
-              curr.start = new Date(curr.start.getTime() + (Math.abs(offset) * 60_000));
+              nextStart = new Date(originalStart.getTime() + (Math.abs(offset) * 60_000));
             } else {
-              // Get rid of any time (shouldn't be any, but be sure)
-              const x = moment(curr.start).format('MMMM/Do/YYYY');
-              const comps = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(x);
-              if (comps) {
-                curr.start = new Date(comps[3], comps[1] - 1, comps[2]);
-              }
+              // Strip any residual time component by rebuilding local midnight
+              nextStart = new Date(
+                originalStart.getFullYear(),
+                originalStart.getMonth(),
+                originalStart.getDate(),
+                0,
+                0,
+                0,
+                0,
+              );
+            }
+
+            curr.start = nextStart;
+
+            // Preserve any metadata that was attached to the original Date instance.
+            if (originalStart && originalStart.tz) {
+              tzUtil.attachTz(curr.start, originalStart?.tz);
+            }
+
+            if (originalStart && originalStart.dateOnly === true) {
+              curr.start.dateOnly = true;
             }
           }
 
@@ -614,14 +569,20 @@ module.exports = {
             try {
               // If the original date has a TZID, add it
               if (curr.start.tz) {
-                const tz = getTimeZone(curr.start.tz);
-                // If a timezone is provided, rrule requires the time to be local
-                // but without Z suffix (cf. RFC5545, 3.3.5)
-                const adjustedTimeString = curr.start
-                  .toLocaleString('sv-SE', {timeZone: tz}) // 'sv-SE' outputs 'YYYY-MM-DD' date format
-                  .replaceAll(' ', 'T')
-                  .replaceAll(/[-:Z]/g, '');
-                rule += `;DTSTART;TZID=${tz}:${adjustedTimeString}`;
+                const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+                const localStamp = tzUtil.formatDateForRrule(curr.start, tzInfo);
+                const tzidLabel = tzInfo.iana || tzInfo.etc || tzInfo.original;
+
+                if (localStamp && tzidLabel) {
+                  // RFC5545 requires DTSTART to be expressed in local time when a TZID is present.
+                  rule += `;DTSTART;TZID=${tzidLabel}:${localStamp}`;
+                } else if (localStamp) {
+                  // Fall back to a floating DTSTART (still without a trailing Z) if we lack a dependable TZ label.
+                  rule += `;DTSTART=${localStamp}`;
+                } else {
+                  // Ultimate fallback: emit a UTC value (legacy behaviour) rather than crashing.
+                  rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/g, '')}`;
+                }
               } else {
                 rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/g, '')}`;
               }
