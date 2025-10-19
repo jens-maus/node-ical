@@ -1,5 +1,5 @@
 /*
- * Example: Expanding recurring calendar events
+ * Example: Expanding recurring calendar events (using moment-timezone)
  *
  * This script shows how to turn VEVENTs (including recurring ones) into concrete
  * event instances within a given date range. It demonstrates how to:
@@ -21,11 +21,13 @@ const ical = require('../node-ical.js');
 const data = ical.parseFile(path.join(__dirname, 'example-rrule.ics'));
 
 // Extract VEVENT components for iteration.
-const events = Object.values(data).filter(item => item.type === 'VEVENT');
+const events = Object
+  .values(data)
+  .filter(item => item.type === 'VEVENT' && !item.recurrenceid);
 
 // Use a fixed date range to keep expansion finite (recurrences can be unbounded).
-const rangeStart = moment('2017-01-01');
-const rangeEnd = moment('2017-12-31');
+const rangeStart = moment('2017-01-01').startOf('day');
+const rangeEnd = moment('2017-12-31').endOf('day');
 
 for (const event of events) {
   const title = event.summary;
@@ -45,40 +47,70 @@ for (const event of events) {
     continue;
   }
 
-  // Expand RRULE start dates within the range.
-  const dates = event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true, () => true);
+  // Expand RRULE start dates within the range, keying each occurrence by its exact start time.
+  const instanceDates = new Map();
+  for (const date of event.rrule.between(rangeStart.toDate(), rangeEnd.toDate(), true)) {
+    const occurrence = moment(date);
+    const iso = occurrence.toISOString();
+    const lookupKey = iso.slice(0, 10);
+    if (event.recurrences && event.recurrences[lookupKey]) {
+      continue;
+    }
 
-  // The dates array holds valid instances in-range. Overrides may move an instance into range,
-  // so include override dates not already yielded by rrule (avoid duplicates).
-  if (event.recurrences) {
-    for (const r of Object.keys(event.recurrences)) {
-      const rDate = new Date(r);
-      // Avoid duplicates: only add if not already present from rrule.
-      const insideRange = moment(rDate).isBetween(rangeStart, rangeEnd) === true;
-      const alreadyPresent = dates.some(d => d.getTime() === rDate.getTime());
-      if (!insideRange && !alreadyPresent) {
-        dates.push(rDate);
-      }
+    if (!instanceDates.has(iso)) {
+      instanceDates.set(iso, {
+        occurrenceStart: occurrence,
+        lookupKey,
+      });
     }
   }
 
-  // Build and print each resulting instance.
-  for (const date of dates) {
+  // Overrides may move an instance into range; merge by RECURRENCE-ID day so each occurrence prints once.
+  if (event.recurrences) {
+    for (const recurrence of Object.values(event.recurrences)) {
+      const recurStart = recurrence?.start ? moment(recurrence.start) : null;
+      const recurId = recurrence?.recurrenceid ? moment(recurrence.recurrenceid) : null;
+      if (!recurStart?.isValid() || !recurId?.isValid()) {
+        continue;
+      }
+
+      const insideRange = !recurStart.isBefore(rangeStart) && !recurStart.isAfter(rangeEnd);
+      if (!insideRange) {
+        continue;
+      }
+
+      const recurIso = recurId.toISOString();
+      instanceDates.set(recurIso, {
+        occurrenceStart: recurStart,
+        lookupKey: recurIso.slice(0, 10),
+      });
+    }
+  }
+
+  // Build and print each resulting instance in chronological order.
+  const dates = Array
+    .from(instanceDates.values())
+    .sort((a, b) => a.occurrenceStart.valueOf() - b.occurrenceStart.valueOf());
+
+  for (const {occurrenceStart, lookupKey} of dates) {
     let curEvent = event;
     let showRecurrence = true;
     let curDuration = duration;
 
-    startDate = moment(date);
+    startDate = occurrenceStart.clone();
 
     // Look up overrides/EXDATEs by date (YYYY-MM-DD), as represented by node-ical.
-    const dateLookupKey = date.toISOString().slice(0, 10);
+    const dateLookupKey = lookupKey;
 
     // Apply per-date override if present; otherwise check EXDATE.
     if (curEvent.recurrences && curEvent.recurrences[dateLookupKey]) {
       // We found an override, so for this recurrence, use a potentially different title, start date, and duration.
       curEvent = curEvent.recurrences[dateLookupKey];
       startDate = moment(curEvent.start);
-      curDuration = moment(curEvent.end).valueOf() - startDate.valueOf();
+      const overrideEnd = curEvent.end ? moment(curEvent.end) : null;
+      if (overrideEnd?.isValid()) {
+        curDuration = overrideEnd.valueOf() - startDate.valueOf();
+      }
     } else if (curEvent.exdate && curEvent.exdate[dateLookupKey]) {
       // If there's no recurrence override, check for an exception date. Exception dates represent exceptions to the rule.
       // This date is an exception date, which means we should skip it in the recurrence pattern.

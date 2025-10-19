@@ -1,0 +1,39 @@
+title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
+startDate:June 1, 2017 at 6:00 PM GMT+2
+endDate:June 2, 2017 at 2:00 AM GMT+2
+duration:8:00 hours
+
+title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
+startDate:June 8, 2017 at 6:00 PM GMT+2
+endDate:June 9, 2017 at 2:00 AM GMT+2
+duration:8:00 hours
+
+title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
+startDate:June 15, 2017 at 6:00 PM GMT+2
+endDate:June 16, 2017 at 2:00 AM GMT+2
+duration:8:00 hours
+
+title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
+startDate:June 22, 2017 at 6:00 PM GMT+2
+endDate:June 23, 2017 at 2:00 AM GMT+2
+duration:8:00 hours
+
+title:Last meeting in June moved to Monday July 3 and shortened to half day
+startDate:July 3, 2017 at 4:00 PM GMT+2
+endDate:July 3, 2017 at 7:00 PM GMT+2
+duration:3:00 hours
+
+title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
+startDate:July 27, 2017 at 6:00 PM GMT+2
+endDate:July 28, 2017 at 2:00 AM GMT+2
+duration:8:00 hours
+
+title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
+startDate:August 10, 2017 at 6:00 PM GMT+2
+endDate:August 11, 2017 at 2:00 AM GMT+2
+duration:8:00 hours
+
+title:Single event on Dec 1
+startDate:December 1, 2017 at 8:00 PM GMT+1
+endDate:December 1, 2017 at 10:00 PM GMT+1
+duration:2:00 hours

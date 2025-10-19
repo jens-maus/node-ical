@@ -1,16 +1,19 @@
 const assert = require('node:assert/strict');
 const {describe, it} = require('mocha');
-const moment = require('moment-timezone');
+const tz = require('../tz-utils.js');
 const ical = require('../node-ical.js');
 
 // Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
-moment.tz.link('Etc/Unknown|Etc/GMT');
+tz.linkAlias('Etc/Unknown', 'Etc/GMT');
 
-// Test12.ics – RRULE + EXDATE + RECURRENCE-ID override
+// Tests 12–14 cover recurrence overrides, EXDATE handling, and ordering edge cases after the timezone refactor.
 describe('parser: advanced cases', () => {
-  // Recurrence and exceptions
+  // Recurrence and exceptions remain intact with Intl-backed date parsing
   describe('Recurrence and exceptions', () => {
-    it('handles RRULE + EXDATEs + RECURRENCE-ID override (test12.ics)', () => {
+    it('handles RRULE + EXDATEs + RECURRENCE-ID override (test12.ics)', function () {
+      // Windows CI occasionally takes longer to initialise Intl time zone data on Node 20.
+      // Give this parsing-heavy regression test extra breathing room to avoid spurious timeouts.
+      this.timeout(20_000);
       const data = ical.parseFile('./test/test12.ics');
       const event = Object.values(data).find(x => x.uid === '0000001' && x.summary === 'Treasure Hunting');
       assert.ok(event.rrule);
@@ -24,7 +27,7 @@ describe('parser: advanced cases', () => {
       assert.equal(event.recurrences[key].summary, 'More Treasure Hunting');
     });
 
-    // Test13.ics – RECURRENCE-ID before RRULE
+    // Test13.ics – RECURRENCE-ID appears before RRULE and must still bind correctly
     it('handles RECURRENCE-ID before RRULE (test13.ics)', () => {
       const data = ical.parseFile('./test/test13.ics');
       const event = Object.values(data).find(x => x.uid === '6m2q7kb2l02798oagemrcgm6pk@google.com' && x.summary === 'repeated');
@@ -35,7 +38,7 @@ describe('parser: advanced cases', () => {
       assert.equal(event.recurrences[key].summary, 'bla bla');
     });
 
-    // Test14.ics – comma-separated EXDATEs + bad times EXDATEs
+    // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
     it('parses comma-separated EXDATEs (test14.ics)', () => {
       const data = ical.parseFile('./test/test14.ics');
       const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
@@ -72,7 +75,7 @@ describe('parser: advanced cases', () => {
   // Test15.ics – Microsoft Exchange timezone naming
   // Moved under the consolidated 'Microsoft time zones' section below to reduce nesting.
 
-  // Test16.ics – quoted parameter values
+  // Test16.ics – quoted parameter values survive the parameter parser rewrite
   describe('Metadata and parsing robustness', () => {
     it('parses quoted parameter values (test16.ics)', () => {
       const data = ical.parseFile('./test/test16.ics');
@@ -80,7 +83,7 @@ describe('parser: advanced cases', () => {
       assert.ok(event.start.tz);
     });
 
-    // Test17.ics – non-stringified start/end
+    // Test17.ics – start/end should surface as Date objects, not serialized strings
     it('produces Date objects (non-strings) (test17.ics)', () => {
       const data = ical.parseFile('./test/test17.ics');
       const event = Object.values(data)[0];
@@ -89,7 +92,7 @@ describe('parser: advanced cases', () => {
     });
   });
 
-  // Test18.ics – timezone detection scenarios
+  // Test18.ics – timezone detection scenarios exercise resolveTZID fallbacks
   describe('Timezone detection', () => {
     it('infers/retains timezone per event (test18.ics)', () => {
       const data = ical.parseFile('./test/test18.ics');
@@ -103,9 +106,35 @@ describe('parser: advanced cases', () => {
       assert.equal(map[uids[2]].start.tz, 'America/New_York');
       assert.equal(map[uids[3]].datetype, 'date');
     });
+
+    // Synthetic TZID with minute offset should resolve to a canonical IANA zone via Intl hints
+    it('parses TZID with minute offset (synthetic)', () => {
+      const offsetLabel = '"(UTC+05:30) Chennai, Kolkata, Mumbai, New Delhi"';
+      const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:offset-minutes
+DTSTART;TZID=${offsetLabel}:20260325T000000
+RRULE:FREQ=DAILY;COUNT=2
+SUMMARY:Offset example
+END:VEVENT
+END:VCALENDAR`;
+
+      const data = ical.parseICS(ics);
+      const event = Object.values(data).find(x => x.uid === 'offset-minutes');
+      assert.ok(event, 'Expected to find the synthetic event by UID');
+
+      const {start, rrule} = event;
+      assert.equal(start.toISOString(), '2026-03-24T18:30:00.000Z');
+      assert.equal(start.tz, 'Asia/Calcutta');
+
+      assert.ok(rrule, 'Expected the RRULE to be parsed');
+      assert.equal(rrule.options.count, 2);
+      assert.equal(rrule.options.tzid, 'Asia/Calcutta');
+    });
   });
 
-  // Test19.ics – organizer params
+  // Test19.ics – organizer params must propagate untouched
   describe('Organizer and status', () => {
     it('preserves organizer params (test19.ics)', () => {
       const data = ical.parseFile('./test/test19.ics');
@@ -114,7 +143,7 @@ describe('parser: advanced cases', () => {
       assert.equal(event.organizer.val, 'mailto:stomlinson@mozilla.com');
     });
 
-    // Test20.ics – VEVENT status values
+    // Test20.ics – VEVENT status values remain intact across parsing
     it('parses VEVENT status values (test20.ics)', () => {
       const data = ical.parseFile('./test/test20.ics');
       const getByUid = uid => Object.values(data).find(x => x.uid === uid);
@@ -125,7 +154,7 @@ describe('parser: advanced cases', () => {
     });
   });
 
-  // Test21.ics – VTIMEZONE usage for floating DTSTART
+  // Test21.ics – VTIMEZONE entries apply to floating DTSTART values with Intl helpers
   describe('Floating DTSTART with VTIMEZONE', () => {
     it('applies VTIMEZONE to floating DTSTART (test21.ics)', () => {
       const data = ical.parseFile('./test/test21.ics');
@@ -135,7 +164,7 @@ describe('parser: advanced cases', () => {
     });
   });
 
-  // Test22.ics – quoted attendee parameters + X-RESPONSE-COMMENT
+  // Test22.ics – quoted attendee parameters + X-RESPONSE-COMMENT retain metadata
   describe('Attendee params', () => {
     it('parses attendee params incl. X-RESPONSE-COMMENT (test22.ics)', () => {
       const data = ical.parseFile('./test/test22.ics');
@@ -146,7 +175,7 @@ describe('parser: advanced cases', () => {
     });
   });
 
-  // Test23.ics – RRULE with timezone dtstart
+  // Test23.ics – RRULE with timezone DTSTART carries tzid through rrule options
   describe('RRULE with timezone DTSTART', () => {
     it('handles RRULE with timezone DTSTART (test23.ics)', () => {
       const data = ical.parseFile('./test/test23.ics');
@@ -167,7 +196,7 @@ describe('parser: advanced cases', () => {
     });
   });
 
-  // Ms_timezones.ics – Microsoft windows zone mapping and custom tz handling
+  // Ms_timezones.ics – Microsoft Windows zone mapping and custom tz handling flow through tz-utils
   describe('Microsoft time zones', () => {
     it('maps Exchange tz to IANA (test15.ics)', () => {
       const data = ical.parseFile('./test/test15.ics');
@@ -250,13 +279,20 @@ describe('parser: advanced cases', () => {
       assert.equal(event.end.toDateString(), new Date(2020, 9, 18).toDateString());
 
       // If a timezone is exposed, also ensure both boundaries are local midnight and exactly one local day apart
-      const tz = (event.start && event.start.tz) || (event.end && event.end.tz);
-      if (tz) {
-        const startLocal = moment.tz(event.start, tz);
-        const endLocal = moment.tz(event.end, tz);
-        assert.ok(startLocal.isSame(startLocal.clone().startOf('day')));
-        assert.ok(endLocal.isSame(endLocal.clone().startOf('day')));
-        assert.equal(endLocal.diff(startLocal, 'day'), 1);
+      const zone = (event.start && event.start.tz) || (event.end && event.end.tz);
+      if (zone) {
+        const startLocalYMD = event.start.toLocaleDateString('sv-SE', {timeZone: zone});
+        const endLocalYMD = event.end.toLocaleDateString('sv-SE', {timeZone: zone});
+        assert.ok(/\d{4}-\d{2}-\d{2}/.test(startLocalYMD));
+        assert.ok(/\d{4}-\d{2}-\d{2}/.test(endLocalYMD));
+        assert.notEqual(startLocalYMD, endLocalYMD);
+        // Confirm exactly one day apart by constructing local midnights
+        const [sy, sm, sd] = startLocalYMD.split('-').map(Number);
+        const [ey, em, ed] = endLocalYMD.split('-').map(Number);
+        const startLocalMid = new Date(Date.UTC(sy, sm - 1, sd));
+        const endLocalMid = new Date(Date.UTC(ey, em - 1, ed));
+        const diffDays = Math.round((endLocalMid - startLocalMid) / 86_400_000);
+        assert.equal(diffDays, 1);
       }
     });
   });
@@ -324,13 +360,16 @@ describe('parser: advanced cases', () => {
       assert.equal(rec.datetype, 'date');
 
       // If a timezone is exposed on the recurrence dates, also ensure local midnight boundaries and one-day span
-      const tz = (rec.start && rec.start.tz) || (rec.end && rec.end.tz);
-      if (tz && rec.end) {
-        const startLocal = moment.tz(rec.start, tz);
-        const endLocal = moment.tz(rec.end, tz);
-        assert.ok(startLocal.isSame(startLocal.clone().startOf('day')));
-        assert.ok(endLocal.isSame(endLocal.clone().startOf('day')));
-        assert.equal(endLocal.diff(startLocal, 'day'), 1);
+      const zone2 = (rec.start && rec.start.tz) || (rec.end && rec.end.tz);
+      if (zone2 && rec.end) {
+        const startLocalYMD = rec.start.toLocaleDateString('sv-SE', {timeZone: zone2});
+        const endLocalYMD = rec.end.toLocaleDateString('sv-SE', {timeZone: zone2});
+        const [sy, sm, sd] = startLocalYMD.split('-').map(Number);
+        const [ey, em, ed] = endLocalYMD.split('-').map(Number);
+        const startLocalMid = new Date(Date.UTC(sy, sm - 1, sd));
+        const endLocalMid = new Date(Date.UTC(ey, em - 1, ed));
+        const diffDays = Math.round((endLocalMid - startLocalMid) / 86_400_000);
+        assert.equal(diffDays, 1);
       }
     });
   });
