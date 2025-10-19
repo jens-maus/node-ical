@@ -13,5 +13,6 @@ test
 .prettierrc.js
 /node_modules
 /build
+/examples
 /*.ics
 appveyor.yml
