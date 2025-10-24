@@ -569,11 +569,7 @@ module.exports = {
             try {
               // If the original date has a TZID, add it
               // BUT: UTC (Etc/UTC, UTC, Etc/GMT) should use ISO format with Z, not TZID
-              const isUtc = curr.start.tz && (
-                curr.start.tz === 'Etc/UTC'
-                || curr.start.tz === 'UTC'
-                || curr.start.tz === 'Etc/GMT'
-              );
+              const isUtc = tzUtil.isUtcTimezone(curr.start.tz);
 
               if (curr.start.tz && !isUtc) {
                 const tzInfo = tzUtil.resolveTZID(curr.start.tz);

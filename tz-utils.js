@@ -663,9 +663,20 @@ module.exports = {
   resolveTZID,
   formatDateForRrule,
   attachTz,
+  isUtcTimezone,
 };
 
 // Expose some internals for testing
 module.exports.__test__ = {
   normalizeMidnightParts,
+  isUtcTimezone,
 };
+
+function isUtcTimezone(tz) {
+  if (!tz) {
+    return false;
+  }
+
+  const tzLower = tz.toLowerCase();
+  return tzLower === 'etc/utc' || tzLower === 'utc' || tzLower === 'etc/gmt';
+}

@@ -111,4 +111,30 @@ describe('unit: tz-utils', () => {
       }
     }
   });
+
+  describe('isUtcTimezone', () => {
+    it('should return false for undefined/null/empty', () => {
+      assert.equal(tz.__test__.isUtcTimezone(undefined), false);
+      assert.equal(tz.__test__.isUtcTimezone(null), false);
+      assert.equal(tz.__test__.isUtcTimezone(''), false);
+    });
+
+    it('should return true for UTC timezones', () => {
+      assert.equal(tz.__test__.isUtcTimezone('Etc/UTC'), true);
+      assert.equal(tz.__test__.isUtcTimezone('UTC'), true);
+      assert.equal(tz.__test__.isUtcTimezone('Etc/GMT'), true);
+    });
+
+    it('should be case insensitive', () => {
+      assert.equal(tz.__test__.isUtcTimezone('etc/utc'), true);
+      assert.equal(tz.__test__.isUtcTimezone('utc'), true);
+      assert.equal(tz.__test__.isUtcTimezone('ETC/GMT'), true);
+    });
+
+    it('should return false for non-UTC timezones', () => {
+      assert.equal(tz.__test__.isUtcTimezone('Europe/Berlin'), false);
+      assert.equal(tz.__test__.isUtcTimezone('America/New_York'), false);
+      assert.equal(tz.__test__.isUtcTimezone('Etc/GMT+1'), false);
+    });
+  });
 });
