@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "date-fns": "^4.1.0",
-    "dayjs": "^1.11.18",
+    "dayjs": "^1.11.19",
     "fast-xml-parser": "^5.2.5",
     "lint-staged": "^16.2.3",
     "luxon": "^3.7.2",
