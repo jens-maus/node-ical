@@ -29,7 +29,7 @@
     "fast-xml-parser": "^5.2.5",
     "lint-staged": "^16.2.3",
     "luxon": "^3.7.2",
-    "mocha": "^11.7.3",
+    "mocha": "^11.7.4",
     "moment-timezone": "^0.6.0",
     "simple-git-hooks": "^2.13.1",
     "xo": "^1.2.2"
