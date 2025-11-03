@@ -162,6 +162,7 @@ declare module 'node-ical' {
     calscale?: 'GREGORIAN' | string;
     method?: Method;
     'WR-CALNAME'?: string;
+    'WR-CALDESC'?: string;
     'WR-TIMEZONE'?: string;
   } & BaseComponent;
 
