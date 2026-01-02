@@ -276,7 +276,7 @@ const categoriesParameter = function (name) {
 // EXDATE is an entry that represents exceptions to a recurrence rule (ex: "repeat every day except on 7/4").
 // The EXDATE entry itself can also contain a comma-separated list, so we make sure to parse each date out separately.
 // There can also be more than one EXDATE entries in a calendar record.
-// Since there can be multiple dates, we create an array of them.  The index into the array is the ISO string of the date itself, for ease of use.
+// Since there can be multiple dates, we create an object of them.  The key is the ISO date string (YYYY-MM-DD) and the value is the Date object, for ease of use.
 // i.e. You can check if ((curr.exdate != undefined) && (curr.exdate[date iso string] != undefined)) to see if a date is an exception.
 // NOTE: This specifically uses date only, and not time.  This is to avoid a few problems:
 //    1. The ISO string with time wouldn't work for "floating dates" (dates without timezones).
@@ -291,7 +291,7 @@ const categoriesParameter = function (name) {
 // TODO: See if this causes any problems with events that recur multiple times a day.
 const exdateParameter = function (name) {
   return function (value, parameters, curr) {
-    curr[name] ||= [];
+    curr[name] ||= {};
     const dates = value ? value.split(',').map(s => s.trim()) : [];
     for (const entry of dates) {
       const exdate = [];

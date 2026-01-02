@@ -70,6 +70,74 @@ describe('parser: advanced cases', () => {
         assert.ok(event.exdate[d.toISOString().slice(0, 10)]);
       }
     });
+
+    it('exdate is a plain object, not an array (test14.ics)', () => {
+      const data = ical.parseFile('./test/test14.ics');
+      const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+      assert.ok(event.exdate);
+
+      // Should be a plain object, not an array
+      assert.equal(typeof event.exdate, 'object');
+      assert.equal(Array.isArray(event.exdate), false);
+
+      // Should have the correct number of keys
+      const keys = Object.keys(event.exdate);
+      assert.equal(keys.length, 4);
+
+      // Should contain the expected dates as keys
+      assert.ok(event.exdate['2017-07-06']);
+      assert.ok(event.exdate['2017-07-17']);
+      assert.ok(event.exdate['2017-07-20']);
+      assert.ok(event.exdate['2017-08-03']);
+
+      // Should be serializable with JSON.stringify
+      const serialized = JSON.stringify(event.exdate);
+      assert.ok(serialized.includes('2017-07-06'));
+      assert.ok(serialized.includes('2017-07-17'));
+      assert.notEqual(serialized, '[]'); // Should not be an empty array
+
+      // Should work with Object.values()
+      const values = Object.values(event.exdate);
+      assert.equal(values.length, 4);
+      for (const value of values) {
+        assert.ok(value instanceof Date);
+      }
+    });
+
+    // Regression test for issue #167: "Exdate showing blank array when EXDATE parameters exist"
+    // https://github.com/jens-maus/node-ical/issues/167
+    it('exdate is not shown as blank/empty array (regression for #167)', () => {
+      const data = ical.parseFile('./test/test14.ics');
+      const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+
+      // The bug was: JSON.stringify showed [] even though data existed
+      const stringified = JSON.stringify(event.exdate);
+      assert.notEqual(stringified, '[]', 'exdate should not stringify to empty array');
+
+      // The bug was: .length was 0 even though dates existed
+      // With the fix, we use Object.keys().length
+      assert.equal(Object.keys(event.exdate).length, 4, 'should have 4 exception dates');
+
+      // Verify the workaround from the issue (Object.values) returns correct data
+      const exdateArray = Object.values(event.exdate);
+      assert.equal(exdateArray.length, 4, 'Object.values should return 4 dates');
+    });
+
+    // Regression test for issue #360: "Recurring events with exclusions are not handled"
+    // https://github.com/jens-maus/node-ical/issues/360
+    it('recurring events with EXDATE exclusions are properly parsed (regression for #360)', () => {
+      const data = ical.parseFile('./test/test14.ics');
+      const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+
+      // The bug was: parseIcs ignored exceptions and created exdate: []
+      assert.ok(event.exdate, 'exdate should exist');
+      assert.notEqual(Object.keys(event.exdate).length, 0, 'exdate should not be empty');
+
+      // Verify lookup pattern from issue comments works: event.exdate[dateKey]
+      const dateLookupKey = '2017-07-06';
+      assert.ok(event.exdate[dateLookupKey], 'Lookup pattern event.exdate[dateKey] should work');
+      assert.ok(event.exdate[dateLookupKey] instanceof Date, 'Lookup should return Date object');
+    });
   });
 
   // Test15.ics – Microsoft Exchange timezone naming
