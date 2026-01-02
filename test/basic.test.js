@@ -104,7 +104,7 @@ describe('parser: basic cases', () => {
       assert_.equal(first.start.toISOString(), new Date(2011, 7, 4, 0, 0, 0).toISOString());
       const recur = findItem(values(data), x => x.summary === 'foobarTV broadcast starts');
       assert_.ok(recur.rrule);
-      assert_.equal(recur.rrule.toText(), 'every 5 weeks on Monday, Friday until January 30, 2013');
+      assert_.equal(recur.rrule.toText(), 'every 5 weeks on Monday and Friday until January 30, 2013');
     });
 
     it('handles RRULE with DTSTART (test7.ics)', () => {
@@ -112,6 +112,177 @@ describe('parser: basic cases', () => {
       const ev = values(data)[0];
       const dates = ev.rrule.between(new Date(2013, 0, 1), new Date(2014, 0, 1));
       assert_.equal(dates[0].toDateString(), new Date(2013, 6, 14).toDateString());
+    });
+
+    const adelaideRecurringICS = `BEGIN:VCALENDAR
+PRODID:-//Google Inc//Google Calendar 70.9054//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-TIMEZONE:Australia/Adelaide
+BEGIN:VTIMEZONE
+TZID:Australia/Adelaide
+X-LIC-LOCATION:Australia/Adelaide
+BEGIN:STANDARD
+TZOFFSETFROM:+1030
+TZOFFSETTO:+0930
+TZNAME:ACST
+DTSTART:19700405T030000
+RRULE:FREQ=YEARLY;BYMONTH=4;BYDAY=1SU
+END:STANDARD
+BEGIN:DAYLIGHT
+TZOFFSETFROM:+0930
+TZOFFSETTO:+1030
+TZNAME:ACDT
+DTSTART:19701004T020000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=1SU
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;TZID=Australia/Adelaide:20210401T093000
+DTEND;TZID=Australia/Adelaide:20210401T120000
+RRULE:FREQ=WEEKLY;WKST=MO;UNTIL=20220506T142959Z;BYDAY=TH
+DTSTAMP:20210402T040825Z
+UID:7c0kkru5hanmevkt92q9cgu9ik@google.com
+CREATED:20210218T020324Z
+SUMMARY:clear space
+END:VEVENT
+END:VCALENDAR`;
+
+    const parseAdelaideRecurringEvent = () => {
+      const data = ical.parseICS(adelaideRecurringICS);
+      const event = findItem(values(data), item => item.type === 'VEVENT');
+
+      return {data, event};
+    };
+
+    it('parses DTSTART correctly for DST recurring events', () => {
+      const {event} = parseAdelaideRecurringEvent();
+
+      assert_.ok(event, 'Event should be parsed');
+      assert_.ok(event.start, 'Event should have start date');
+
+      // DTSTART is 2021-04-01 09:30 in Adelaide
+      // Adelaide is UTC+10:30 (daylight time) before DST change on April 4, 2021
+      // So 09:30 Adelaide = 23:00 UTC (previous day)
+      assert_.equal(
+        event.start.toISOString(),
+        '2021-03-31T23:00:00.000Z',
+        'DTSTART should be correctly parsed as UTC',
+      );
+      assert_.equal(event.start.tz, 'Australia/Adelaide', 'Timezone should be preserved');
+    });
+
+    it('expands RRULE with correct times across DST change', () => {
+      const {event} = parseAdelaideRecurringEvent();
+
+      assert_.ok(event.rrule, 'Event should have RRULE');
+
+      const occurrences = event.rrule.between(
+        new Date('2021-03-01T00:00:00Z'),
+        new Date('2021-05-01T00:00:00Z'),
+        true,
+      );
+
+      assert_.ok(occurrences.length >= 4, 'Should have at least 4 occurrences');
+
+      // Expected times in UTC:
+      // - 2021-04-01 09:30 Adelaide = 2021-03-31 23:00 UTC (before DST, Adelaide is UTC+10:30)
+      // - 2021-04-08 09:30 Adelaide = 2021-04-08 00:00 UTC (after DST, Adelaide is UTC+9:30)
+      // - 2021-04-15 09:30 Adelaide = 2021-04-15 00:00 UTC (after DST)
+      // - 2021-04-22 09:30 Adelaide = 2021-04-22 00:00 UTC (after DST)
+
+      // Note: DST change in Adelaide 2021 was on April 4 at 3:00 AM → 2:00 AM (clocks back)
+      // This transitions from UTC+10:30 (daylight) to UTC+9:30 (standard)
+
+      assert_.equal(
+        occurrences[0].toISOString(),
+        '2021-03-31T23:00:00.000Z',
+        'First occurrence (before DST) should be at correct UTC time',
+      );
+
+      assert_.equal(
+        occurrences[1].toISOString(),
+        '2021-04-08T00:00:00.000Z',
+        'Second occurrence (after DST) should be at correct UTC time',
+      );
+
+      assert_.equal(
+        occurrences[2].toISOString(),
+        '2021-04-15T00:00:00.000Z',
+        'Third occurrence (after DST) should be at correct UTC time',
+      );
+
+      assert_.equal(
+        occurrences[3].toISOString(),
+        '2021-04-22T00:00:00.000Z',
+        'Fourth occurrence (after DST) should be at correct UTC time',
+      );
+    });
+
+    it('maintains consistent local time across DST change', () => {
+      // Test that recurrence times maintain local wall-clock time (09:30) across DST changes
+      const {event} = parseAdelaideRecurringEvent();
+
+      const occurrences = event.rrule.between(
+        new Date('2021-03-01T00:00:00Z'),
+        new Date('2021-05-01T00:00:00Z'),
+        true,
+      );
+
+      // All occurrences should be at 09:30 Adelaide local time
+      for (const [index, occurrence] of occurrences.slice(0, 5).entries()) {
+        const adelaideTime = occurrence.toLocaleString('en-US', {
+          timeZone: 'Australia/Adelaide',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+
+        assert_.equal(
+          adelaideTime,
+          '09:30',
+          `Occurrence ${index + 1} should be at 09:30 Adelaide time, got ${adelaideTime}`,
+        );
+      }
+    });
+
+    it('parses RRULE with inline DTSTART and preserves BYDAY/COUNT', () => {
+      const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//rrule-inline-dtstart//EN
+BEGIN:VEVENT
+UID:rrule-inline-dtstart@test
+DTSTART:20240101T100000Z
+RRULE:FREQ=WEEKLY;DTSTART=20240101T100000Z;BYDAY=MO,FR;COUNT=4
+SUMMARY:Inline DTSTART in RRULE
+END:VEVENT
+END:VCALENDAR`;
+
+      const data = ical.parseICS(ics);
+      const event = findItem(values(data), item => item.type === 'VEVENT');
+
+      assert_.ok(event && event.rrule, 'Event should have an RRULE');
+
+      // BYDAY should still apply (Monday and Friday), COUNT should be kept at 4
+      const occurrences = event.rrule.all();
+      assert_.equal(occurrences.length, 4, 'RRULE COUNT=4 should produce 4 occurrences');
+
+      const isoDates = occurrences.map(d => d.toISOString());
+      assert_.deepEqual(
+        isoDates,
+        [
+          '2024-01-01T10:00:00.000Z', // Monday
+          '2024-01-05T10:00:00.000Z', // Friday
+          '2024-01-08T10:00:00.000Z', // Monday
+          '2024-01-12T10:00:00.000Z', // Friday
+        ],
+        'BYDAY MO,FR should be preserved when DTSTART is inline in RRULE',
+      );
+
+      // Wrapper should surface count in options for compatibility
+      assert_.equal(event.rrule.options.count, 4, 'options.count should be preserved');
+      assert_.deepEqual(event.rrule.options.byweekday, ['MO', 'FR'], 'BYDAY should be preserved');
     });
   });
 
