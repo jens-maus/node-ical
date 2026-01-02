@@ -89,6 +89,14 @@ class RRuleCompatWrapper {
   get options() {
     return this.#serializeOptions();
   }
+
+  // OrigOptions: the original options as passed to the constructor (before processing).
+  // In rrule.js, this was used for toString() and clone() operations.
+  // For rrule-temporal, options() already returns the unprocessed original options,
+  // so origOptions and options are equivalent.
+  get origOptions() {
+    return this.#serializeOptions();
+  }
 }
 
 /** **************
