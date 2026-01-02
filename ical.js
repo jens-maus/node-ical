@@ -700,77 +700,64 @@ module.exports = {
 
         // Create RRuleTemporal with separate DTSTART and RRULE parameters
         if (curr.start) {
-          try {
-            // Extract RRULE segments while preserving everything except inline DTSTART
-            const segments = rule.split(';');
-            const filteredSegments = [];
+          // Extract RRULE segments while preserving everything except inline DTSTART
+          const segments = rule.split(';');
+          const filteredSegments = [];
 
-            for (const segment of segments) {
-              if (segment.startsWith('DTSTART')) {
-                continue;
-              }
-
-              filteredSegments.push(segment);
+          for (const segment of segments) {
+            if (segment.startsWith('DTSTART')) {
+              continue;
             }
 
-            const rruleOnly = filteredSegments.join(';');
+            filteredSegments.push(segment);
+          }
 
-            // Convert curr.start (Date) to Temporal.ZonedDateTime
-            let dtstartTemporal;
+          const rruleOnly = filteredSegments.join(';');
 
-            if (curr.start.tz) {
-              // Has timezone - use Intl to get the local wall-clock time in that timezone
-              const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-              const timeZone = tzInfo?.tzid || tzInfo?.iana || curr.start.tz || 'UTC';
+          // Convert curr.start (Date) to Temporal.ZonedDateTime
+          let dtstartTemporal;
 
-              try {
-                // Extract local time components in the target timezone.
-                // We use Intl.DateTimeFormat because curr.start is a Date in UTC but represents
-                // wall-clock time in the event's timezone.
-                const formatter = new Intl.DateTimeFormat('en-US', {
-                  timeZone,
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: 'numeric',
-                  second: 'numeric',
-                  hour12: false,
-                });
+          if (curr.start.tz) {
+            // Has timezone - use Intl to get the local wall-clock time in that timezone
+            const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+            const timeZone = tzInfo?.tzid || tzInfo?.iana || curr.start.tz || 'UTC';
 
-                const parts = formatter.formatToParts(curr.start);
-                const partMap = {};
-                for (const part of parts) {
-                  if (part.type !== 'literal') {
-                    partMap[part.type] = Number.parseInt(part.value, 10);
-                  }
+            try {
+              // Extract local time components in the target timezone.
+              // We use Intl.DateTimeFormat because curr.start is a Date in UTC but represents
+              // wall-clock time in the event's timezone.
+              const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone,
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+                hour12: false,
+              });
+
+              const parts = formatter.formatToParts(curr.start);
+              const partMap = {};
+              for (const part of parts) {
+                if (part.type !== 'literal') {
+                  partMap[part.type] = Number.parseInt(part.value, 10);
                 }
-
-                // Create a PlainDateTime from the local time components
-                const plainDateTime = Temporal.PlainDateTime.from({
-                  year: partMap.year,
-                  month: partMap.month,
-                  day: partMap.day,
-                  hour: partMap.hour,
-                  minute: partMap.minute,
-                  second: partMap.second,
-                });
-
-                dtstartTemporal = plainDateTime.toZonedDateTime(timeZone, {disambiguation: 'compatible'});
-              } catch {
-                // Invalid timezone - fall back to UTC interpretation
-                dtstartTemporal = Temporal.ZonedDateTime.from({
-                  year: curr.start.getUTCFullYear(),
-                  month: curr.start.getUTCMonth() + 1,
-                  day: curr.start.getUTCDate(),
-                  hour: curr.start.getUTCHours(),
-                  minute: curr.start.getUTCMinutes(),
-                  second: curr.start.getUTCSeconds(),
-                  timeZone: 'UTC',
-                });
               }
-            } else {
-              // No timezone - use UTC
+
+              // Create a PlainDateTime from the local time components
+              const plainDateTime = Temporal.PlainDateTime.from({
+                year: partMap.year,
+                month: partMap.month,
+                day: partMap.day,
+                hour: partMap.hour,
+                minute: partMap.minute,
+                second: partMap.second,
+              });
+
+              dtstartTemporal = plainDateTime.toZonedDateTime(timeZone, {disambiguation: 'compatible'});
+            } catch {
+              // Invalid timezone - fall back to UTC interpretation
               dtstartTemporal = Temporal.ZonedDateTime.from({
                 year: curr.start.getUTCFullYear(),
                 month: curr.start.getUTCMonth() + 1,
@@ -781,16 +768,25 @@ module.exports = {
                 timeZone: 'UTC',
               });
             }
-
-            const rruleTemporal = new RRuleTemporal({
-              rruleString: rruleOnly,
-              dtstart: dtstartTemporal,
+          } else {
+            // No timezone - use UTC
+            dtstartTemporal = Temporal.ZonedDateTime.from({
+              year: curr.start.getUTCFullYear(),
+              month: curr.start.getUTCMonth() + 1,
+              day: curr.start.getUTCDate(),
+              hour: curr.start.getUTCHours(),
+              minute: curr.start.getUTCMinutes(),
+              second: curr.start.getUTCSeconds(),
+              timeZone: 'UTC',
             });
-
-            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
-          } catch (error) {
-            throw error;
           }
+
+          const rruleTemporal = new RRuleTemporal({
+            rruleString: rruleOnly,
+            dtstart: dtstartTemporal,
+          });
+
+          curr.rrule = new RRuleCompatWrapper(rruleTemporal);
         }
       }
 
