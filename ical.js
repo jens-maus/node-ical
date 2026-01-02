@@ -701,18 +701,9 @@ module.exports = {
         // Create RRuleTemporal with separate DTSTART and RRULE parameters
         if (curr.start) {
           // Extract RRULE segments while preserving everything except inline DTSTART
-          const segments = rule.split(';');
-          const filteredSegments = [];
-
-          for (const segment of segments) {
-            if (segment.startsWith('DTSTART')) {
-              continue;
-            }
-
-            filteredSegments.push(segment);
-          }
-
-          const rruleOnly = filteredSegments.join(';');
+          const rruleOnly = rule.split(';')
+            .filter(segment => !segment.startsWith('DTSTART'))
+            .join(';');
 
           // Convert curr.start (Date) to Temporal.ZonedDateTime
           let dtstartTemporal;
