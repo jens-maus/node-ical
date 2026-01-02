@@ -31,20 +31,8 @@ class RRuleCompatWrapper {
     }
 
     // Convert known Temporal instances to Date
-    if (typeof value === 'object' && !(value instanceof Date)) {
-      if (typeof value.epochMilliseconds === 'number') {
-        return new Date(value.epochMilliseconds);
-      }
-
-      // Handle iterable containers such as Set
-      if (value instanceof Set) {
-        const converted = [];
-        for (const item of value) {
-          converted.push(RRuleCompatWrapper.#temporalToDate(item));
-        }
-
-        return converted;
-      }
+    if (typeof value === 'object' && !(value instanceof Date) && typeof value.epochMilliseconds === 'number') {
+      return new Date(value.epochMilliseconds);
     }
 
     return value;
