@@ -1,8 +1,107 @@
-/* eslint-disable max-depth, max-params, no-warning-comments, complexity */
+/* eslint-disable max-depth, max-params, no-warning-comments, complexity, import-x/order */
 
 const {randomUUID} = require('node:crypto');
-const rrule = require('rrule').RRule;
+
+// Load Temporal polyfill if not natively available
+// TODO: Drop the polyfill branch once our minimum Node version ships Temporal
+const Temporal = globalThis.Temporal || require('@js-temporal/polyfill').Temporal;
+// Ensure Temporal exists before loading rrule-temporal
+globalThis.Temporal ??= Temporal;
+
+const {RRuleTemporal} = require('rrule-temporal');
+const {toText: toTextFunction} = require('rrule-temporal/totext');
 const tzUtil = require('./tz-utils.js');
+
+/**
+ * Wrapper class to convert RRuleTemporal (Temporal.ZonedDateTime) to Date objects
+ * This maintains backward compatibility while using rrule-temporal internally
+ */
+class RRuleCompatWrapper {
+  constructor(rruleTemporal) {
+    this._rrule = rruleTemporal;
+  }
+
+  static #temporalToDate(value) {
+    if (value === undefined || value === null) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map(item => RRuleCompatWrapper.#temporalToDate(item));
+    }
+
+    // Convert known Temporal instances to Date
+    if (typeof value === 'object' && !(value instanceof Date)) {
+      if (typeof value.epochMilliseconds === 'number') {
+        return new Date(value.epochMilliseconds);
+      }
+
+      // Handle iterable containers such as Set
+      if (value instanceof Set) {
+        const converted = [];
+        for (const item of value) {
+          converted.push(RRuleCompatWrapper.#temporalToDate(item));
+        }
+
+        return converted;
+      }
+    }
+
+    return value;
+  }
+
+  #serializeOptions() {
+    const raw = this._rrule.options();
+    const converted = {};
+
+    for (const [key, value] of Object.entries(raw)) {
+      converted[key] = RRuleCompatWrapper.#temporalToDate(value);
+    }
+
+    // Map rrule-temporal `byDay` to legacy `byweekday`
+    if (converted.byweekday === undefined && raw.byDay !== undefined) {
+      converted.byweekday = RRuleCompatWrapper.#temporalToDate(raw.byDay);
+    }
+
+    return converted;
+  }
+
+  between(after, before, inclusive = false) {
+    const results = this._rrule.between(after, before, inclusive);
+    // Convert Temporal.ZonedDateTime → Date
+    return results.map(zdt => new Date(zdt.epochMilliseconds));
+  }
+
+  all(iterator) {
+    const results = this._rrule.all(iterator);
+    return results.map(zdt => new Date(zdt.epochMilliseconds));
+  }
+
+  before(date, inclusive = false) {
+    const result = this._rrule.before(date, inclusive);
+    return result ? new Date(result.epochMilliseconds) : null;
+  }
+
+  after(date, inclusive = false) {
+    const result = this._rrule.after(date, inclusive);
+    return result ? new Date(result.epochMilliseconds) : null;
+  }
+
+  toText(locale) {
+    return toTextFunction(this._rrule, locale);
+  }
+
+  // Delegate other methods
+  toString() {
+    return this._rrule.toString();
+  }
+
+  // Expose options as a property for compatibility with the old rrule.js API
+  // (the wrapper hides the underlying method-based interface)
+  get options() {
+    return this.#serializeOptions();
+  }
+}
 
 /** **************
  *  A tolerant, minimal icalendar parser
@@ -599,11 +698,99 @@ module.exports = {
           }
         }
 
-        // Make sure to catch error from rrule.fromString()
-        try {
-          curr.rrule = rrule.fromString(rule);
-        } catch (error) {
-          throw error;
+        // Create RRuleTemporal with separate DTSTART and RRULE parameters
+        if (curr.start) {
+          try {
+            // Extract RRULE segments while preserving everything except inline DTSTART
+            const segments = rule.split(';');
+            const filteredSegments = [];
+
+            for (const segment of segments) {
+              if (segment.startsWith('DTSTART')) {
+                continue;
+              }
+
+              filteredSegments.push(segment);
+            }
+
+            const rruleOnly = filteredSegments.join(';');
+
+            // Convert curr.start (Date) to Temporal.ZonedDateTime
+            let dtstartTemporal;
+
+            if (curr.start.tz) {
+              // Has timezone - use Intl to get the local wall-clock time in that timezone
+              const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+              const timeZone = tzInfo?.tzid || tzInfo?.iana || curr.start.tz || 'UTC';
+
+              try {
+                // Extract local time components in the target timezone.
+                // We use Intl.DateTimeFormat because curr.start is a Date in UTC but represents
+                // wall-clock time in the event's timezone.
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                  timeZone,
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  second: 'numeric',
+                  hour12: false,
+                });
+
+                const parts = formatter.formatToParts(curr.start);
+                const partMap = {};
+                for (const part of parts) {
+                  if (part.type !== 'literal') {
+                    partMap[part.type] = Number.parseInt(part.value, 10);
+                  }
+                }
+
+                // Create a PlainDateTime from the local time components
+                const plainDateTime = Temporal.PlainDateTime.from({
+                  year: partMap.year,
+                  month: partMap.month,
+                  day: partMap.day,
+                  hour: partMap.hour,
+                  minute: partMap.minute,
+                  second: partMap.second,
+                });
+
+                dtstartTemporal = plainDateTime.toZonedDateTime(timeZone, {disambiguation: 'compatible'});
+              } catch {
+                // Invalid timezone - fall back to UTC interpretation
+                dtstartTemporal = Temporal.ZonedDateTime.from({
+                  year: curr.start.getUTCFullYear(),
+                  month: curr.start.getUTCMonth() + 1,
+                  day: curr.start.getUTCDate(),
+                  hour: curr.start.getUTCHours(),
+                  minute: curr.start.getUTCMinutes(),
+                  second: curr.start.getUTCSeconds(),
+                  timeZone: 'UTC',
+                });
+              }
+            } else {
+              // No timezone - use UTC
+              dtstartTemporal = Temporal.ZonedDateTime.from({
+                year: curr.start.getUTCFullYear(),
+                month: curr.start.getUTCMonth() + 1,
+                day: curr.start.getUTCDate(),
+                hour: curr.start.getUTCHours(),
+                minute: curr.start.getUTCMinutes(),
+                second: curr.start.getUTCSeconds(),
+                timeZone: 'UTC',
+              });
+            }
+
+            const rruleTemporal = new RRuleTemporal({
+              rruleString: rruleOnly,
+              dtstart: dtstartTemporal,
+            });
+
+            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
+          } catch (error) {
+            throw error;
+          }
         }
       }
 
