@@ -735,8 +735,9 @@ module.exports = {
               });
 
               dtstartTemporal = plainDateTime.toZonedDateTime(timeZone, {disambiguation: 'compatible'});
-            } catch {
+            } catch (error) {
               // Invalid timezone - fall back to UTC interpretation
+              console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error.message}`);
               dtstartTemporal = Temporal.ZonedDateTime.from({
                 year: curr.start.getUTCFullYear(),
                 month: curr.start.getUTCMonth() + 1,
