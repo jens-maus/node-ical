@@ -1,21 +1,21 @@
 title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
-startDate:Thursday, June 1, 2017 18:00
-endDate:Friday, June 2, 2017 02:00
+startDate:Thursday, June 1, 2017 16:00
+endDate:Friday, June 2, 2017 00:00
 duration:8:00 hours
 
 title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
-startDate:Thursday, June 8, 2017 18:00
-endDate:Friday, June 9, 2017 02:00
+startDate:Thursday, June 8, 2017 16:00
+endDate:Friday, June 9, 2017 00:00
 duration:8:00 hours
 
 title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
-startDate:Thursday, June 15, 2017 18:00
-endDate:Friday, June 16, 2017 02:00
+startDate:Thursday, June 15, 2017 16:00
+endDate:Friday, June 16, 2017 00:00
 duration:8:00 hours
 
 title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
-startDate:Thursday, June 22, 2017 18:00
-endDate:Friday, June 23, 2017 02:00
+startDate:Thursday, June 22, 2017 16:00
+endDate:Friday, June 23, 2017 00:00
 duration:8:00 hours
 
 title:Last meeting in June moved to Monday July 3 and shortened to half day
@@ -24,16 +24,17 @@ endDate:Monday, July 3, 2017 19:00
 duration:3:00 hours
 
 title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
-startDate:Thursday, July 27, 2017 18:00
-endDate:Friday, July 28, 2017 02:00
+startDate:Thursday, July 27, 2017 16:00
+endDate:Friday, July 28, 2017 00:00
 duration:8:00 hours
 
 title:Recurring weekly meeting from June 1 - Aug 14 (except July 6, July 13, July 20, Aug 3)
-startDate:Thursday, August 10, 2017 18:00
-endDate:Friday, August 11, 2017 02:00
+startDate:Thursday, August 10, 2017 16:00
+endDate:Friday, August 11, 2017 00:00
 duration:8:00 hours
 
 title:Single event on Dec 1
 startDate:Friday, December 1, 2017 20:00
 endDate:Friday, December 1, 2017 22:00
 duration:2:00 hours
+

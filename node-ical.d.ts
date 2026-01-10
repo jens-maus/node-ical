@@ -1,5 +1,17 @@
 declare module 'node-ical' {
-  import {type RRule} from 'rrule';
+  /**
+   * Compatibility wrapper returned by node-ical (RRULE results are Date-based).
+   * Mirrors the public surface of the internal RRuleCompatWrapper.
+   */
+  export type RRule = {
+    options: Record<string, unknown> & {byweekday?: Array<string | number>};
+    between: (after: Date, before: Date, inclusive?: boolean) => Date[];
+    all: (iterator?: (date: Date, index: number) => boolean | void) => Date[];
+    before: (date: Date, inclusive?: boolean) => Date | undefined;
+    after: (date: Date, inclusive?: boolean) => Date | undefined;
+    toText: (locale?: string) => string;
+    toString: () => string;
+  };
 
   /**
    * Minimal Fetch options type (subset of RequestInit) to avoid requiring DOM lib.
