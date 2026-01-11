@@ -436,6 +436,30 @@ END:VCALENDAR`;
       assert.equal(event.end.toDateString(), new Date(2024, 1, 22).toDateString());
     });
 
+    // Test parameterized DURATION (shape-safety)
+    it('handles parameterized DURATION values', () => {
+      const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:parameterized-duration-test
+DTSTART:20250101T120000Z
+DURATION;X-CUSTOM=foo:P1D
+SUMMARY:Test Parameterized Duration
+END:VEVENT
+END:VCALENDAR`;
+
+      const data = ical.parseICS(ics);
+      const event = Object.values(data).find(x => x.type === 'VEVENT');
+
+      assert.ok(event, 'Event should be parsed');
+      assert.ok(event.start instanceof Date, 'Start should be a Date');
+      assert.ok(event.end instanceof Date, 'End should be a Date');
+
+      // Should add 1 day despite having parameters
+      const expectedEnd = new Date(event.start.getTime() + (24 * 60 * 60 * 1000));
+      assert.equal(event.end.toISOString(), expectedEnd.toISOString());
+    });
+
     // Issue #381 – empty DURATION:P should not crash
     it('handles empty duration DURATION:P gracefully (issue #381)', () => {
       const ics = `BEGIN:VCALENDAR
