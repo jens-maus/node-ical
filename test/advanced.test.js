@@ -455,6 +455,10 @@ END:VCALENDAR`;
       // Instead: treat empty/invalid duration as zero duration (end = start)
       // This follows Postel's Law: "be liberal in what you accept"
 
+      // Stub console.warn to keep test output clean
+      const originalWarn = console.warn;
+      console.warn = () => {};
+
       const data = ical.parseICS(ics);
       const event = Object.values(data).find(x => x.type === 'VEVENT');
 
@@ -469,10 +473,17 @@ END:VCALENDAR`;
         event.start.toISOString(),
         'End should equal start for invalid DURATION:P (zero duration)',
       );
+
+      // Restore console.warn
+      console.warn = originalWarn;
     });
 
     // Additional test: Multiple invalid duration formats should be handled
     it('handles various malformed DURATION values gracefully', () => {
+      // Stub console.warn to keep test output clean
+      const originalWarn = console.warn;
+      console.warn = () => {};
+
       const testCases = [
         // Malformed / invalid durations → should be treated as zero duration
         {duration: 'P', summary: 'Empty P', expected: 'zero'},
@@ -488,11 +499,11 @@ END:VCALENDAR`;
         {duration: 'P1DT2H', summary: 'One day two hours', expected: '1d2h'}, // Day + hours
       ];
 
-      for (const testCase of testCases) {
+      for (const [i, testCase] of testCases.entries()) {
         const ics = `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
-UID:malformed-${testCase.summary}
+UID:malformed-${i}
 DTSTART:20250706T160000Z
 DURATION:${testCase.duration}
 SUMMARY:${testCase.summary}
@@ -567,6 +578,9 @@ END:VCALENDAR`;
           }
         }
       }
+
+      // Restore console.warn
+      console.warn = originalWarn;
     });
   });
 
