@@ -705,7 +705,11 @@ module.exports = {
           // RFC 5545 requires UNTIL to be UTC when DTSTART has a timezone,
           // but some CalDAV servers send invalid data. We normalize it here.
           if (curr.start.tz && rruleOnly.includes('UNTIL=')) {
-            const untilMatch = rruleOnly.match(/UNTIL=(\d{8}T\d{6}Z?)/);
+            // Regex patterns for UNTIL normalization
+            const UNTIL_DATETIME_PATTERN = /UNTIL=(\d{8}T\d{6}Z?)/;
+            const UNTIL_DATETIME_NO_UTC_PATTERN = /UNTIL=\d{8}T\d{6}/;
+
+            const untilMatch = rruleOnly.match(UNTIL_DATETIME_PATTERN);
             if (untilMatch && !untilMatch[1].endsWith('Z')) {
               // E.g., "20241231T100000"
               const untilLocal = untilMatch[1];
@@ -728,7 +732,7 @@ module.exports = {
                     .replace(/\.\d{3}/, '');
 
                   // Replace in RRULE string
-                  rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}/, `UNTIL=${untilUtc}`);
+                  rruleOnly = rruleOnly.replace(UNTIL_DATETIME_NO_UTC_PATTERN, `UNTIL=${untilUtc}`);
                 }
               } catch (error) {
                 // If conversion fails, log warning but don't break parsing
