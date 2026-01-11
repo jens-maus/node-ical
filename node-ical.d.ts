@@ -152,6 +152,19 @@ declare module 'node-ical' {
     lastmodified: DateWithTimeZone;
     rrule?: RRule;
     attendee?: Attendee[] | Attendee;
+    /**
+     * Modified instances of recurring events (RECURRENCE-ID overrides).
+     * Uses dual-key approach for RFC 5545 compliance:
+     * - Date-only key (YYYY-MM-DD) for simple lookups
+     * - Full ISO timestamp key for DATE-TIME recurrence instances
+     * Both keys reference the same event object.
+     *
+     * @example
+     * // Access recurrence by date
+     * const override = event.recurrences?.['2024-07-15'];
+     * // Access recurrence by specific time
+     * const override = event.recurrences?.['2024-07-15T14:00:00.000Z'];
+     */
     recurrences?: Record<string, Omit<VEvent, 'recurrences'>>;
     status?: VEventStatus;
 

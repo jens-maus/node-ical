@@ -14,8 +14,8 @@ const tzUtil = require('./tz-utils.js');
 
 /**
  * Construct a date-only key (YYYY-MM-DD) from a Date object.
- * For date-only events, uses local components to avoid UTC shift.
- * For date-time events, extracts date from UTC ISO string.
+ * For date-only events, uses local date components to avoid timezone shifts.
+ * For date-time events, extracts the date portion from the ISO timestamp.
  * @param {Date} dateValue - Date object with optional dateOnly property
  * @returns {string} Date key in YYYY-MM-DD format
  */
@@ -637,7 +637,7 @@ module.exports = {
                 par[curr.uid].recurrences[isoString] = recurrenceObject;
               }
             } else {
-              console.error(`[node-ical] No toISOString function in recurrenceid: ${curr.recurrenceid}`);
+              console.warn(`[node-ical] No toISOString function in recurrenceid: ${curr.recurrenceid}`);
               // Skip malformed recurrence-id entries to avoid storing invalid keys
             }
           }
