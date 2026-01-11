@@ -19,13 +19,46 @@ const tzUtil = require('./tz-utils.js');
  * @param {Date} dateValue - Date object with optional dateOnly property
  * @returns {string} Date key in YYYY-MM-DD format
  */
-const getDateKey = function (dateValue) {
+function getDateKey(dateValue) {
   if (dateValue.dateOnly) {
     return `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
   }
 
   return dateValue.toISOString().slice(0, 10);
-};
+}
+
+/**
+ * Clone a Date object and preserve custom metadata (tz, dateOnly).
+ * @param {Date} source - Source Date object with optional tz and dateOnly properties
+ * @param {Date|number} newTime - New time value (defaults to source)
+ * @returns {Date} Cloned Date with preserved metadata
+ */
+function cloneDateWithMeta(source, newTime = source) {
+  const cloned = new Date(newTime);
+
+  if (source?.tz) {
+    cloned.tz = source.tz;
+  }
+
+  if (source?.dateOnly) {
+    cloned.dateOnly = source.dateOnly;
+  }
+
+  return cloned;
+}
+
+/**
+ * Extract string value from DURATION (handles {params, val} shape).
+ * @param {string|object} duration - Duration value (string or object with val property)
+ * @returns {string} Duration string
+ */
+function getDurationString(duration) {
+  if (typeof duration === 'object' && duration?.val) {
+    return String(duration.val);
+  }
+
+  return duration ? String(duration) : '';
+}
 
 /**
  * Wrapper class to convert RRuleTemporal (Temporal.ZonedDateTime) to Date objects
@@ -522,33 +555,6 @@ module.exports = {
         const par = stack.pop();
 
         if (!curr.end) { // RFC5545, 3.6.1
-          // Helper: clone a Date and preserve custom metadata (tz, dateOnly)
-          const cloneDateWithMeta = (source, newTime = source) => {
-            const cloned = new Date(newTime);
-            if (source?.tz) {
-              cloned.tz = source.tz;
-            }
-
-            if (source?.dateOnly) {
-              cloned.dateOnly = source.dateOnly;
-            }
-
-            return cloned;
-          };
-
-          // Helper: extract string value from DURATION (handles {params, val} shape)
-          const getDurationString = duration => {
-            if (typeof duration === 'object' && duration?.val) {
-              return String(duration.val);
-            }
-
-            if (duration) {
-              return String(duration);
-            }
-
-            return '';
-          };
-
           // Calculate end date based on DURATION or default rules
           if (curr.duration === undefined) {
             // No DURATION: default end is same time (date-time) or +1 day (date-only)
