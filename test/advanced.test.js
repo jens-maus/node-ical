@@ -435,6 +435,139 @@ END:VCALENDAR`;
       assert.equal(event.start.toDateString(), new Date(2024, 1, 15).toDateString());
       assert.equal(event.end.toDateString(), new Date(2024, 1, 22).toDateString());
     });
+
+    // Issue #381 – empty DURATION:P should not crash
+    it('handles empty duration DURATION:P gracefully (issue #381)', () => {
+      const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VEVENT
+UID:empty-duration-test
+DTSTART:20250706T160000Z
+DURATION:P
+SUMMARY:Travels
+STATUS:CONFIRMED
+DTSTAMP:20250525T092115Z
+END:VEVENT
+END:VCALENDAR`;
+
+      // Ideal behavior: Parser should NOT crash or throw for malformed DURATION
+      // Instead: treat empty/invalid duration as zero duration (end = start)
+      // This follows Postel's Law: "be liberal in what you accept"
+
+      const data = ical.parseICS(ics);
+      const event = Object.values(data).find(x => x.type === 'VEVENT');
+
+      assert.ok(event, 'Event should be parsed despite invalid DURATION:P');
+      assert.equal(event.summary, 'Travels');
+      assert.ok(event.start instanceof Date, 'Start should be a Date');
+      assert.ok(event.end instanceof Date, 'End should be a Date');
+
+      // Invalid/empty duration should be treated as zero duration
+      assert.equal(
+        event.end.toISOString(),
+        event.start.toISOString(),
+        'End should equal start for invalid DURATION:P (zero duration)',
+      );
+    });
+
+    // Additional test: Multiple invalid duration formats should be handled
+    it('handles various malformed DURATION values gracefully', () => {
+      const testCases = [
+        // Malformed / invalid durations → should be treated as zero duration
+        {duration: 'P', summary: 'Empty P', expected: 'zero'},
+        {duration: 'PT', summary: 'Empty PT', expected: 'zero'},
+        {duration: 'INVALID', summary: 'Invalid text', expected: 'zero'},
+        {duration: '', summary: 'Empty string', expected: 'zero'},
+        // Valid durations
+        {duration: 'PT0S', summary: 'Zero duration', expected: 'zero'}, // Valid zero
+        {duration: 'P0D', summary: 'Zero days', expected: 'zero'}, // Valid zero (days)
+        {duration: 'P1D', summary: 'One day', expected: 'oneday'}, // Valid one day
+        {duration: '-P1D', summary: 'Negative one day', expected: 'negoneday'}, // Negative duration
+        {duration: 'PT1H30M', summary: 'One hour thirty minutes', expected: '1h30m'}, // Combined
+        {duration: 'P1DT2H', summary: 'One day two hours', expected: '1d2h'}, // Day + hours
+      ];
+
+      for (const testCase of testCases) {
+        const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:malformed-${testCase.summary}
+DTSTART:20250706T160000Z
+DURATION:${testCase.duration}
+SUMMARY:${testCase.summary}
+END:VEVENT
+END:VCALENDAR`;
+
+        // All durations should parse without throwing
+        const data = ical.parseICS(ics);
+        const event = Object.values(data).find(x => x.type === 'VEVENT');
+
+        assert.ok(event, `Event should be parsed for DURATION:${testCase.duration}`);
+        assert.ok(event.start instanceof Date, 'Start should be a Date');
+        assert.ok(event.end instanceof Date, 'End should be a Date');
+
+        switch (testCase.expected) {
+          case 'zero': {
+            // Invalid or zero durations: end should equal start
+            assert.equal(
+              event.end.toISOString(),
+              event.start.toISOString(),
+              `DURATION:${testCase.duration} should result in zero duration (end = start)`,
+            );
+            break;
+          }
+
+          case 'oneday': {
+            // P1D should add 1 day
+            const expectedEnd = new Date(event.start.getTime() + (24 * 60 * 60 * 1000));
+            assert.equal(
+              event.end.toISOString(),
+              expectedEnd.toISOString(),
+              `DURATION:${testCase.duration} should add 1 day`,
+            );
+            break;
+          }
+
+          case 'negoneday': {
+            // -P1D should subtract 1 day
+            const expectedEnd = new Date(event.start.getTime() - (24 * 60 * 60 * 1000));
+            assert.equal(
+              event.end.toISOString(),
+              expectedEnd.toISOString(),
+              `DURATION:${testCase.duration} should subtract 1 day`,
+            );
+            break;
+          }
+
+          case '1h30m': {
+            // PT1H30M should add 1 hour 30 minutes
+            const expectedEnd = new Date(event.start.getTime() + (90 * 60 * 1000));
+            assert.equal(
+              event.end.toISOString(),
+              expectedEnd.toISOString(),
+              `DURATION:${testCase.duration} should add 1h30m`,
+            );
+            break;
+          }
+
+          case '1d2h': {
+            // P1DT2H should add 1 day + 2 hours
+            const expectedEnd = new Date(event.start.getTime() + (26 * 60 * 60 * 1000));
+            assert.equal(
+              event.end.toISOString(),
+              expectedEnd.toISOString(),
+              `DURATION:${testCase.duration} should add 1 day + 2 hours`,
+            );
+            break;
+          }
+
+          default: {
+            assert.fail(`Unexpected test case: ${testCase.expected}`);
+          }
+        }
+      }
+    });
   });
 
   // Test_with_int_tzid.ics – integer-like tzid preserved

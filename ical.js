@@ -536,26 +536,29 @@ module.exports = {
             // Get the list of duration elements
             const duration = curr.duration.match(/-?\d{1,10}[WDHMS]/g);
             if (!duration || duration.length === 0) {
-              throw new Error('Invalid DURATION format: ' + curr.duration);
-            }
+              // Invalid or empty DURATION: treat as zero duration (end = start)
+              // This handles malformed cases like "DURATION:P" gracefully (Postel's Law)
+              console.warn(`[node-ical] Ignoring malformed DURATION value: "${curr.duration}" – treating as zero duration`);
+              curr.end = curr.start;
+            } else {
+              // Use the duration to create the end value, from the start
+              let newEnd = curr.start;
 
-            // Use the duration to create the end value, from the start
-            let newEnd = curr.start;
+              // Is the 1st character a negative sign?
+              const indicator = curr.duration.startsWith('-') ? -1 : 1;
 
-            // Is the 1st character a negative sign?
-            const indicator = curr.duration.startsWith('-') ? -1 : 1;
+              for (const r of duration) {
+                const unit = r.slice(-1);
+                if (!durationUnits[unit]) {
+                  throw new Error(`Invalid duration unit: ${unit}`);
+                }
 
-            for (const r of duration) {
-              const unit = r.slice(-1);
-              if (!durationUnits[unit]) {
-                throw new Error(`Invalid duration unit: ${unit}`);
+                newEnd = tzUtil.utcAdd(newEnd, Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
               }
 
-              newEnd = tzUtil.utcAdd(newEnd, Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
+              // End is a Date type, not moment
+              curr.end = new Date(newEnd);
             }
-
-            // End is a Date type, not moment
-            curr.end = new Date(newEnd);
           }
         }
 
