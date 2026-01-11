@@ -1,0 +1,12 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test CalDAV Server//EN
+BEGIN:VEVENT
+UID:test-non-utc-until@example.com
+DTSTART;TZID=Europe/Berlin:20240101T100000
+DTEND;TZID=Europe/Berlin:20240101T110000
+RRULE:FREQ=WEEKLY;UNTIL=20241231T100000
+SUMMARY:Weekly Meeting (Non-UTC UNTIL)
+DESCRIPTION:This event has RRULE with UNTIL that is NOT in UTC format, which violates RFC 5545 but occurs in real-world CalDAV servers.
+END:VEVENT
+END:VCALENDAR
