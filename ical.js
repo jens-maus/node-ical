@@ -519,43 +519,68 @@ module.exports = {
         const par = stack.pop();
 
         if (!curr.end) { // RFC5545, 3.6.1
-          // Set the end according to the datetype of event
-          curr.end = (curr.datetype === 'date-time') ? new Date(curr.start) : tzUtil.utcAdd(curr.start, 1, 'days');
-
-          // If there was a duration specified
-          // see RFC5545, 3.3.6 (no year and month)
-          if (curr.duration !== undefined) {
-            const durationUnits
-            = {
-              W: 'weeks',
-              D: 'days',
-              H: 'hours',
-              M: 'minutes',
-              S: 'seconds',
-            };
-            // Get the list of duration elements
-            const duration = curr.duration.match(/-?\d{1,10}[WDHMS]/g);
-            if (!duration || duration.length === 0) {
-              throw new Error('Invalid DURATION format: ' + curr.duration);
+          // Helper: clone a Date and preserve custom metadata (tz, dateOnly)
+          const cloneDateWithMeta = (source, newTime = source) => {
+            const cloned = new Date(newTime);
+            if (source?.tz) {
+              cloned.tz = source.tz;
             }
 
-            // Use the duration to create the end value, from the start
-            let newEnd = curr.start;
+            if (source?.dateOnly) {
+              cloned.dateOnly = source.dateOnly;
+            }
 
-            // Is the 1st character a negative sign?
-            const indicator = curr.duration.startsWith('-') ? -1 : 1;
+            return cloned;
+          };
 
-            for (const r of duration) {
-              const unit = r.slice(-1);
-              if (!durationUnits[unit]) {
-                throw new Error(`Invalid duration unit: ${unit}`);
+          // Helper: extract string value from DURATION (handles {params, val} shape)
+          const getDurationString = duration => {
+            if (typeof duration === 'object' && duration?.val) {
+              return String(duration.val);
+            }
+
+            if (duration) {
+              return String(duration);
+            }
+
+            return '';
+          };
+
+          // Calculate end date based on DURATION or default rules
+          if (curr.duration === undefined) {
+            // No DURATION: default end is same time (date-time) or +1 day (date-only)
+            curr.end = curr.datetype === 'date-time'
+              ? cloneDateWithMeta(curr.start)
+              : cloneDateWithMeta(curr.start, tzUtil.utcAdd(curr.start, 1, 'days'));
+          } else {
+            const durationString = getDurationString(curr.duration);
+            const durationParts = durationString.match(/-?\d{1,10}[WDHMS]/g);
+
+            if (durationParts && durationParts.length > 0) {
+              // Valid DURATION: apply each component (W/D/H/M/S)
+              const units = {
+                W: 'weeks',
+                D: 'days',
+                H: 'hours',
+                M: 'minutes',
+                S: 'seconds',
+              };
+              const sign = durationString.startsWith('-') ? -1 : 1;
+
+              let endTime = curr.start;
+              for (const part of durationParts) {
+                const value = Number.parseInt(part, 10) * sign;
+                const unit = units[part.slice(-1)];
+                endTime = tzUtil.utcAdd(endTime, value, unit);
               }
 
-              newEnd = tzUtil.utcAdd(newEnd, Number.parseInt(r, 10) * indicator, durationUnits[r.toString().slice(-1)]);
+              curr.end = cloneDateWithMeta(curr.start, endTime);
+            } else {
+              // Malformed DURATION (e.g., "P", "PT", "") → treat as zero duration
+              // Follows Postel's Law: be liberal in what you accept
+              console.warn(`[node-ical] Ignoring malformed DURATION value: "${durationString}" – treating as zero duration`);
+              curr.end = cloneDateWithMeta(curr.start);
             }
-
-            // End is a Date type, not moment
-            curr.end = new Date(newEnd);
           }
         }
 
