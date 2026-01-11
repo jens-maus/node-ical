@@ -751,9 +751,49 @@ module.exports = {
         // Create RRuleTemporal with separate DTSTART and RRULE parameters
         if (curr.start) {
           // Extract RRULE segments while preserving everything except inline DTSTART
-          const rruleOnly = rule.split(';')
+          let rruleOnly = rule.split(';')
             .filter(segment => !segment.startsWith('DTSTART'))
             .join(';');
+
+          // Fix non-UTC UNTIL when DTSTART has a TZID
+          // RFC 5545 requires UNTIL to be UTC when DTSTART has a timezone,
+          // but some CalDAV servers send invalid data. We normalize it here.
+          if (curr.start.tz && rruleOnly.includes('UNTIL=')) {
+            // Regex patterns for UNTIL normalization
+            const UNTIL_DATETIME_PATTERN = /UNTIL=(\d{8}T\d{6}Z?)/;
+            const UNTIL_DATETIME_NO_UTC_PATTERN = /UNTIL=\d{8}T\d{6}(?!Z)/;
+
+            const untilMatch = rruleOnly.match(UNTIL_DATETIME_PATTERN);
+            if (untilMatch && !untilMatch[1].endsWith('Z')) {
+              // E.g., "20241231T100000"
+              const untilLocal = untilMatch[1];
+
+              try {
+                const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+                let untilDate;
+
+                // Parse UNTIL in the same timezone as DTSTART
+                if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
+                  untilDate = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
+                } else if (Number.isFinite(tzInfo.offsetMinutes)) {
+                  untilDate = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
+                }
+
+                if (untilDate && typeof untilDate.toISOString === 'function') {
+                  // Convert to UTC format: 20241231T090000Z
+                  const untilUtc = untilDate.toISOString()
+                    .replaceAll(/[-:]/g, '')
+                    .replace(/\.\d{3}/, '');
+
+                  // Replace in RRULE string
+                  rruleOnly = rruleOnly.replace(UNTIL_DATETIME_NO_UTC_PATTERN, `UNTIL=${untilUtc}`);
+                }
+              } catch (error) {
+                // If conversion fails, log warning but don't break parsing
+                console.warn(`[node-ical] Failed to convert UNTIL to UTC for TZID="${curr.start.tz}", UNTIL="${untilLocal}": ${error.message}`);
+              }
+            }
+          }
 
           // Convert curr.start (Date) to Temporal.ZonedDateTime
           let dtstartTemporal;
