@@ -707,7 +707,7 @@ module.exports = {
           if (curr.start.tz && rruleOnly.includes('UNTIL=')) {
             // Regex patterns for UNTIL normalization
             const UNTIL_DATETIME_PATTERN = /UNTIL=(\d{8}T\d{6}Z?)/;
-            const UNTIL_DATETIME_NO_UTC_PATTERN = /UNTIL=\d{8}T\d{6}/;
+            const UNTIL_DATETIME_NO_UTC_PATTERN = /UNTIL=\d{8}T\d{6}(?!Z)/;
 
             const untilMatch = rruleOnly.match(UNTIL_DATETIME_PATTERN);
             if (untilMatch && !untilMatch[1].endsWith('Z')) {
