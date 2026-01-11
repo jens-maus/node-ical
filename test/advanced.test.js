@@ -25,6 +25,12 @@ describe('parser: advanced cases', () => {
       const key = new Date(Date.UTC(2015, 6, 7, 19, 0, 0)).toISOString().slice(0, 10);
       assert.ok(event.recurrences[key]);
       assert.equal(event.recurrences[key].summary, 'More Treasure Hunting');
+
+      // Dual-key RECURRENCE-ID: DATE-TIME values should be accessible by both date-only and full ISO keys
+      const recurrenceDate = new Date(Date.UTC(2015, 6, 7, 19, 0, 0));
+      const dateOnlyKey = recurrenceDate.toISOString().slice(0, 10);
+      const fullIsoKey = recurrenceDate.toISOString();
+      assert.strictEqual(event.recurrences[dateOnlyKey], event.recurrences[fullIsoKey], 'DATE-TIME RECURRENCE-ID should be accessible by both date-only and full ISO keys');
     });
 
     // Test13.ics – RECURRENCE-ID appears before RRULE and must still bind correctly
@@ -36,6 +42,12 @@ describe('parser: advanced cases', () => {
       const key = new Date(Date.UTC(2016, 7, 26, 11, 0, 0)).toISOString().slice(0, 10);
       assert.ok(event.recurrences[key]);
       assert.equal(event.recurrences[key].summary, 'bla bla');
+
+      // Dual-key RECURRENCE-ID: DATE-TIME values should be accessible by both date-only and full ISO keys
+      const recurrenceDate = new Date(Date.UTC(2016, 7, 26, 11, 0, 0));
+      const dateOnlyKey = recurrenceDate.toISOString().slice(0, 10);
+      const fullIsoKey = recurrenceDate.toISOString();
+      assert.strictEqual(event.recurrences[dateOnlyKey], event.recurrences[fullIsoKey], 'DATE-TIME RECURRENCE-ID should be accessible by both date-only and full ISO keys');
     });
 
     // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
