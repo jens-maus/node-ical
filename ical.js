@@ -736,7 +736,7 @@ module.exports = {
                 }
               } catch (error) {
                 // If conversion fails, log warning but don't break parsing
-                console.warn(`[node-ical] Failed to convert UNTIL to UTC: ${error.message}`);
+                console.warn(`[node-ical] Failed to convert UNTIL to UTC for TZID="${curr.start.tz}", UNTIL="${untilLocal}": ${error.message}`);
               }
             }
           }
