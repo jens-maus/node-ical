@@ -157,9 +157,26 @@ declare module 'node-ical' {
 
     // I am not entirely sure about these, leave them as any for now..
     organizer: Organizer;
-    exdate: any;
+    /**
+     * Exception dates (EXDATE) – dates excluded from recurrence.
+     * Uses dual-key approach for RFC 5545 compliance:
+     * - Date-only key (YYYY-MM-DD) for VALUE=DATE and simple lookups
+     * - Full ISO timestamp key for VALUE=DATE-TIME entries
+     * Both keys reference the same Date object.
+     *
+     * @example
+     * // Check if a date is excluded
+     * if (event.exdate?.['2024-07-15']) { ... }
+     * // Check if specific time instance is excluded
+     * if (event.exdate?.['2024-07-15T14:00:00.000Z']) { ... }
+     */
+    exdate?: Record<string, DateWithTimeZone>;
     geo: any;
-    recurrenceid: any;
+    /**
+     * Recurrence ID for modified instances of recurring events.
+     * When present on a VEVENT, indicates this is an override of a specific recurrence.
+     */
+    recurrenceid?: DateWithTimeZone;
 
     alarms?: VAlarm[];
   } & BaseComponent;
@@ -218,7 +235,7 @@ declare module 'node-ical' {
   export type AttendeeRole = 'CHAIR' | 'REQ-PARTICIPANT' | 'NON-PARTICIPANT' | string;
   export type AttendeePartStat = 'NEEDS-ACTION' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'DELEGATED';
 
-  export type DateWithTimeZone = Date & {tz: string};
+  export type DateWithTimeZone = Date & {tz?: string; dateOnly?: true};
   export type DateType = 'date-time' | 'date';
   export type Transparency = 'TRANSPARENT' | 'OPAQUE';
   export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';

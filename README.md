@@ -226,6 +226,50 @@ When expanding recurrences (RRULEs), node-ical takes the timezone from the DTSTA
 - **If no timezone is present**, recurrences are calculated in UTC. The original offset from DTSTART and the current offset of the recurrence date are considered.
 - For correct results in complex timezone scenarios, always specify the timezone explicitly in DTSTART.
 
+### Exception dates (EXDATE) and Recurrence overrides (RECURRENCE-ID)
+
+node-ical provides full RFC 5545-compliant handling of exception dates and recurrence overrides:
+
+#### EXDATE – Excluding dates from recurrence
+
+Exception dates are stored in an object with **dual-key access** for maximum flexibility:
+
+```javascript
+const event = data['some-recurring-event-uid'];
+
+// Simple date-based lookup (works for all events)
+if (event.exdate?.['2024-07-15']) {
+  console.log('July 15th is excluded from this recurring event');
+}
+
+// Precise time-based lookup (for events recurring multiple times per day)
+if (event.exdate?.['2024-07-15T14:00:00.000Z']) {
+  console.log('Only the 2 PM instance on July 15th is excluded');
+}
+```
+
+**How it works:**
+- For `VALUE=DATE` (date-only): Only the date key is created (`YYYY-MM-DD`)
+- For `VALUE=DATE-TIME`: **Both** date key and full ISO timestamp key are created
+- Both keys reference the same `Date` object (no memory overhead)
+
+**Why dual keys?**
+- **Backward compatibility**: Existing code using date-only lookups continues to work
+- **RFC 5545 compliance**: Supports precise exclusion of specific instances
+- **Practical use**: Simple lookups for most cases, precise matching when needed
+
+#### RECURRENCE-ID – Modifying specific instances
+
+Recurrence overrides follow the same dual-key pattern:
+
+```javascript
+// Access override for entire day
+const override = event.recurrences?.['2024-07-15'];
+
+// Access override for specific time instance
+const preciseOverride = event.recurrences?.['2024-07-15T14:00:00.000Z'];
+```
+
 ### Working with the parsed dates
 
 - Every parsed `start`/`end` value is a JavaScript `Date` that represents the **exact instant in UTC**. When DTSTART carries an IANA timezone, the parser attaches a non-enumerable `tz` property (for example `event.start.tz === 'Europe/Zurich'`). All-day values also expose `dateOnly === true`, which makes it easy to distinguish floating all-day events from timed ones.

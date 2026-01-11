@@ -13,6 +13,21 @@ const {toText: toTextFunction} = require('rrule-temporal/totext');
 const tzUtil = require('./tz-utils.js');
 
 /**
+ * Construct a date-only key (YYYY-MM-DD) from a Date object.
+ * For date-only events, uses local components to avoid UTC shift.
+ * For date-time events, extracts date from UTC ISO string.
+ * @param {Date} dateValue - Date object with optional dateOnly property
+ * @returns {string} Date key in YYYY-MM-DD format
+ */
+const getDateKey = function (dateValue) {
+  if (dateValue.dateOnly) {
+    return `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
+  }
+
+  return dateValue.toISOString().slice(0, 10);
+};
+
+/**
  * Wrapper class to convert RRuleTemporal (Temporal.ZonedDateTime) to Date objects
  * This maintains backward compatibility while using rrule-temporal internally
  */
@@ -369,35 +384,61 @@ const categoriesParameter = function (name) {
 };
 
 // EXDATE is an entry that represents exceptions to a recurrence rule (ex: "repeat every day except on 7/4").
-// The EXDATE entry itself can also contain a comma-separated list, so we make sure to parse each date out separately.
-// There can also be more than one EXDATE entries in a calendar record.
-// Since there can be multiple dates, we create an object of them.  The key is the ISO date string (YYYY-MM-DD) and the value is the Date object, for ease of use.
-// i.e. You can check if ((curr.exdate != undefined) && (curr.exdate[date iso string] != undefined)) to see if a date is an exception.
-// NOTE: This specifically uses date only, and not time.  This is to avoid a few problems:
-//    1. The ISO string with time wouldn't work for "floating dates" (dates without timezones).
-//       ex: "20171225T060000" - this is supposed to mean 6 AM in whatever timezone you're currently in
-//    2. Daylight savings time potentially affects the time you would need to look up
-//    3. Some EXDATE entries in the wild seem to have times different from the recurrence rule, but are still excluded by calendar programs.  Not sure how or why.
-//       These would fail any sort of sane time lookup, because the time literally doesn't match the event.  So we'll ignore time and just use date.
-//       ex: DTSTART:20170814T140000Z
-//             RRULE:FREQ=WEEKLY;WKST=SU;INTERVAL=2;BYDAY=MO,TU
-//             EXDATE:20171219T060000
-//       Even though "T060000" doesn't match or overlap "T1400000Z", it's still supposed to be excluded?  Odd. :(
-// TODO: See if this causes any problems with events that recur multiple times a day.
+// The EXDATE entry itself can also contain a comma-separated list, so we parse each date separately.
+// Multiple EXDATE entries can exist in a calendar record.
+//
+// Storage strategy (RFC 5545 compliant):
+// We create an object with the exception dates as keys and Date objects as values.
+// - For VALUE=DATE (date-only): key is "YYYY-MM-DD"
+// - For DATE-TIME: BOTH "YYYY-MM-DD" AND full ISO string keys are created
+//
+// This dual-key approach provides:
+// 1. Backward compatibility: date-only lookups continue to work
+// 2. Precision matching: events recurring multiple times per day can exclude specific instances
+// 3. RFC 5545 compliance: supports both DATE and DATE-TIME exclusions
+//
+// Usage examples:
+//   if (event.exdate?.['2024-01-15']) { ... }              // Check if any instance on this day is excluded
+//   if (event.exdate?.['2024-01-15T14:00:00.000Z']) { ... } // Check specific time instance
+//
+// NOTE: We intentionally use date-based keys as the primary lookup because:
+//   1. Floating times (without timezone) would create inconsistent ISO strings
+//   2. DST transitions can affect exact time matching
+//   3. Real-world calendar data often has mismatched times between RRULE and EXDATE
 const exdateParameter = function (name) {
   return function (value, parameters, curr) {
     curr[name] ||= {};
     const dates = value ? value.split(',').map(s => s.trim()) : [];
-    for (const entry of dates) {
-      const exdate = [];
-      dateParameter(name)(entry, parameters, exdate);
 
-      if (exdate[name]) {
-        if (typeof exdate[name].toISOString === 'function') {
-          curr[name][exdate[name].toISOString().slice(0, 10)] = exdate[name];
-        } else {
-          throw new TypeError('No toISOString function in exdate[name] = ' + exdate[name]);
-        }
+    for (const entry of dates) {
+      // Temporary container for dateParameter() to write to
+      const temporaryContainer = {};
+      dateParameter(name)(entry, parameters, temporaryContainer);
+
+      const dateValue = temporaryContainer[name];
+      if (!dateValue) {
+        continue;
+      }
+
+      if (typeof dateValue.toISOString !== 'function') {
+        console.warn(`[node-ical] Invalid exdate value (no toISOString): ${dateValue}`);
+        continue;
+      }
+
+      const isoString = dateValue.toISOString();
+
+      // For date-only events, use local date components to avoid UTC timezone shift
+      // (e.g., 2024-07-15 midnight in UTC+2 would be 2024-07-14T22:00Z, giving wrong dateKey)
+      const dateKey = getDateKey(dateValue);
+
+      // Always store with date-only key for backward compatibility and simple lookups
+      curr[name][dateKey] = dateValue;
+
+      // For DATE-TIME entries, also store with full ISO string for precise matching
+      // This enables excluding specific instances when events recur multiple times per day
+      // Note: dateOnly is already set by dateParameter() which checks the raw value and parameters
+      if (!dateValue.dateOnly) {
+        curr[name][isoString] = dateValue;
       }
     }
 
@@ -578,13 +619,26 @@ module.exports = {
               par[curr.uid].recurrences = {};
             }
 
-            // Save off our cloned recurrence object into the array, keyed by date but not time.
-            // We key by date only to avoid timezone and "floating time" problems (where the time isn't associated with a timezone).
-            // TODO: See if this causes a problem with events that have multiple recurrences per day.
+            // Store the recurrence override with dual-key strategy (same as EXDATE):
+            // - Date-only key (YYYY-MM-DD) for simple lookups
+            // - Full ISO string for precise matching when multiple instances occur per day
             if (typeof curr.recurrenceid.toISOString === 'function') {
-              par[curr.uid].recurrences[curr.recurrenceid.toISOString().slice(0, 10)] = recurrenceObject;
-            } else { // Removed issue 56
-              throw new TypeError('No toISOString function in curr.recurrenceid =' + curr.recurrenceid);
+              const isoString = curr.recurrenceid.toISOString();
+
+              // For date-only events, use local date components to avoid UTC timezone shift
+              const dateKey = getDateKey(curr.recurrenceid);
+
+              // Primary key: date-only for backward compatibility
+              par[curr.uid].recurrences[dateKey] = recurrenceObject;
+
+              // Additional key: full timestamp for events recurring multiple times per day
+              // Note: dateOnly is already set by dateParameter()
+              if (!curr.recurrenceid.dateOnly) {
+                par[curr.uid].recurrences[isoString] = recurrenceObject;
+              }
+            } else {
+              console.error(`[node-ical] No toISOString function in recurrenceid: ${curr.recurrenceid}`);
+              // Skip malformed recurrence-id entries to avoid storing invalid keys
             }
           }
 
