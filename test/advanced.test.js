@@ -25,6 +25,12 @@ describe('parser: advanced cases', () => {
       const key = new Date(Date.UTC(2015, 6, 7, 19, 0, 0)).toISOString().slice(0, 10);
       assert.ok(event.recurrences[key]);
       assert.equal(event.recurrences[key].summary, 'More Treasure Hunting');
+
+      // Dual-key RECURRENCE-ID: DATE-TIME values should be accessible by both date-only and full ISO keys
+      const recurrenceDate = new Date(Date.UTC(2015, 6, 7, 19, 0, 0));
+      const dateOnlyKey = recurrenceDate.toISOString().slice(0, 10);
+      const fullIsoKey = recurrenceDate.toISOString();
+      assert.strictEqual(event.recurrences[dateOnlyKey], event.recurrences[fullIsoKey], 'DATE-TIME RECURRENCE-ID should be accessible by both date-only and full ISO keys');
     });
 
     // Test13.ics – RECURRENCE-ID appears before RRULE and must still bind correctly
@@ -36,6 +42,12 @@ describe('parser: advanced cases', () => {
       const key = new Date(Date.UTC(2016, 7, 26, 11, 0, 0)).toISOString().slice(0, 10);
       assert.ok(event.recurrences[key]);
       assert.equal(event.recurrences[key].summary, 'bla bla');
+
+      // Dual-key RECURRENCE-ID: DATE-TIME values should be accessible by both date-only and full ISO keys
+      const recurrenceDate = new Date(Date.UTC(2016, 7, 26, 11, 0, 0));
+      const dateOnlyKey = recurrenceDate.toISOString().slice(0, 10);
+      const fullIsoKey = recurrenceDate.toISOString();
+      assert.strictEqual(event.recurrences[dateOnlyKey], event.recurrences[fullIsoKey], 'DATE-TIME RECURRENCE-ID should be accessible by both date-only and full ISO keys');
     });
 
     // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
@@ -80,15 +92,32 @@ describe('parser: advanced cases', () => {
       assert.equal(typeof event.exdate, 'object');
       assert.equal(Array.isArray(event.exdate), false);
 
-      // Should have the correct number of keys
+      // Should have both date-only keys and full ISO keys (dual-key approach)
+      // 4 DATE-TIME entries × 2 keys each = 8 total keys
       const keys = Object.keys(event.exdate);
-      assert.equal(keys.length, 4);
+      assert.equal(keys.length, 8);
 
-      // Should contain the expected dates as keys
-      assert.ok(event.exdate['2017-07-06']);
-      assert.ok(event.exdate['2017-07-17']);
-      assert.ok(event.exdate['2017-07-20']);
-      assert.ok(event.exdate['2017-08-03']);
+      // Verify dual-key structure programmatically by deriving from actual parsed data
+      // Expected date-only keys based on test data (EXDATE;TZID=US/Central:20170706T090000,...)
+      const expectedDateOnlyKeys = ['2017-07-06', '2017-07-17', '2017-07-20', '2017-08-03'];
+
+      for (const dateOnlyKey of expectedDateOnlyKeys) {
+        const actualDateObject = event.exdate[dateOnlyKey];
+
+        assert.ok(actualDateObject, `Date-only key ${dateOnlyKey} should exist`);
+        assert.ok(actualDateObject instanceof Date, `${dateOnlyKey} should be a Date object`);
+
+        // Derive the full ISO key from the actual stored Date
+        const fullIsoKey = actualDateObject.toISOString();
+        assert.ok(event.exdate[fullIsoKey], `Full ISO key ${fullIsoKey} should exist`);
+
+        // Both keys should reference the same Date instance (no memory overhead)
+        assert.strictEqual(
+          event.exdate[dateOnlyKey],
+          event.exdate[fullIsoKey],
+          `Both keys for ${dateOnlyKey} should reference the same Date object`,
+        );
+      }
 
       // Should be serializable with JSON.stringify
       const serialized = JSON.stringify(event.exdate);
@@ -98,7 +127,7 @@ describe('parser: advanced cases', () => {
 
       // Should work with Object.values()
       const values = Object.values(event.exdate);
-      assert.equal(values.length, 4);
+      assert.equal(values.length, 8);
       for (const value of values) {
         assert.ok(value instanceof Date);
       }
@@ -116,11 +145,19 @@ describe('parser: advanced cases', () => {
 
       // The bug was: .length was 0 even though dates existed
       // With the fix, we use Object.keys().length
-      assert.equal(Object.keys(event.exdate).length, 4, 'should have 4 exception dates');
+      // We have 8 keys (4 date-only + 4 full ISO) due to dual-key approach
+      assert.equal(Object.keys(event.exdate).length, 8, 'should have 8 keys (4 dates × 2 keys each)');
 
       // Verify the workaround from the issue (Object.values) returns correct data
       const exdateArray = Object.values(event.exdate);
-      assert.equal(exdateArray.length, 4, 'Object.values should return 4 dates');
+      assert.equal(exdateArray.length, 8, 'Object.values should return 8 date references');
+
+      // Verify shared reference (same as main test)
+      assert.strictEqual(
+        event.exdate['2017-07-06'],
+        event.exdate['2017-07-06T14:00:00.000Z'],
+        'Both keys should reference the same Date object',
+      );
     });
 
     // Regression test for issue #360: "Recurring events with exclusions are not handled"
