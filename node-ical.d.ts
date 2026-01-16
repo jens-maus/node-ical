@@ -72,6 +72,75 @@ declare module 'node-ical' {
   export function parseFile(file: string): CalendarResponse;
 
   /**
+   * Expand a recurring event into individual instances within a date range.
+   *
+   * @param event - The VEVENT component to expand
+   * @param options - Expansion options
+   * @param options.from - Start of date range (inclusive)
+   * @param options.to - End of date range (inclusive)
+   * @param options.includeOverrides - Whether to apply RECURRENCE-ID overrides (default: true)
+   * @param options.excludeExdates - Whether to exclude EXDATE dates (default: true)
+   * @param options.expandOngoing - Whether to include events that started before range but are still ongoing (default: false)
+   * @returns Array of event instances sorted by start date
+   *
+   * @example
+   * ```typescript
+   * const events = ical.sync.parseFile('calendar.ics');
+   * const event = Object.values(events).find(e => e.type === 'VEVENT' && e.rrule);
+   *
+   * const instances = ical.expandRecurringEvent(event, {
+   *   from: new Date('2024-01-01'),
+   *   to: new Date('2024-12-31')
+   * });
+   *
+   * instances.forEach(instance => {
+   *   console.log(`${instance.summary}: ${instance.start} - ${instance.end}`);
+   *   console.log(`Full-day: ${instance.isFullDay}, Recurring: ${instance.isRecurring}`);
+   * });
+   * ```
+   */
+  export function expandRecurringEvent(
+    event: VEvent,
+    options: ExpandRecurringEventOptions,
+  ): EventInstance[];
+
+  /**
+   * Options for expanding recurring events
+   */
+  export type ExpandRecurringEventOptions = {
+    /** Start of date range (inclusive) */
+    from: Date;
+    /** End of date range (inclusive) */
+    to: Date;
+    /** Whether to apply RECURRENCE-ID overrides (default: true) */
+    includeOverrides?: boolean;
+    /** Whether to exclude EXDATE dates (default: true) */
+    excludeExdates?: boolean;
+    /** Whether to include events that started before range but are still ongoing (default: false) */
+    expandOngoing?: boolean;
+  };
+
+  /**
+   * An individual instance of a recurring or non-recurring event
+   */
+  export type EventInstance = {
+    /** Start date/time of this instance */
+    start: Date;
+    /** End date/time of this instance */
+    end: Date;
+    /** Event summary/title */
+    summary: string;
+    /** Whether this is a full-day event (date-only, no time component) */
+    isFullDay: boolean;
+    /** Whether this instance came from a recurring rule */
+    isRecurring: boolean;
+    /** Whether this instance is a RECURRENCE-ID override of the base event */
+    isOverride: boolean;
+    /** The VEVENT object for this instance (base event or override) */
+    event: VEvent;
+  };
+
+  /**
      * Response objects
      */
   export type NodeIcalCallback = (error: any, data: CalendarResponse | undefined) => void;
