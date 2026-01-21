@@ -316,7 +316,13 @@ function processNonRecurringEvent(event, options) {
   const baseDurationMs = getEventDurationMs(event, isFullDay);
 
   // Ensure we have a proper Date object
-  const eventStart = event.start instanceof Date ? event.start : new Date(event.start);
+  let eventStart = event.start instanceof Date ? event.start : new Date(event.start);
+
+  // For full-day events, normalize to local calendar date to avoid timezone shifts
+  if (isFullDay) {
+    eventStart = createLocalDateFromUTC(eventStart);
+  }
+
   const eventEnd = calculateEndTime(eventStart, event, isFullDay, baseDurationMs);
 
   // Check if event is within range
@@ -371,9 +377,14 @@ function processRecurringInstance(date, event, options, baseDurationMs) {
   // Calculate start time for this instance
   let start = date;
 
+  // If override has its own DTSTART, use that instead of the RRULE-generated date
+  if (isOverride && instanceEvent.start) {
+    start = instanceEvent.start instanceof Date ? instanceEvent.start : new Date(instanceEvent.start);
+  }
+
   // For full-day events, extract UTC components to avoid DST issues
   if (isFullDay) {
-    start = createLocalDateFromUTC(date);
+    start = createLocalDateFromUTC(start);
   }
 
   // For recurring events, use override duration when available; otherwise use base duration
@@ -461,9 +472,17 @@ function expandRecurringEvent(event, options) {
   // Handle recurring events
   const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
   const baseDurationMs = getEventDurationMs(event, isFullDay);
+
+  // For full-day events, adjust 'to' to end of day to ensure RRULE includes the full day
+  // in all timezones (otherwise timezone offset can truncate the last day)
+  let searchTo = to;
+  if (isFullDay && to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0) {
+    searchTo = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999);
+  }
+
   // For expandOngoing, look back by the event duration to capture ongoing instances
   const searchFrom = expandOngoing ? new Date(from.getTime() - baseDurationMs) : from;
-  const dates = event.rrule.between(searchFrom, to, true);
+  const dates = event.rrule.between(searchFrom, searchTo, true);
   const instances = [];
 
   for (const date of dates) {

@@ -10,8 +10,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT');
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2025-01-01'),
-        to: new Date('2025-01-07'),
+        from: new Date(2025, 0, 1),
+        to: new Date(2025, 0, 7), // Inclusive: Jan 1 through Jan 7
       });
 
       assert.strictEqual(instances.length, 7, 'Should return 7 daily instances');
@@ -25,8 +25,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && !event.rrule);
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2011-03-01'),
-        to: new Date('2011-06-01'),
+        from: new Date(2011, 2, 1),
+        to: new Date(2011, 5, 1),
       });
 
       assert.strictEqual(instances.length, 1, 'Should return single instance for non-recurring event');
@@ -39,8 +39,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && !event.rrule);
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2020-01-01'),
-        to: new Date('2020-12-31'),
+        from: new Date(2020, 0, 1),
+        to: new Date(2020, 11, 31),
       });
 
       assert.strictEqual(instances.length, 0, 'Should return empty array for out-of-range event');
@@ -53,8 +53,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.rrule);
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2011-08-01'),
-        to: new Date('2011-09-01'),
+        from: new Date(2011, 7, 1),
+        to: new Date(2011, 8, 1),
       });
 
       assert.ok(instances.length > 0, 'Should have instances');
@@ -76,8 +76,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.datetype === 'date');
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2011-03-01'),
-        to: new Date('2011-06-01'),
+        from: new Date(2011, 2, 1),
+        to: new Date(2011, 5, 1),
       });
 
       assert.ok(instances.length > 0, 'Should find at least one date-only event');
@@ -92,8 +92,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.datetype === 'date-time');
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2011-11-01'),
-        to: new Date('2011-12-01'),
+        from: new Date(2011, 10, 1),
+        to: new Date(2011, 11, 1),
       });
 
       assert.ok(instances.length > 0);
@@ -105,8 +105,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.summary);
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2011-08-01'),
-        to: new Date('2011-09-01'),
+        from: new Date(2011, 7, 1),
+        to: new Date(2011, 8, 1),
       });
 
       assert.ok(instances.length > 0);
@@ -120,8 +120,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.exdate);
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2013-10-01'),
-        to: new Date('2013-10-31'),
+        from: new Date(2013, 9, 1),
+        to: new Date(2013, 9, 31),
       });
 
       // Verify that EXDATE dates are not in the results
@@ -141,14 +141,14 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.exdate);
 
       const withExclusion = ical.expandRecurringEvent(event, {
-        from: new Date('2015-07-01'),
-        to: new Date('2015-07-31'),
+        from: new Date(2015, 6, 1),
+        to: new Date(2015, 6, 31),
         excludeExdates: true,
       });
 
       const withoutExclusion = ical.expandRecurringEvent(event, {
-        from: new Date('2015-07-01'),
-        to: new Date('2015-07-31'),
+        from: new Date(2015, 6, 1),
+        to: new Date(2015, 6, 31),
         excludeExdates: false,
       });
 
@@ -165,8 +165,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.recurrences);
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2015-07-01'),
-        to: new Date('2015-07-31'),
+        from: new Date(2015, 6, 1),
+        to: new Date(2015, 6, 31),
         includeOverrides: true,
       });
 
@@ -184,8 +184,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.recurrences);
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2015-07-01'),
-        to: new Date('2015-07-31'),
+        from: new Date(2015, 6, 1),
+        to: new Date(2015, 6, 31),
         includeOverrides: false,
       });
 
@@ -201,8 +201,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.recurrences);
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2015-07-01'),
-        to: new Date('2015-07-31'),
+        from: new Date(2015, 6, 1),
+        to: new Date(2015, 6, 31),
       });
 
       const overrides = instances.filter(i => i.isOverride);
@@ -216,18 +216,69 @@ describe('expandRecurringEvent', () => {
         assert.notStrictEqual(override.event, event, 'Override should have different event object');
       }
     });
+
+    it('should use override DTSTART when available', () => {
+      // Test that when an override has its own DTSTART (moved instance),
+      // we use that instead of the RRULE-generated date
+      const event = {
+        type: 'VEVENT',
+        uid: 'test-override-dtstart@test',
+        summary: 'Daily Meeting',
+        start: new Date('2025-01-06T10:00:00.000Z'),
+        end: new Date('2025-01-06T11:00:00.000Z'),
+        rrule: {
+          freq: 'DAILY',
+          between(_start, _end) {
+            // Generate instances for Jan 6-10
+            return [
+              new Date('2025-01-06T10:00:00.000Z'),
+              new Date('2025-01-07T10:00:00.000Z'),
+              new Date('2025-01-08T10:00:00.000Z'),
+              new Date('2025-01-09T10:00:00.000Z'),
+              new Date('2025-01-10T10:00:00.000Z'),
+            ];
+          },
+        },
+        recurrences: {
+          // Override for Jan 8 - moved to 14:00
+          // The key must match the ISO string of the RRULE-generated date
+          '2025-01-08T10:00:00.000Z': {
+            type: 'VEVENT',
+            uid: 'test-override-dtstart@test',
+            summary: 'Daily Meeting (Moved)',
+            start: new Date('2025-01-08T14:00:00.000Z'), // Different time!
+            end: new Date('2025-01-08T15:00:00.000Z'),
+          },
+        },
+      };
+
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date(2025, 0, 6),
+        to: new Date(2025, 0, 10),
+      });
+
+      const jan8Instance = instances.find(i => i.start.getUTCDate() === 8);
+
+      assert.ok(jan8Instance, 'Should have instance for Jan 8');
+      assert.strictEqual(jan8Instance.isOverride, true);
+
+      // The start time should be 14:00 UTC, not 10:00 UTC
+      assert.strictEqual(jan8Instance.start.getUTCHours(), 14, 'Should use override DTSTART time (14:00)');
+      assert.strictEqual(jan8Instance.end.getUTCHours(), 15, 'Should use override end time (15:00)');
+      assert.strictEqual(jan8Instance.summary, 'Daily Meeting (Moved)');
+    });
   });
 
   describe('DST transitions', () => {
-    it('should handle full-day events correctly across DST', () => {
+    it('should handle full-day recurring events correctly across DST', () => {
       // This is the critical DST bug test from the proposal
       // Full-day Monday events should stay on Monday, not shift to Sunday
       const events = ical.sync.parseFile(path.join(__dirname, 'whole_day_moved_over_dst_change_berlin.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.datetype === 'date');
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2025-10-01'),
-        to: new Date('2025-11-10'),
+        from: new Date(2025, 9, 1),
+        to: new Date(2025, 10, 10),
       });
 
       // Verify that all instances are on the correct day of week
@@ -239,6 +290,38 @@ describe('expandRecurringEvent', () => {
         assert.ok(instance.start instanceof Date);
         assert.ok(instance.end instanceof Date);
       }
+    });
+
+    it('should handle full-day non-recurring events correctly across timezones', () => {
+      // Full-day non-recurring events should use the same normalization as recurring events
+      // to avoid timezone-based calendar date shifts
+      const event = {
+        type: 'VEVENT',
+        uid: 'test-fullday-nonrecurring@test',
+        summary: 'Full Day Event',
+        start: new Date('2025-01-15T00:00:00.000Z'), // UTC midnight = Jan 15
+        end: new Date('2025-01-16T00:00:00.000Z'),
+        datetype: 'date',
+      };
+
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date(2025, 0, 14),
+        to: new Date(2025, 0, 16),
+      });
+
+      assert.strictEqual(instances.length, 1);
+
+      const instance = instances[0];
+      assert.strictEqual(instance.isFullDay, true);
+
+      // The calendar date should be preserved as Jan 15 regardless of local timezone
+      const year = instance.start.getFullYear();
+      const month = instance.start.getMonth() + 1;
+      const day = instance.start.getDate();
+
+      assert.strictEqual(year, 2025);
+      assert.strictEqual(month, 1);
+      assert.strictEqual(day, 15, 'Calendar date should be Jan 15 in local timezone');
     });
 
     it('should preserve local time for timed events across DST', function () {
@@ -253,8 +336,8 @@ describe('expandRecurringEvent', () => {
       }
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2024-10-01'),
-        to: new Date('2024-11-30'),
+        from: new Date(2024, 9, 1),
+        to: new Date(2024, 10, 30),
       });
 
       // Verify times are preserved across DST transition
@@ -268,8 +351,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT');
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2024-02-01'),
-        to: new Date('2024-03-01'),
+        from: new Date(2024, 1, 1),
+        to: new Date(2024, 2, 1),
       });
 
       assert.ok(instances.length > 0);
@@ -285,8 +368,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.end);
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2011-03-01'),
-        to: new Date('2011-06-01'),
+        from: new Date(2011, 2, 1),
+        to: new Date(2011, 5, 1),
       });
 
       assert.ok(instances.length > 0, 'Should find events in March-May 2011');
@@ -300,8 +383,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.datetype === 'date');
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2011-03-01'),
-        to: new Date('2011-06-01'),
+        from: new Date(2011, 2, 1),
+        to: new Date(2011, 5, 1),
       });
 
       assert.ok(instances.length > 0);
@@ -328,8 +411,8 @@ describe('expandRecurringEvent', () => {
 
       // Use excludeExdates: false to get the full COUNT, as this event has EXDATEs
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2015-07-01'),
-        to: new Date('2050-01-01'), // Far future
+        from: new Date(2015, 6, 1),
+        to: new Date(2050, 0, 1), // Far future
         excludeExdates: false, // Include EXDATE dates to test COUNT limit
       });
 
@@ -350,8 +433,8 @@ describe('expandRecurringEvent', () => {
       }
 
       const instances = ical.expandRecurringEvent(event, {
-        from: new Date('2011-08-01'),
-        to: new Date('2050-01-01'),
+        from: new Date(2011, 7, 1),
+        to: new Date(2050, 0, 1),
       });
 
       // All instances should be before UNTIL date
@@ -401,8 +484,8 @@ describe('expandRecurringEvent', () => {
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.rrule);
 
       // Use a range that starts at Jan 5
-      const rangeStart = new Date('2025-01-05');
-      const rangeEnd = new Date('2025-01-10');
+      const rangeStart = new Date(2025, 0, 5);
+      const rangeEnd = new Date(2025, 0, 10); // Inclusive: Jan 5 through Jan 10
 
       const withOngoing = ical.expandRecurringEvent(event, {
         from: rangeStart,
@@ -462,8 +545,8 @@ describe('expandRecurringEvent', () => {
 
       assert.throws(
         () => ical.expandRecurringEvent(event, {
-          from: new Date('2025-12-31'),
-          to: new Date('2025-01-01'),
+          from: new Date(2025, 11, 31),
+          to: new Date(2025, 0, 1),
         }),
         RangeError,
         'Should throw RangeError when from > to',
