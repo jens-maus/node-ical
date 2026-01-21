@@ -241,8 +241,8 @@ describe('expandRecurringEvent', () => {
         },
         recurrences: {
           // Override for Jan 8 - moved to 14:00
-          // The key must match the ISO string of the RRULE-generated date
-          '2025-01-08T10:00:00.000Z': {
+          // The key must match the date-only format that ical.js uses as primary key
+          '2025-01-08': {
             type: 'VEVENT',
             uid: 'test-override-dtstart@test',
             summary: 'Daily Meeting (Moved)',

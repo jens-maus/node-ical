@@ -239,19 +239,22 @@ autodetect.parseICS = function (data, cb) {
 
 /**
  * Generate date key for EXDATE/RECURRENCE-ID lookups
+ * Must match ical.js getDateKey semantics for lookups to succeed.
  * @param {Date} date
  * @param {boolean} isFullDay
  * @returns {string} Date key in YYYY-MM-DD format
  */
 function generateDateKey(date, isFullDay) {
   if (isFullDay) {
-    const year = date.getUTCFullYear();
-    const month = date.getUTCMonth() + 1;
-    const day = date.getUTCDate();
+    // Use local getters for date-only events to match ical.js behavior
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
-  return date.toISOString();
+  // For timed events, return date portion only to match ical.js
+  return date.toISOString().slice(0, 10);
 }
 
 /**
