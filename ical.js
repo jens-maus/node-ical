@@ -745,7 +745,17 @@ module.exports = {
               // BUT: UTC (Etc/UTC, UTC, Etc/GMT) should use ISO format with Z, not TZID
               const isUtc = tzUtil.isUtcTimezone(curr.start.tz);
 
-              if (curr.start.tz && !isUtc) {
+              // For date-only events (VALUE=DATE), we need to preserve that information
+              // so rrule-temporal can properly validate UNTIL values.
+              // Use local date components since dateOnly dates are created with local timezone
+              // (see dateParameter where new Date(year, month, day) is used without UTC)
+              if (curr.start.dateOnly) {
+                // Format: YYYYMMDD using local date components
+                const year = curr.start.getFullYear();
+                const month = String(curr.start.getMonth() + 1).padStart(2, '0');
+                const day = String(curr.start.getDate()).padStart(2, '0');
+                rule += `;DTSTART;VALUE=DATE:${year}${month}${day}`;
+              } else if (curr.start.tz && !isUtc) {
                 const tzInfo = tzUtil.resolveTZID(curr.start.tz);
                 const localStamp = tzUtil.formatDateForRrule(curr.start, tzInfo);
                 const tzidLabel = tzInfo.iana || tzInfo.etc || tzInfo.original;
@@ -777,7 +787,7 @@ module.exports = {
         if (curr.start) {
           // Extract RRULE segments while preserving everything except inline DTSTART
           let rruleOnly = rule.split(';')
-            .filter(segment => !segment.startsWith('DTSTART'))
+            .filter(segment => !segment.startsWith('DTSTART') && !segment.startsWith('VALUE='))
             .join(';');
 
           // Fix non-UTC UNTIL when DTSTART has a TZID
