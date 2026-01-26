@@ -270,6 +270,42 @@ const override = event.recurrences?.['2024-07-15'];
 const preciseOverride = event.recurrences?.['2024-07-15T14:00:00.000Z'];
 ```
 
+### Expanding recurring events
+
+For convenience, node-ical provides `expandRecurringEvent()` to expand recurring events into individual instances with proper handling of EXDATE, RECURRENCE-ID, and DST transitions:
+
+```javascript
+const ical = require('node-ical');
+const events = ical.sync.parseFile('calendar.ics');
+const event = Object.values(events).find(e => e.type === 'VEVENT' && e.rrule);
+
+// Expand recurring event for next 30 days
+const instances = ical.expandRecurringEvent(event, {
+  from: new Date(),
+  to: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+});
+
+// Each instance has all the information you need
+instances.forEach(instance => {
+  console.log(instance.summary);           // Event title
+  console.log(instance.start);             // Start date/time
+  console.log(instance.isFullDay);         // Whether it's an all-day event
+  console.log(instance.isOverride);        // Whether it's a modified instance
+});
+```
+
+**Options:**
+- `from` / `to` – Date range to expand (inclusive)
+- `includeOverrides` – Apply RECURRENCE-ID modifications (default: `true`)
+- `excludeExdates` – Exclude EXDATE dates (default: `true`)
+- `expandOngoing` – Include events starting before `from` but still ongoing (default: `false`)
+
+**Key features:**
+- DST-safe: Full-day events stay on the correct calendar day across timezone transitions
+- Proper EXDATE and RECURRENCE-ID handling built-in
+- Returns sorted array of instances with rich metadata
+- Works with both recurring and non-recurring events
+
 ### Working with the parsed dates
 
 - Every parsed `start`/`end` value is a JavaScript `Date` that represents the **exact instant in UTC**. When DTSTART carries an IANA timezone, the parser attaches a non-enumerable `tz` property (for example `event.start.tz === 'Europe/Zurich'`). All-day values also expose `dateOnly === true`, which makes it easy to distinguish floating all-day events from timed ones.

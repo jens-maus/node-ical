@@ -237,6 +237,267 @@ autodetect.parseICS = function (data, cb) {
   async.parseICS(data, cb);
 };
 
+/**
+ * Generate date key for EXDATE/RECURRENCE-ID lookups
+ * Must match ical.js getDateKey semantics for lookups to succeed.
+ * @param {Date} date
+ * @param {boolean} isFullDay
+ * @returns {string} Date key in YYYY-MM-DD format
+ */
+function generateDateKey(date, isFullDay) {
+  if (isFullDay) {
+    // Use local getters for date-only events to match ical.js behavior
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  // For timed events, return date portion only to match ical.js
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Create date from UTC components to avoid DST issues for full-day events.
+ * This ensures that a DATE value of 20250107 stays as January 7th regardless of timezone.
+ * @param {Date} utcDate - Date from RRULE (UTC midnight)
+ * @returns {Date} Date representing the same calendar day at local midnight
+ */
+function createLocalDateFromUTC(utcDate) {
+  // For full-day events, we want the calendar date, not the moment in time
+  // Extract the UTC date components and create a local date with same calendar day
+  const year = utcDate.getUTCFullYear();
+  const month = utcDate.getUTCMonth();
+  const day = utcDate.getUTCDate();
+  // Create date at midnight in local timezone with same calendar day
+  return new Date(year, month, day, 0, 0, 0, 0);
+}
+
+/**
+ * Get event duration in milliseconds.
+ * @param {object} eventData - The event data (original or override)
+ * @param {boolean} isFullDay - Whether this is a full-day event
+ * @returns {number} Duration in milliseconds
+ */
+function getEventDurationMs(eventData, isFullDay) {
+  if (eventData?.start && eventData?.end) {
+    return new Date(eventData.end).getTime() - new Date(eventData.start).getTime();
+  }
+
+  if (isFullDay) {
+    return 24 * 60 * 60 * 1000;
+  }
+
+  return 0;
+}
+
+/**
+ * Calculate end time for an event instance
+ * @param {Date} start - The start time of this specific instance
+ * @param {object} eventData - The event data (original or override)
+ * @param {boolean} isFullDay - Whether this is a full-day event
+ * @param {number} [baseDurationMs] - Base duration (used when override lacks end)
+ * @returns {Date} End time for this instance
+ */
+function calculateEndTime(start, eventData, isFullDay, baseDurationMs) {
+  const durationMs = (eventData?.start && eventData?.end)
+    ? getEventDurationMs(eventData, isFullDay)
+    : (baseDurationMs ?? (isFullDay ? 24 * 60 * 60 * 1000 : 0));
+
+  return new Date(start.getTime() + durationMs);
+}
+
+/**
+ * Process a non-recurring event
+ * @param {object} event
+ * @param {object} options
+ * @returns {Array} Array of event instances
+ */
+function processNonRecurringEvent(event, options) {
+  const {from, to, expandOngoing} = options;
+  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
+  const baseDurationMs = getEventDurationMs(event, isFullDay);
+
+  // Ensure we have a proper Date object
+  let eventStart = event.start instanceof Date ? event.start : new Date(event.start);
+
+  // For full-day events, normalize to local calendar date to avoid timezone shifts
+  if (isFullDay) {
+    eventStart = createLocalDateFromUTC(eventStart);
+  }
+
+  const eventEnd = calculateEndTime(eventStart, event, isFullDay, baseDurationMs);
+
+  // Check if event is within range
+  const inRange = expandOngoing
+    ? (eventEnd >= from && eventStart <= to)
+    : (eventStart >= from && eventStart <= to);
+
+  if (!inRange) {
+    return [];
+  }
+
+  return [{
+    start: eventStart,
+    end: eventEnd,
+    summary: event.summary || '',
+    isFullDay,
+    isRecurring: false,
+    isOverride: false,
+    event,
+  }];
+}
+
+/**
+ * Process a recurring event instance
+ * @param {Date} date
+ * @param {object} event
+ * @param {object} options
+ * @param {number} baseDurationMs
+ * @returns {object|null} Event instance or null if excluded
+ */
+function processRecurringInstance(date, event, options, baseDurationMs) {
+  const {excludeExdates, includeOverrides} = options;
+  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
+
+  // Generate date key for lookups
+  const dateKey = generateDateKey(date, isFullDay);
+
+  // Check EXDATE exclusions
+  if (excludeExdates && event.exdate && event.exdate[dateKey]) {
+    return null;
+  }
+
+  // Check for RECURRENCE-ID override
+  let instanceEvent = event;
+  let isOverride = false;
+
+  if (includeOverrides && event.recurrences && event.recurrences[dateKey]) {
+    instanceEvent = event.recurrences[dateKey];
+    isOverride = true;
+  }
+
+  // Calculate start time for this instance
+  let start = date;
+
+  // If override has its own DTSTART, use that instead of the RRULE-generated date
+  if (isOverride && instanceEvent.start) {
+    start = instanceEvent.start instanceof Date ? instanceEvent.start : new Date(instanceEvent.start);
+  }
+
+  // For full-day events, extract UTC components to avoid DST issues
+  if (isFullDay) {
+    start = createLocalDateFromUTC(start);
+  }
+
+  // For recurring events, use override duration when available; otherwise use base duration
+  const end = calculateEndTime(start, instanceEvent, isFullDay, baseDurationMs);
+
+  return {
+    start,
+    end,
+    summary: instanceEvent.summary || event.summary || '',
+    isFullDay,
+    isRecurring: true,
+    isOverride,
+    event: instanceEvent,
+  };
+}
+
+/**
+ * Check if an event instance is within the specified date range
+ * @param {object} instance - Event instance with start, end, isFullDay
+ * @param {Date} from - Range start
+ * @param {Date} to - Range end
+ * @param {boolean} expandOngoing - Whether to include ongoing events
+ * @returns {boolean} Whether instance is in range
+ */
+function isInstanceInRange(instance, from, to, expandOngoing) {
+  if (instance.isFullDay) {
+    // For full-day events, compare calendar dates only (ignore time component)
+    const instanceDate = new Date(instance.start.getFullYear(), instance.start.getMonth(), instance.start.getDate());
+    const fromDate = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+    const toDate = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+    const instanceEndDate = new Date(instance.end.getFullYear(), instance.end.getMonth(), instance.end.getDate());
+
+    return expandOngoing
+      ? (instanceEndDate >= fromDate && instanceDate <= toDate)
+      : (instanceDate >= fromDate && instanceDate <= toDate);
+  }
+
+  // For timed events: use exact timestamp comparison
+  return expandOngoing
+    ? (instance.end >= from && instance.start <= to)
+    : (instance.start >= from && instance.start <= to);
+}
+
+/**
+ * Expand a recurring event into individual instances within a date range.
+ * Handles RRULE expansion, EXDATE filtering, and RECURRENCE-ID overrides.
+ * Also works for non-recurring events (returns single instance if within range).
+ *
+ * @param {object} event - The VEVENT object (with or without rrule)
+ * @param {object} options - Expansion options
+ * @param {Date} options.from - Start of date range (inclusive)
+ * @param {Date} options.to - End of date range (inclusive)
+ * @param {boolean} [options.includeOverrides=true] - Apply RECURRENCE-ID overrides
+ * @param {boolean} [options.excludeExdates=true] - Filter out EXDATE exclusions
+ * @param {boolean} [options.expandOngoing=false] - Include events that started before range but still ongoing
+ * @returns {Array<{start: Date, end: Date, summary: string, isFullDay: boolean, isRecurring: boolean, isOverride: boolean, event: object}>} Sorted array of event instances
+ */
+function expandRecurringEvent(event, options) {
+  const {
+    from,
+    to,
+    includeOverrides = true,
+    excludeExdates = true,
+    expandOngoing = false,
+  } = options;
+
+  // Input validation
+  if (!(from instanceof Date) || Number.isNaN(from.getTime())) {
+    throw new TypeError('options.from must be a valid Date object');
+  }
+
+  if (!(to instanceof Date) || Number.isNaN(to.getTime())) {
+    throw new TypeError('options.to must be a valid Date object');
+  }
+
+  if (from > to) {
+    throw new RangeError('options.from must be before or equal to options.to');
+  }
+
+  // Handle non-recurring events
+  if (!event.rrule) {
+    return processNonRecurringEvent(event, {from, to, expandOngoing});
+  }
+
+  // Handle recurring events
+  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
+  const baseDurationMs = getEventDurationMs(event, isFullDay);
+
+  // For full-day events, adjust 'to' to end of day to ensure RRULE includes the full day
+  // in all timezones (otherwise timezone offset can truncate the last day)
+  let searchTo = to;
+  if (isFullDay && to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0) {
+    searchTo = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999);
+  }
+
+  // For expandOngoing, look back by the event duration to capture ongoing instances
+  const searchFrom = expandOngoing ? new Date(from.getTime() - baseDurationMs) : from;
+  const dates = event.rrule.between(searchFrom, searchTo, true);
+  const instances = [];
+
+  for (const date of dates) {
+    const instance = processRecurringInstance(date, event, {excludeExdates, includeOverrides}, baseDurationMs);
+    if (instance && isInstanceInRange(instance, from, to, expandOngoing)) {
+      instances.push(instance);
+    }
+  }
+
+  return instances.sort((a, b) => a.start - b.start);
+}
+
 // Export api functions
 module.exports = {
   // Autodetect
@@ -247,6 +508,8 @@ module.exports = {
   sync,
   // Async
   async,
+  // Recurring event expansion
+  expandRecurringEvent,
   // Other backwards compat things
   objectHandlers: ical.objectHandlers,
   handleObject: ical.handleObject,
