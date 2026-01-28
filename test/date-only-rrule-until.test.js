@@ -108,4 +108,48 @@ END:VCALENDAR`;
     const recurrences = event.rrule.all();
     assert.strictEqual(recurrences.length, 5, 'Should have 5 occurrences');
   });
+
+  it('should use consistent date extraction for DATE-only events', function () {
+    // This test ensures that DTSTART construction uses the same pattern as getDateKey
+    // Both should use local getters (getFullYear, getMonth, getDate) because
+    // dateParameter creates DATE-only dates with new Date(year, month, day).
+    //
+    // Note: For dates at midnight, local and UTC getters return the same values,
+    // so this is mainly a consistency/documentation test.
+
+    const icsData = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20240315
+DTEND;VALUE=DATE:20240316
+RRULE:FREQ=YEARLY;COUNT=3
+DTSTAMP:20260128T120000Z
+UID:test-consistency
+SUMMARY:Test Date Consistency
+END:VEVENT
+END:VCALENDAR`;
+
+    const parsed = ical.parseICS(icsData);
+    const event = Object.values(parsed).find(event_ => event_.type === 'VEVENT');
+
+    assert.ok(event, 'Event should be defined');
+    assert.strictEqual(event.start.dateOnly, true, 'Start should be date-only');
+
+    // The RRULE string should contain DTSTART with the same date as the original
+    const rruleString = event.rrule.toString();
+    const dtstartMatch = rruleString.match(/DTSTART[^:]*:(\d{8})/);
+    assert.ok(dtstartMatch, 'RRULE string should contain DTSTART with date');
+
+    const dtstartDate = dtstartMatch[1];
+    assert.strictEqual(
+      dtstartDate,
+      '20240315',
+      'DTSTART in RRULE should match original date (using consistent getter pattern)',
+    );
+
+    // Verify recurrences work correctly
+    const recurrences = event.rrule.all();
+    assert.strictEqual(recurrences.length, 3, 'Should have 3 occurrences');
+  });
 });

@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
-    "rrule-temporal": "^1.3.0"
+    "rrule-temporal": "^1.4.5"
   },
   "devDependencies": {
     "date-fns": "^4.1.0",

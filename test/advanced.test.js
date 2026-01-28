@@ -299,6 +299,23 @@ END:VCALENDAR`;
       assert.ok(second.rrule && second.rrule.options.tzid);
       assert.equal(second.rrule.options.tzid, 'Etc/GMT-2');
     });
+
+    it('produces valid RRULE string with proper DTSTART;TZID format', () => {
+      // Regression test: when building the RRULE string internally, node-ical must
+      // filter out orphaned segments (like TZID=...) that result from splitting
+      // DTSTART;TZID=... on semicolons. The output should have clean RFC5545 format.
+      const data = ical.parseFile('./test/test23.ics');
+      const first = Object.values(data).find(x => x.uid === '000021a');
+
+      // RRULE must be successfully parsed (would fail if string was malformed)
+      assert.ok(first.rrule, 'RRULE should be parsed');
+      assert.ok(first.rrule.options.tzid, 'RRULE should have timezone');
+
+      // String representation should follow RFC5545 format
+      const rruleString = first.rrule.toString();
+      assert.ok(/DTSTART;TZID=/.test(rruleString), 'DTSTART should include TZID parameter');
+      assert.ok(!/RRULE:.*TZID=/.test(rruleString), 'RRULE line should not contain TZID');
+    });
   });
 
   // Ms_timezones.ics – Microsoft Windows zone mapping and custom tz handling flow through tz-utils
