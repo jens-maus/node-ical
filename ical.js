@@ -790,91 +790,125 @@ module.exports = {
             .filter(segment => !segment.startsWith('DTSTART') && !segment.startsWith('VALUE='))
             .join(';');
 
-          // Fix non-UTC UNTIL when DTSTART has a TZID
-          // RFC 5545 requires UNTIL to be UTC when DTSTART has a timezone,
-          // but some CalDAV servers send invalid data. We normalize it here.
-          if (curr.start.tz && rruleOnly.includes('UNTIL=')) {
-            // Regex patterns for UNTIL normalization
-            const UNTIL_DATETIME_PATTERN = /UNTIL=(\d{8}T\d{6}Z?)/;
-            const UNTIL_DATETIME_NO_UTC_PATTERN = /UNTIL=\d{8}T\d{6}(?!Z)/;
+          // Normalize UNTIL for rrule-temporal 1.4.2+ compatibility:
+          // - DATE-only DTSTART: UNTIL must also be DATE-only (strip time)
+          // - DATE-TIME DTSTART: UNTIL must be UTC with Z suffix
+          if (rruleOnly.includes('UNTIL=')) {
+            const untilMatch = rruleOnly.match(/UNTIL=(\d{8})(T\d{6})?(Z)?/);
+            if (untilMatch) {
+              const [, datePart, timePart, zSuffix] = untilMatch;
 
-            const untilMatch = rruleOnly.match(UNTIL_DATETIME_PATTERN);
-            if (untilMatch && !untilMatch[1].endsWith('Z')) {
-              // E.g., "20241231T100000"
-              const untilLocal = untilMatch[1];
+              if (curr.start.dateOnly) {
+                // DATE-only: strip time from UNTIL
+                if (timePart) {
+                  rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}Z?/, `UNTIL=${datePart}`);
+                }
+              } else if (timePart && !zSuffix) {
+                // DATE-TIME without Z: convert to UTC if we have a timezone, otherwise just append Z
+                let converted = false;
+                if (curr.start.tz) {
+                  try {
+                    const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+                    const untilLocal = datePart + timePart;
+                    let untilDateObject;
 
-              try {
-                const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-                let untilDate;
+                    if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
+                      untilDateObject = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
+                    } else if (Number.isFinite(tzInfo.offsetMinutes)) {
+                      untilDateObject = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
+                    }
 
-                // Parse UNTIL in the same timezone as DTSTART
-                if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
-                  untilDate = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
-                } else if (Number.isFinite(tzInfo.offsetMinutes)) {
-                  untilDate = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
+                    if (untilDateObject) {
+                      const untilUtc = untilDateObject.toISOString().replaceAll(/[-:]/g, '').replace(/\.\d{3}/, '');
+                      rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}/, `UNTIL=${untilUtc}`);
+                      converted = true;
+                    }
+                  } catch {/* Fall through to append Z */}
                 }
 
-                if (untilDate && typeof untilDate.toISOString === 'function') {
-                  // Convert to UTC format: 20241231T090000Z
-                  const untilUtc = untilDate.toISOString()
-                    .replaceAll(/[-:]/g, '')
-                    .replace(/\.\d{3}/, '');
-
-                  // Replace in RRULE string
-                  rruleOnly = rruleOnly.replace(UNTIL_DATETIME_NO_UTC_PATTERN, `UNTIL=${untilUtc}`);
+                if (!converted) {
+                  rruleOnly = rruleOnly.replace(/UNTIL=(\d{8}T\d{6})(?!Z)/, 'UNTIL=$1Z');
                 }
-              } catch (error) {
-                // If conversion fails, log warning but don't break parsing
-                console.warn(`[node-ical] Failed to convert UNTIL to UTC for TZID="${curr.start.tz}", UNTIL="${untilLocal}": ${error.message}`);
               }
             }
           }
 
-          // Convert curr.start (Date) to Temporal.ZonedDateTime
-          let dtstartTemporal;
+          // For DATE-only events, we need to include DTSTART;VALUE=DATE in the rruleString
+          // because rrule-temporal needs to know it's a DATE (not DATE-TIME) to validate UNTIL
+          if (curr.start.dateOnly) {
+            // Build DTSTART;VALUE=DATE:YYYYMMDD from curr.start
+            // Use local getters (not UTC) to match dateParameter which creates Date with local components
+            const year = curr.start.getFullYear();
+            const month = String(curr.start.getMonth() + 1).padStart(2, '0');
+            const day = String(curr.start.getDate()).padStart(2, '0');
+            const dtstartString = `DTSTART;VALUE=DATE:${year}${month}${day}`;
 
-          if (curr.start.tz) {
-            // Has timezone - use Intl to get the local wall-clock time in that timezone
-            const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-            const timeZone = tzInfo?.tzid || tzInfo?.iana || curr.start.tz || 'UTC';
+            // Prepend DTSTART to rruleString
+            const fullRruleString = `${dtstartString}\nRRULE:${rruleOnly}`;
 
-            try {
-              // Extract local time components in the target timezone.
-              // We use Intl.DateTimeFormat because curr.start is a Date in UTC but represents
-              // wall-clock time in the event's timezone.
-              const formatter = new Intl.DateTimeFormat('en-US', {
-                timeZone,
-                year: 'numeric',
-                month: 'numeric',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: 'numeric',
-                second: 'numeric',
-                hour12: false,
-              });
+            const rruleTemporal = new RRuleTemporal({
+              rruleString: fullRruleString,
+            });
 
-              const parts = formatter.formatToParts(curr.start);
-              const partMap = {};
-              for (const part of parts) {
-                if (part.type !== 'literal') {
-                  partMap[part.type] = Number.parseInt(part.value, 10);
+            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
+          } else {
+            // DATE-TIME events: convert curr.start (Date) to Temporal.ZonedDateTime
+            let dtstartTemporal;
+
+            if (curr.start.tz) {
+              // Has timezone - use Intl to get the local wall-clock time in that timezone
+              const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+              const timeZone = tzInfo?.tzid || tzInfo?.iana || curr.start.tz || 'UTC';
+
+              try {
+                // Extract local time components in the target timezone.
+                // We use Intl.DateTimeFormat because curr.start is a Date in UTC but represents
+                // wall-clock time in the event's timezone.
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                  timeZone,
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  second: 'numeric',
+                  hour12: false,
+                });
+
+                const parts = formatter.formatToParts(curr.start);
+                const partMap = {};
+                for (const part of parts) {
+                  if (part.type !== 'literal') {
+                    partMap[part.type] = Number.parseInt(part.value, 10);
+                  }
                 }
+
+                // Create a PlainDateTime from the local time components
+                const plainDateTime = Temporal.PlainDateTime.from({
+                  year: partMap.year,
+                  month: partMap.month,
+                  day: partMap.day,
+                  hour: partMap.hour,
+                  minute: partMap.minute,
+                  second: partMap.second,
+                });
+
+                dtstartTemporal = plainDateTime.toZonedDateTime(timeZone, {disambiguation: 'compatible'});
+              } catch (error) {
+                // Invalid timezone - fall back to UTC interpretation
+                console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error.message}`);
+                dtstartTemporal = Temporal.ZonedDateTime.from({
+                  year: curr.start.getUTCFullYear(),
+                  month: curr.start.getUTCMonth() + 1,
+                  day: curr.start.getUTCDate(),
+                  hour: curr.start.getUTCHours(),
+                  minute: curr.start.getUTCMinutes(),
+                  second: curr.start.getUTCSeconds(),
+                  timeZone: 'UTC',
+                });
               }
-
-              // Create a PlainDateTime from the local time components
-              const plainDateTime = Temporal.PlainDateTime.from({
-                year: partMap.year,
-                month: partMap.month,
-                day: partMap.day,
-                hour: partMap.hour,
-                minute: partMap.minute,
-                second: partMap.second,
-              });
-
-              dtstartTemporal = plainDateTime.toZonedDateTime(timeZone, {disambiguation: 'compatible'});
-            } catch (error) {
-              // Invalid timezone - fall back to UTC interpretation
-              console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error.message}`);
+            } else {
+              // No timezone - use UTC
               dtstartTemporal = Temporal.ZonedDateTime.from({
                 year: curr.start.getUTCFullYear(),
                 month: curr.start.getUTCMonth() + 1,
@@ -885,25 +919,14 @@ module.exports = {
                 timeZone: 'UTC',
               });
             }
-          } else {
-            // No timezone - use UTC
-            dtstartTemporal = Temporal.ZonedDateTime.from({
-              year: curr.start.getUTCFullYear(),
-              month: curr.start.getUTCMonth() + 1,
-              day: curr.start.getUTCDate(),
-              hour: curr.start.getUTCHours(),
-              minute: curr.start.getUTCMinutes(),
-              second: curr.start.getUTCSeconds(),
-              timeZone: 'UTC',
+
+            const rruleTemporal = new RRuleTemporal({
+              rruleString: rruleOnly,
+              dtstart: dtstartTemporal,
             });
+
+            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
           }
-
-          const rruleTemporal = new RRuleTemporal({
-            rruleString: rruleOnly,
-            dtstart: dtstartTemporal,
-          });
-
-          curr.rrule = new RRuleCompatWrapper(rruleTemporal);
         }
       }
 
