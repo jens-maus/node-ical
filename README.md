@@ -7,13 +7,10 @@
 [![Donate](https://img.shields.io/badge/donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=RAQSDY9YNZVCL)
 [![GitHub stars](https://img.shields.io/github/stars/jens-maus/node-ical.svg?style=social&label=Star)](https://github.com/jens-maus/node-ical/stargazers/)
 
-A minimal iCalendar/ICS (http://tools.ietf.org/html/rfc5545) parser for Node.js. This module is a direct fork
-of the ical.js module by Peter Braden (https://github.com/peterbraden/ical.js) which is primarily targeted
-for parsing iCalender/ICS files in a pure JavaScript environment. (ex. within the browser itself) This node-ical
-module however, primarily targets Node.js use and allows for more flexible APIs and interactions within a Node environment. (like filesystem access!)
+A feature-rich iCalendar/ICS ([RFC 5545](https://tools.ietf.org/html/rfc5545)) parser for Node.js. Originally forked from [ical.js](https://github.com/peterbraden/ical.js) by Peter Braden, node-ical has evolved significantly to include robust recurrence rule (RRULE) expansion, timezone-aware date handling, exception dates (EXDATE), and recurrence overrides (RECURRENCE-ID). The library provides both synchronous and asynchronous APIs for parsing ICS files from strings, local files, and remote URLs – features specifically designed for Node.js environments.
 
 ## Install
-node-ical is availble on npm:
+node-ical is available on npm:
 ```sh
 npm install node-ical
 ```
@@ -228,7 +225,7 @@ When expanding recurrences (RRULEs), node-ical takes the timezone from the DTSTA
 
 ### Exception dates (EXDATE) and Recurrence overrides (RECURRENCE-ID)
 
-node-ical provides full RFC 5545-compliant handling of exception dates and recurrence overrides:
+node-ical provides RFC 5545-compliant handling of exception dates and recurrence overrides:
 
 #### EXDATE – Excluding dates from recurrence
 
