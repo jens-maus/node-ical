@@ -786,8 +786,13 @@ module.exports = {
         // Create RRuleTemporal with separate DTSTART and RRULE parameters
         if (curr.start) {
           // Extract RRULE segments while preserving everything except inline DTSTART
+          // When rule contains DTSTART;TZID=..., splitting on ';' produces orphaned
+          // TZID= and VALUE= segments that must also be filtered out
           let rruleOnly = rule.split(';')
-            .filter(segment => !segment.startsWith('DTSTART') && !segment.startsWith('VALUE='))
+            .filter(segment =>
+              !segment.startsWith('DTSTART')
+              && !segment.startsWith('VALUE=')
+              && !segment.startsWith('TZID='))
             .join(';');
 
           // Normalize UNTIL for rrule-temporal 1.4.2+ compatibility:
