@@ -820,7 +820,7 @@ module.exports = {
                     let untilDateObject;
                     if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
                       untilDateObject = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
-                    } else if (Number.isFinite(tzInfo.offsetMinutes)) {
+                    } else if (Number.isFinite(tzInfo.offsetMinutes) && typeof tzInfo.offset === 'string' && tzInfo.offset) {
                       untilDateObject = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
                     }
 
