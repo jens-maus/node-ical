@@ -313,7 +313,7 @@ declare module 'node-ical' {
    * // Safe access pattern:
    * const title = typeof event.summary === 'string'
    *   ? event.summary
-   *   : event.summary?.val;
+   *   : event.summary.val;
    */
   export type ParameterValue<T = string, P = Record<string, string>> = T | {
     /** The actual property value */
@@ -323,16 +323,45 @@ declare module 'node-ical' {
   };
 
   export type Organizer = ParameterValue<string, {
+    /** Common Name - display name of the organizer */
     CN?: string;
+    /** Directory entry reference */
+    DIR?: string;
+    /** Sent by delegate */
+    'SENT-BY'?: string;
+    /** Language for text values */
+    LANGUAGE?: string;
+    /** Schedule agent */
+    'SCHEDULE-AGENT'?: string;
+    /** Allow additional parameters from parseParameters() */
+    [key: string]: string | undefined;
   }>;
 
   export type Attendee = ParameterValue<string, {
+    /** Calendar user type */
     CUTYPE?: AttendeeCUType;
+    /** Participation role */
     ROLE?: AttendeeRole;
+    /** Participation status */
     PARTSTAT?: AttendeePartStat;
+    /** RSVP expectation */
     RSVP?: boolean;
+    /** Common Name - display name of attendee */
     CN?: string;
+    /** Number of guests (non-standard) */
     'X-NUM-GUESTS'?: number;
+    /** Delegated to */
+    'DELEGATED-TO'?: string;
+    /** Delegated from */
+    'DELEGATED-FROM'?: string;
+    /** Group membership */
+    MEMBER?: string;
+    /** Directory entry reference */
+    DIR?: string;
+    /** Language for text values */
+    LANGUAGE?: string;
+    /** Allow additional parameters from parseParameters() */
+    [key: string]: string | number | boolean | undefined;
   }>;
 
   export type AttendeeCUType = 'INDIVIDUAL' | 'UNKNOWN' | 'GROUP' | 'ROOM' | string;
