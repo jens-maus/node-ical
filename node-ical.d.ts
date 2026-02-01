@@ -209,12 +209,15 @@ declare module 'node-ical' {
     sequence: string;
     transparency: Transparency;
     class: Class;
-    summary: string;
+    /** Event title/summary – may include params (e.g., LANGUAGE) */
+    summary: ParameterValue;
     start: DateWithTimeZone;
     datetype: DateType;
     end: DateWithTimeZone;
-    location: string;
-    description: string;
+    /** Event location – may include params (e.g., LANGUAGE, ALTREP) */
+    location: ParameterValue;
+    /** Event description – may include params (e.g., LANGUAGE, ALTREP) */
+    description: ParameterValue;
     url: string;
     completion: string;
     created: DateWithTimeZone;
@@ -293,18 +296,37 @@ declare module 'node-ical' {
     rdate: string | string[];
   };
 
-  type Property<A> = PropertyWithArgs<A> | string;
-
-  type PropertyWithArgs<A> = {
-    val: string;
-    params: A & Record<string, unknown>;
+  /**
+   * A property value that may include iCalendar parameters.
+   *
+   * When an iCalendar property has parameters (e.g., `SUMMARY;LANGUAGE=de:Restmuell`),
+   * node-ical returns an object with `params` and `val`. Without parameters, it returns
+   * the plain value directly.
+   *
+   * @example
+   * // Without parameters: string
+   * event.summary // => "Meeting"
+   *
+   * // With parameters: object
+   * event.summary // => { params: { LANGUAGE: "de" }, val: "Besprechung" }
+   *
+   * // Safe access pattern:
+   * const title = typeof event.summary === 'string'
+   *   ? event.summary
+   *   : event.summary?.val;
+   */
+  export type ParameterValue<T = string, P = Record<string, string>> = T | {
+    /** The actual property value */
+    val: T;
+    /** ICalendar parameters (e.g., LANGUAGE, ENCODING) */
+    params: P;
   };
 
-  export type Organizer = Property<{
+  export type Organizer = ParameterValue<string, {
     CN?: string;
   }>;
 
-  export type Attendee = Property<{
+  export type Attendee = ParameterValue<string, {
     CUTYPE?: AttendeeCUType;
     ROLE?: AttendeeRole;
     PARTSTAT?: AttendeePartStat;
