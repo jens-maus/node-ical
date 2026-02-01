@@ -145,7 +145,17 @@ declare module 'node-ical' {
      */
   export type NodeIcalCallback = (error: any, data: CalendarResponse | undefined) => void;
 
-  export type CalendarResponse = Record<string, CalendarComponent>;
+  /**
+   * Response from parsing an iCalendar file.
+   * Contains calendar components indexed by UID, plus an optional vcalendar object
+   * with VCALENDAR-level properties (e.g., WR-CALNAME, WR-TIMEZONE, method, version).
+   */
+  export type CalendarResponse = {
+    /** VCALENDAR-level properties (calendar metadata) */
+    vcalendar?: VCalendar;
+    /** Calendar components (events, todos, etc.) indexed by UID */
+    [uid: string]: CalendarComponent | VCalendar | undefined;
+  };
 
   export type CalendarComponent = VTimeZone | VEvent | VCalendar;
 
@@ -267,7 +277,16 @@ declare module 'node-ical' {
   } & BaseComponent;
 
   /**
-   * Contains alls metadata of the Calendar
+   * VCALENDAR component containing calendar-level metadata.
+   * Accessible via data.vcalendar after parsing.
+   *
+   * Note: X-prefixed properties (e.g., X-WR-CALNAME) have the 'X-' prefix removed
+   * by node-ical, so X-WR-CALNAME becomes WR-CALNAME in the parsed output.
+   *
+   * @example
+   * const data = ical.parseICS(icsString);
+   * const calendarName = data.vcalendar?.['WR-CALNAME'];
+   * const timezone = data.vcalendar?.['WR-TIMEZONE'];
    */
   export type VCalendar = {
     type: 'VCALENDAR';
@@ -275,10 +294,13 @@ declare module 'node-ical' {
     version?: string;
     calscale?: 'GREGORIAN' | string;
     method?: Method;
+    /** Calendar name (X-WR-CALNAME in ICS file) */
     'WR-CALNAME'?: string;
+    /** Calendar description (X-WR-CALDESC in ICS file) */
     'WR-CALDESC'?: string;
+    /** Default timezone (X-WR-TIMEZONE in ICS file) */
     'WR-TIMEZONE'?: string;
-  } & BaseComponent;
+  };
 
   export type BaseComponent = {
     params: any[];
