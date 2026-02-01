@@ -808,6 +808,34 @@ module.exports = {
                 if (timePart) {
                   rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}Z?/, `UNTIL=${datePart}`);
                 }
+              } else if (!timePart) {
+                // DATE-TIME DTSTART but UNTIL has no time part (Google Calendar bug)
+                // Interpret UNTIL as end-of-day (23:59:59) in the event's timezone, then convert to UTC
+                let converted = false;
+                if (curr.start.tz) {
+                  try {
+                    const tzInfo = tzUtil.resolveTZID(curr.start.tz);
+                    const untilLocal = datePart + 'T235959'; // End of day in local timezone
+
+                    let untilDateObject;
+                    if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
+                      untilDateObject = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
+                    } else if (Number.isFinite(tzInfo.offsetMinutes) && typeof tzInfo.offset === 'string' && tzInfo.offset) {
+                      untilDateObject = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
+                    }
+
+                    if (untilDateObject) {
+                      const untilUtc = untilDateObject.toISOString().replaceAll(/[-:]/g, '').replace(/\.\d{3}/, '');
+                      rruleOnly = rruleOnly.replace(/UNTIL=(\d{8})(?!T)/, `UNTIL=${untilUtc}`);
+                      converted = true;
+                    }
+                  } catch {/* Fall through to UTC fallback */}
+                }
+
+                if (!converted) {
+                  // No timezone info available - assume UNTIL date means end-of-day UTC
+                  rruleOnly = rruleOnly.replace(/UNTIL=(\d{8})(?!T)/, 'UNTIL=$1T235959Z');
+                }
               } else if (timePart && !zSuffix) {
                 // DATE-TIME without Z: convert to UTC if we have a timezone, otherwise just append Z
                 let converted = false;
