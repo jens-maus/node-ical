@@ -128,8 +128,8 @@ declare module 'node-ical' {
     start: Date;
     /** End date/time of this instance */
     end: Date;
-    /** Event summary/title */
-    summary: string;
+    /** Event summary/title - copied from event, may include params */
+    summary: ParameterValue;
     /** Whether this is a full-day event (date-only, no time component) */
     isFullDay: boolean;
     /** Whether this instance came from a recurring rule */
@@ -209,12 +209,15 @@ declare module 'node-ical' {
     sequence: string;
     transparency: Transparency;
     class: Class;
-    summary: string;
+    /** Event title/summary – may include params (e.g., LANGUAGE) */
+    summary: ParameterValue;
     start: DateWithTimeZone;
     datetype: DateType;
     end: DateWithTimeZone;
-    location: string;
-    description: string;
+    /** Event location – may include params (e.g., LANGUAGE, ALTREP) */
+    location: ParameterValue;
+    /** Event description – may include params (e.g., LANGUAGE, ALTREP) */
+    description: ParameterValue;
     url: string;
     completion: string;
     created: DateWithTimeZone;
@@ -293,24 +296,72 @@ declare module 'node-ical' {
     rdate: string | string[];
   };
 
-  type Property<A> = PropertyWithArgs<A> | string;
-
-  type PropertyWithArgs<A> = {
-    val: string;
-    params: A & Record<string, unknown>;
+  /**
+   * A property value that may include iCalendar parameters.
+   *
+   * When an iCalendar property has parameters (e.g., `SUMMARY;LANGUAGE=de:Restmuell`),
+   * node-ical returns an object with `params` and `val`. Without parameters, it returns
+   * the plain value directly.
+   *
+   * @example
+   * // Without parameters: string
+   * event.summary // => "Meeting"
+   *
+   * // With parameters: object
+   * event.summary // => { params: { LANGUAGE: "de" }, val: "Besprechung" }
+   *
+   * // Safe access pattern:
+   * const title = typeof event.summary === 'string'
+   *   ? event.summary
+   *   : event.summary.val;
+   */
+  export type ParameterValue<T = string, P = Record<string, string>> = T | {
+    /** The actual property value */
+    val: T;
+    /** ICalendar parameters (e.g., LANGUAGE, ENCODING) */
+    params: P;
   };
 
-  export type Organizer = Property<{
+  export type Organizer = ParameterValue<string, {
+    /** Common Name - display name of the organizer */
     CN?: string;
+    /** Directory entry reference */
+    DIR?: string;
+    /** Sent by delegate */
+    'SENT-BY'?: string;
+    /** Language for text values */
+    LANGUAGE?: string;
+    /** Schedule agent */
+    'SCHEDULE-AGENT'?: string;
+    /** Allow additional parameters from parseParameters() */
+    [key: string]: string | undefined;
   }>;
 
-  export type Attendee = Property<{
+  export type Attendee = ParameterValue<string, {
+    /** Calendar user type */
     CUTYPE?: AttendeeCUType;
+    /** Participation role */
     ROLE?: AttendeeRole;
+    /** Participation status */
     PARTSTAT?: AttendeePartStat;
+    /** RSVP expectation */
     RSVP?: boolean;
+    /** Common Name - display name of attendee */
     CN?: string;
+    /** Number of guests (non-standard) */
     'X-NUM-GUESTS'?: number;
+    /** Delegated to */
+    'DELEGATED-TO'?: string;
+    /** Delegated from */
+    'DELEGATED-FROM'?: string;
+    /** Group membership */
+    MEMBER?: string;
+    /** Directory entry reference */
+    DIR?: string;
+    /** Language for text values */
+    LANGUAGE?: string;
+    /** Allow additional parameters from parseParameters() */
+    [key: string]: string | number | boolean | undefined;
   }>;
 
   export type AttendeeCUType = 'INDIVIDUAL' | 'UNKNOWN' | 'GROUP' | 'ROOM' | string;
