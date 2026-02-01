@@ -128,8 +128,8 @@ declare module 'node-ical' {
     start: Date;
     /** End date/time of this instance */
     end: Date;
-    /** Event summary/title */
-    summary: string;
+    /** Event summary/title - copied from event, may include params */
+    summary: ParameterValue;
     /** Whether this is a full-day event (date-only, no time component) */
     isFullDay: boolean;
     /** Whether this instance came from a recurring rule */
