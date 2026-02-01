@@ -492,10 +492,12 @@ module.exports = {
       const originalEnd = function (component, parameters_, curr, stack) {
         // Prevents the need to search the root of the tree for the VCALENDAR object
         if (component === 'VCALENDAR') {
-          // Scan all high level object in curr and drop all strings
+          // Preserve VCALENDAR string properties in a separate 'vcalendar' object
+          // for easy access to calendar metadata
+          // (X-WR-CALNAME, X-WR-CALDESC, X-WR-TIMEZONE, METHOD, etc.)
           let key;
           let object;
-          const highLevel = {};
+          const vcalendarProps = {};
 
           for (key in curr) {
             if (!Object.hasOwn(curr, key)) {
@@ -504,13 +506,14 @@ module.exports = {
 
             object = curr[key];
             if (typeof object === 'string') {
-              highLevel[key] = object;
+              vcalendarProps[key] = object;
               delete curr[key];
             }
           }
 
-          if (highLevel.type) {
-            curr[highLevel.type.toLowerCase()] = highLevel;
+          // Store VCALENDAR properties in a dedicated object for easy access
+          if (Object.keys(vcalendarProps).length > 0) {
+            curr.vcalendar = vcalendarProps;
           }
 
           return curr;

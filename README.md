@@ -339,6 +339,10 @@ See the following example scripts for practical demonstration:
 
 Each library may display timezones differently, but the recurrence logic is the same.
 
+### TypeScript support
+
+node-ical includes full TypeScript type definitions. See [`examples/example-typescript.ts`](./examples/example-typescript.ts) for a complete example showing type-safe access to calendar properties, including the `vcalendar` object for accessing calendar-level metadata like `WR-CALNAME`.
+
 ## Under the hood
 
 **Windows/IANA time zones**: node-ical maps Windows time zone IDs and common legacy display-name labels to IANA via a generated `windowsZones.json`. It’s built from CLDR (`windowsZones.xml`) and augmented with legacy aliases for resilience; see `build/README.md` for details.
