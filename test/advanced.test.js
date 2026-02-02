@@ -73,6 +73,27 @@ describe('parser: advanced cases', () => {
       assert.strictEqual(event.recurrences[key2].sequence, 5, 'SEQUENCE should be number 5');
     });
 
+    // Duplicate UIDs without RECURRENCE-ID: SEQUENCE determines which version wins
+    it('applies SEQUENCE logic to duplicate UIDs without RECURRENCE-ID', () => {
+      const data = ical.parseFile('./test/data/duplicate-uid-sequence.ics');
+
+      // Test case 1: SEQUENCE 2 appears first, then SEQUENCE 0
+      // The higher SEQUENCE (2) should be kept
+      const event1 = data['duplicate-sequence-test@node-ical.test'];
+      assert.ok(event1, 'Event should exist');
+      assert.equal(event1.summary, 'Team Meeting (SEQUENCE 2)', 'Higher SEQUENCE should be kept');
+      assert.strictEqual(event1.sequence, 2, 'SEQUENCE should be 2');
+      assert.equal(event1.start.getUTCHours(), 10, 'Start time should be 10:00 (from SEQUENCE 2)');
+
+      // Test case 2: SEQUENCE 1 appears first, then SEQUENCE 3
+      // The higher SEQUENCE (3) should win
+      const event2 = data['newer-wins-test@node-ical.test'];
+      assert.ok(event2, 'Event should exist');
+      assert.equal(event2.summary, 'Updated version (SEQUENCE 3) - should win', 'Higher SEQUENCE should replace lower');
+      assert.strictEqual(event2.sequence, 3, 'SEQUENCE should be 3');
+      assert.equal(event2.start.getUTCHours(), 14, 'Start time should be 14:00 (from SEQUENCE 3)');
+    });
+
     // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
     it('parses comma-separated EXDATEs (test14.ics)', () => {
       const data = ical.parseFile('./test/test14.ics');

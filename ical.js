@@ -644,15 +644,19 @@ module.exports = {
             // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
             // to the entry (SEQUENCE).
 
-            // TODO: Look into proper sequence logic.
+            // Check SEQUENCE to determine which version to keep (RFC 5545)
+            const existingSeq = par[curr.uid].sequence ?? 0;
+            const newSeq = curr.sequence ?? 0;
 
-            // If we have the same UID as an existing record, and it *isn't* a specific recurrence ID,
-            // not quite sure what the correct behaviour should be.  For now, just take the new information
-            // and merge it with the old record by overwriting only the fields that appear in the new record.
-            let key;
-            for (key in curr) {
-              if (key !== null) {
-                par[curr.uid][key] = curr[key];
+            if (newSeq < existingSeq) {
+              // Older version - ignore it entirely
+              console.warn(`[node-ical] Ignoring older event version (SEQUENCE ${newSeq} < ${existingSeq}) for UID ${curr.uid}`);
+            } else {
+              // Newer or same version - merge fields from the new record into the existing one
+              for (const key in curr) {
+                if (key !== null) {
+                  par[curr.uid][key] = curr[key];
+                }
               }
             }
           }
