@@ -50,6 +50,29 @@ describe('parser: advanced cases', () => {
       assert.strictEqual(event.recurrences[dateOnlyKey], event.recurrences[fullIsoKey], 'DATE-TIME RECURRENCE-ID should be accessible by both date-only and full ISO keys');
     });
 
+    // RECURRENCE-ID with SEQUENCE: newer versions should win over older ones (RFC 5545)
+    it('applies SEQUENCE logic to RECURRENCE-ID overrides', () => {
+      const data = ical.parseFile('./test/data/recurrence-sequence.ics');
+      const event = data['sequence-test@node-ical.test'];
+
+      assert.ok(event, 'Event should exist');
+      assert.ok(event.recurrences, 'Should have recurrences');
+
+      // Test case 1: SEQUENCE 3 appears first, then SEQUENCE 1
+      // The higher SEQUENCE (3) should be kept, SEQUENCE 1 should be ignored
+      const key1 = '2024-01-02';
+      assert.ok(event.recurrences[key1], 'Recurrence for 2024-01-02 should exist');
+      assert.equal(event.recurrences[key1].summary, 'Moved to afternoon (SEQUENCE 3)', 'Higher SEQUENCE should be kept');
+      assert.strictEqual(event.recurrences[key1].sequence, 3, 'SEQUENCE should be number 3');
+
+      // Test case 2: SEQUENCE 2 appears first, then SEQUENCE 5
+      // The higher SEQUENCE (5) should win
+      const key2 = '2024-01-03';
+      assert.ok(event.recurrences[key2], 'Recurrence for 2024-01-03 should exist');
+      assert.equal(event.recurrences[key2].summary, 'Newer override (SEQUENCE 5) - should win', 'Higher SEQUENCE should replace lower');
+      assert.strictEqual(event.recurrences[key2].sequence, 5, 'SEQUENCE should be number 5');
+    });
+
     // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
     it('parses comma-separated EXDATEs (test14.ics)', () => {
       const data = ical.parseFile('./test/test14.ics');

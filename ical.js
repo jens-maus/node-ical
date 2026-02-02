@@ -61,6 +61,44 @@ function getDurationString(duration) {
 }
 
 /**
+ * Store a recurrence override with dual-key strategy.
+ * Uses both date-only (YYYY-MM-DD) and full ISO keys for DATE-TIME entries.
+ * Implements RFC 5545 SEQUENCE logic: newer versions (higher SEQUENCE) replace older ones.
+ * @param {Object} recurrences - Recurrences object to store in
+ * @param {Date} recurrenceId - RECURRENCE-ID date value
+ * @param {Object} recurrenceObject - Recurrence override data
+ */
+function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
+  if (typeof recurrenceId.toISOString !== 'function') {
+    console.warn(`[node-ical] Invalid recurrenceid (no toISOString): ${recurrenceId}`);
+    return;
+  }
+
+  const dateKey = getDateKey(recurrenceId);
+  const existing = recurrences[dateKey];
+
+  // Check SEQUENCE to determine which version to keep (RFC 5545)
+  if (existing !== undefined) {
+    const existingSeq = existing.sequence ?? 0;
+    const newSeq = recurrenceObject.sequence ?? 0;
+
+    if (newSeq < existingSeq) {
+      // Older version - ignore it
+      console.warn(`[node-ical] Ignoring older RECURRENCE-ID override (SEQUENCE ${newSeq} < ${existingSeq}) for ${dateKey}`);
+      return;
+    }
+    // If newSeq >= existingSeq, continue and overwrite (newer or same version)
+  }
+
+  recurrences[dateKey] = recurrenceObject;
+
+  // Also store with full ISO key for DATE-TIME entries (enables precise matching)
+  if (recurrenceId.dateOnly !== true) {
+    recurrences[recurrenceId.toISOString()] = recurrenceObject;
+  }
+}
+
+/**
  * Wrapper class to convert RRuleTemporal (Temporal.ZonedDateTime) to Date objects
  * This maintains backward compatibility while using rrule-temporal internally
  */
@@ -630,8 +668,6 @@ module.exports = {
           // fields in the parent record.
 
           if (curr.recurrenceid !== undefined) {
-            // TODO:  Is there ever a case where we have to worry about overwriting an existing entry here?
-
             // Create a copy of the current object to save in our recurrences array.  (We *could* just do par = curr,
             // except for the case that we get the RECURRENCE-ID record before the RRULE record.  In that case, we
             // would end up with a shared reference that would cause us to overwrite *both* records at the point
@@ -653,27 +689,8 @@ module.exports = {
               par[curr.uid].recurrences = {};
             }
 
-            // Store the recurrence override with dual-key strategy (same as EXDATE):
-            // - Date-only key (YYYY-MM-DD) for simple lookups
-            // - Full ISO string for precise matching when multiple instances occur per day
-            if (typeof curr.recurrenceid.toISOString === 'function') {
-              const isoString = curr.recurrenceid.toISOString();
-
-              // For date-only events, use local date components to avoid UTC timezone shift
-              const dateKey = getDateKey(curr.recurrenceid);
-
-              // Primary key: date-only for backward compatibility
-              par[curr.uid].recurrences[dateKey] = recurrenceObject;
-
-              // Additional key: full timestamp for events recurring multiple times per day
-              // Note: dateOnly is already set by dateParameter()
-              if (!curr.recurrenceid.dateOnly) {
-                par[curr.uid].recurrences[isoString] = recurrenceObject;
-              }
-            } else {
-              console.warn(`[node-ical] No toISOString function in recurrenceid: ${curr.recurrenceid}`);
-              // Skip malformed recurrence-id entries to avoid storing invalid keys
-            }
+            // Store the recurrence override with dual-key strategy (same as EXDATE)
+            storeRecurrenceOverride(par[curr.uid].recurrences, curr.recurrenceid, recurrenceObject);
           }
 
           // One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
@@ -1008,6 +1025,10 @@ module.exports = {
     CREATED: dateParameter('created'),
     'LAST-MODIFIED': dateParameter('lastmodified'),
     'RECURRENCE-ID': recurrenceParameter('recurrenceid'),
+    SEQUENCE(value, parameters, curr) {
+      curr.sequence = parseValue(value);
+      return curr;
+    },
     RRULE(value, parameters, curr, stack, line) {
       curr.rrule = line;
       return curr;
