@@ -50,6 +50,64 @@ describe('parser: advanced cases', () => {
       assert.strictEqual(event.recurrences[dateOnlyKey], event.recurrences[fullIsoKey], 'DATE-TIME RECURRENCE-ID should be accessible by both date-only and full ISO keys');
     });
 
+    // RECURRENCE-ID with SEQUENCE: newer versions should win over older ones (RFC 5545)
+    it('applies SEQUENCE logic to RECURRENCE-ID overrides', () => {
+      const data = ical.parseFile('./test/data/recurrence-sequence.ics');
+      const event = data['sequence-test@node-ical.test'];
+
+      assert.ok(event, 'Event should exist');
+      assert.ok(event.recurrences, 'Should have recurrences');
+
+      // Test case 1: SEQUENCE 3 appears first, then SEQUENCE 1
+      // The higher SEQUENCE (3) should be kept, SEQUENCE 1 should be ignored
+      const key1 = '2024-01-02';
+      assert.ok(event.recurrences[key1], 'Recurrence for 2024-01-02 should exist');
+      assert.equal(event.recurrences[key1].summary, 'Moved to afternoon (SEQUENCE 3)', 'Higher SEQUENCE should be kept');
+      assert.strictEqual(event.recurrences[key1].sequence, 3, 'SEQUENCE should be number 3');
+
+      // Test case 2: SEQUENCE 2 appears first, then SEQUENCE 5
+      // The higher SEQUENCE (5) should win
+      const key2 = '2024-01-03';
+      assert.ok(event.recurrences[key2], 'Recurrence for 2024-01-03 should exist');
+      assert.equal(event.recurrences[key2].summary, 'Newer override (SEQUENCE 5) - should win', 'Higher SEQUENCE should replace lower');
+      assert.strictEqual(event.recurrences[key2].sequence, 5, 'SEQUENCE should be number 5');
+
+      // Test case 3: Multiple overrides on same day with different times
+      // Both should exist independently (dual-key: ISO and date-only)
+      const isoKey1 = '2024-01-04T09:00:00.000Z';
+      const isoKey2 = '2024-01-04T15:00:00.000Z';
+      assert.ok(event.recurrences[isoKey1], 'Morning override should exist with ISO key');
+      assert.equal(event.recurrences[isoKey1].summary, 'Morning slot (SEQUENCE 2)', 'Morning override should be correct');
+      assert.ok(event.recurrences[isoKey2], 'Afternoon override should exist with ISO key');
+      assert.equal(event.recurrences[isoKey2].summary, 'Afternoon slot (SEQUENCE 4) - different time same day', 'Afternoon override should be correct');
+
+      // Both should also be accessible via date-only key (dual-key strategy)
+      // Note: With multiple overrides per day, date-only key points to the last one stored
+      const dateKey = '2024-01-04';
+      assert.ok(event.recurrences[dateKey], 'Date-only key should exist for 2024-01-04');
+    });
+
+    // Duplicate UIDs without RECURRENCE-ID: SEQUENCE determines which version wins
+    it('applies SEQUENCE logic to duplicate UIDs without RECURRENCE-ID', () => {
+      const data = ical.parseFile('./test/data/duplicate-uid-sequence.ics');
+
+      // Test case 1: SEQUENCE 2 appears first, then SEQUENCE 0
+      // The higher SEQUENCE (2) should be kept
+      const event1 = data['duplicate-sequence-test@node-ical.test'];
+      assert.ok(event1, 'Event should exist');
+      assert.equal(event1.summary, 'Team Meeting (SEQUENCE 2)', 'Higher SEQUENCE should be kept');
+      assert.strictEqual(event1.sequence, 2, 'SEQUENCE should be 2');
+      assert.equal(event1.start.getUTCHours(), 10, 'Start time should be 10:00 (from SEQUENCE 2)');
+
+      // Test case 2: SEQUENCE 1 appears first, then SEQUENCE 3
+      // The higher SEQUENCE (3) should win
+      const event2 = data['newer-wins-test@node-ical.test'];
+      assert.ok(event2, 'Event should exist');
+      assert.equal(event2.summary, 'Updated version (SEQUENCE 3) - should win', 'Higher SEQUENCE should replace lower');
+      assert.strictEqual(event2.sequence, 3, 'SEQUENCE should be 3');
+      assert.equal(event2.start.getUTCHours(), 14, 'Start time should be 14:00 (from SEQUENCE 3)');
+    });
+
     // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
     it('parses comma-separated EXDATEs (test14.ics)', () => {
       const data = ical.parseFile('./test/test14.ics');
