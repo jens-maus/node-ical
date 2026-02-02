@@ -71,6 +71,20 @@ describe('parser: advanced cases', () => {
       assert.ok(event.recurrences[key2], 'Recurrence for 2024-01-03 should exist');
       assert.equal(event.recurrences[key2].summary, 'Newer override (SEQUENCE 5) - should win', 'Higher SEQUENCE should replace lower');
       assert.strictEqual(event.recurrences[key2].sequence, 5, 'SEQUENCE should be number 5');
+
+      // Test case 3: Multiple overrides on same day with different times
+      // Both should exist independently (dual-key: ISO and date-only)
+      const isoKey1 = '2024-01-04T09:00:00.000Z';
+      const isoKey2 = '2024-01-04T15:00:00.000Z';
+      assert.ok(event.recurrences[isoKey1], 'Morning override should exist with ISO key');
+      assert.equal(event.recurrences[isoKey1].summary, 'Morning slot (SEQUENCE 2)', 'Morning override should be correct');
+      assert.ok(event.recurrences[isoKey2], 'Afternoon override should exist with ISO key');
+      assert.equal(event.recurrences[isoKey2].summary, 'Afternoon slot (SEQUENCE 4) - different time same day', 'Afternoon override should be correct');
+
+      // Both should also be accessible via date-only key (dual-key strategy)
+      // Note: With multiple overrides per day, date-only key points to the last one stored
+      const dateKey = '2024-01-04';
+      assert.ok(event.recurrences[dateKey], 'Date-only key should exist for 2024-01-04');
     });
 
     // Duplicate UIDs without RECURRENCE-ID: SEQUENCE determines which version wins

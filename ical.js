@@ -75,16 +75,22 @@ function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
   }
 
   const dateKey = getDateKey(recurrenceId);
-  const existing = recurrences[dateKey];
+  const isoKey = recurrenceId.dateOnly === true ? null : recurrenceId.toISOString();
+
+  // Check for existing override: prefer ISO key if available (more precise), fallback to date key
+  // This handles both DATE-TIME (precise time) and DATE (date-only) recurrence IDs
+  const existing = (isoKey && recurrences[isoKey]) || recurrences[dateKey];
 
   // Check SEQUENCE to determine which version to keep (RFC 5545)
+  // Normalize SEQUENCE to number, default to 0 if invalid/missing
   if (existing !== undefined) {
-    const existingSeq = existing.sequence ?? 0;
-    const newSeq = recurrenceObject.sequence ?? 0;
+    const existingSeq = Number.isFinite(existing.sequence) ? existing.sequence : 0;
+    const newSeq = Number.isFinite(recurrenceObject.sequence) ? recurrenceObject.sequence : 0;
 
     if (newSeq < existingSeq) {
       // Older version - ignore it
-      console.warn(`[node-ical] Ignoring older RECURRENCE-ID override (SEQUENCE ${newSeq} < ${existingSeq}) for ${dateKey}`);
+      const key = isoKey || dateKey;
+      console.warn(`[node-ical] Ignoring older RECURRENCE-ID override (SEQUENCE ${newSeq} < ${existingSeq}) for ${key}`);
       return;
     }
     // If newSeq >= existingSeq, continue and overwrite (newer or same version)
@@ -93,8 +99,8 @@ function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
   recurrences[dateKey] = recurrenceObject;
 
   // Also store with full ISO key for DATE-TIME entries (enables precise matching)
-  if (recurrenceId.dateOnly !== true) {
-    recurrences[recurrenceId.toISOString()] = recurrenceObject;
+  if (isoKey) {
+    recurrences[isoKey] = recurrenceObject;
   }
 }
 
@@ -645,8 +651,9 @@ module.exports = {
             // to the entry (SEQUENCE).
 
             // Check SEQUENCE to determine which version to keep (RFC 5545)
-            const existingSeq = par[curr.uid].sequence ?? 0;
-            const newSeq = curr.sequence ?? 0;
+            // Normalize SEQUENCE to number, default to 0 if invalid/missing
+            const existingSeq = Number.isFinite(par[curr.uid].sequence) ? par[curr.uid].sequence : 0;
+            const newSeq = Number.isFinite(curr.sequence) ? curr.sequence : 0;
 
             if (newSeq < existingSeq) {
               // Older version - ignore it entirely
