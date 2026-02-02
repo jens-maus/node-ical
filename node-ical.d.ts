@@ -157,7 +157,7 @@ declare module 'node-ical' {
     [uid: string]: CalendarComponent | VCalendar | undefined;
   };
 
-  export type CalendarComponent = VTimeZone | VEvent | VCalendar;
+  export type CalendarComponent = VTimeZone | VEvent | VTodo | VJournal | VFreebusy | VCalendar;
 
   export type VTimeZone = TimeZoneProps & TimeZoneDictionary;
 
@@ -211,29 +211,40 @@ declare module 'node-ical' {
 
   } & BaseComponent;
 
-  export type VEvent = {
-    type: 'VEVENT';
-    method: Method;
-    dtstamp: DateWithTimeZone;
-    uid: string;
-    sequence: string;
-    transparency: Transparency;
-    class: Class;
-    /** Event title/summary – may include params (e.g., LANGUAGE) */
-    summary: ParameterValue;
-    start: DateWithTimeZone;
-    datetype: DateType;
-    end: DateWithTimeZone;
-    /** Event location – may include params (e.g., LANGUAGE, ALTREP) */
-    location: ParameterValue;
-    /** Event description – may include params (e.g., LANGUAGE, ALTREP) */
-    description: ParameterValue;
-    url: string;
-    completion: string;
-    created: DateWithTimeZone;
-    lastmodified: DateWithTimeZone;
-    rrule?: RRule;
+  /**
+   * Common properties shared by calendar components (VEVENT, VTODO, VJOURNAL)
+   * that support recurrence and scheduling.
+   */
+  type CalendarComponentCommon = {
+    uid?: string;
+    dtstamp?: DateWithTimeZone;
+    sequence?: number;
+    summary?: ParameterValue;
+    description?: ParameterValue;
+    start?: DateWithTimeZone;
+    datetype?: DateType;
+    created?: DateWithTimeZone;
+    lastmodified?: DateWithTimeZone;
+    class?: Class;
+    url?: string;
+    organizer?: Organizer;
     attendee?: Attendee[] | Attendee;
+    categories?: string[];
+    rrule?: RRule;
+    recurrenceid?: DateWithTimeZone;
+    exdate?: Record<string, DateWithTimeZone>;
+  };
+
+  export type VEvent = CalendarComponentCommon & {
+    type: 'VEVENT';
+    method?: Method;
+    /** Event location – may include params (e.g., LANGUAGE, ALTREP) */
+    location?: ParameterValue;
+    end?: DateWithTimeZone;
+    transparency?: Transparency;
+    completion?: string;
+    geo?: any;
+    status?: VEventStatus;
     /**
      * Modified instances of recurring events (RECURRENCE-ID overrides).
      * Uses dual-key approach for RFC 5545 compliance:
@@ -248,32 +259,123 @@ declare module 'node-ical' {
      * const override = event.recurrences?.['2024-07-15T14:00:00.000Z'];
      */
     recurrences?: Record<string, Omit<VEvent, 'recurrences'>>;
-    status?: VEventStatus;
-
-    // I am not entirely sure about these, leave them as any for now..
-    organizer: Organizer;
-    /**
-     * Exception dates (EXDATE) – dates excluded from recurrence.
-     * Uses dual-key approach for RFC 5545 compliance:
-     * - Date-only key (YYYY-MM-DD) for VALUE=DATE and simple lookups
-     * - Full ISO timestamp key for VALUE=DATE-TIME entries
-     * Both keys reference the same Date object.
-     *
-     * @example
-     * // Check if a date is excluded
-     * if (event.exdate?.['2024-07-15']) { ... }
-     * // Check if specific time instance is excluded
-     * if (event.exdate?.['2024-07-15T14:00:00.000Z']) { ... }
-     */
-    exdate?: Record<string, DateWithTimeZone>;
-    geo: any;
-    /**
-     * Recurrence ID for modified instances of recurring events.
-     * When present on a VEVENT, indicates this is an override of a specific recurrence.
-     */
-    recurrenceid?: DateWithTimeZone;
-
     alarms?: VAlarm[];
+  } & BaseComponent;
+
+  /**
+   * Todo status values as defined in RFC 5545
+   */
+  export type VTodoStatus = 'NEEDS-ACTION' | 'COMPLETED' | 'IN-PROCESS' | 'CANCELLED';
+
+  /**
+   * Journal status values as defined in RFC 5545
+   */
+  export type VJournalStatus = 'DRAFT' | 'FINAL' | 'CANCELLED';
+
+  /**
+   * VTODO component representing a task or to-do item.
+   *
+   * @example
+   * const data = ical.parseICS(icsString);
+   * const todos = Object.values(data).filter(item => item.type === 'VTODO');
+   * todos.forEach(todo => {
+   *   console.log(`Task: ${todo.summary}`);
+   *   console.log(`Due: ${todo.due}`);
+   *   console.log(`Completed: ${todo.completion}%`);
+   * });
+   */
+  export type VTodo = CalendarComponentCommon & {
+    type: 'VTODO';
+    method?: Method;
+    /** Task location – may include params (e.g., LANGUAGE, ALTREP) */
+    location?: ParameterValue;
+    /** When this task is due */
+    due?: DateWithTimeZone;
+    /** When this task was completed */
+    completed?: DateWithTimeZone;
+    /** Percentage of task completion (0-100) */
+    completion?: string;
+    status?: VTodoStatus;
+    /** Task priority (0 = undefined, 1 = highest, 9 = lowest) */
+    priority?: number;
+    /**
+     * Modified instances of recurring todos (RECURRENCE-ID overrides).
+     * Uses dual-key approach (date and ISO timestamp).
+     */
+    recurrences?: Record<string, Omit<VTodo, 'recurrences'>>;
+    alarms?: VAlarm[];
+  } & BaseComponent;
+
+  /**
+   * VJOURNAL component representing a journal entry or note.
+   *
+   * @example
+   * const data = ical.parseICS(icsString);
+   * const journals = Object.values(data).filter(item => item.type === 'VJOURNAL');
+   * journals.forEach(journal => {
+   *   console.log(`Entry: ${journal.summary}`);
+   *   console.log(`Description: ${journal.description}`);
+   * });
+   */
+  export type VJournal = CalendarComponentCommon & {
+    type: 'VJOURNAL';
+    method?: Method;
+    status?: VJournalStatus;
+    /**
+     * Modified instances of recurring journals (RECURRENCE-ID overrides).
+     * Uses dual-key approach (date and ISO timestamp).
+     */
+    recurrences?: Record<string, Omit<VJournal, 'recurrences'>>;
+  } & BaseComponent;
+
+  /**
+   * Free/busy time type as defined in RFC 5545
+   */
+  export type FreebusyType = 'FREE' | 'BUSY' | 'BUSY-UNAVAILABLE' | 'BUSY-TENTATIVE';
+
+  /**
+   * Free/busy period with start and end times
+   */
+  export type FreebusyPeriod = {
+    /** Free/busy period type */
+    type: FreebusyType;
+    /** Start time of the period */
+    start: DateWithTimeZone;
+    /** End time of the period */
+    end: DateWithTimeZone;
+  };
+
+  /**
+   * VFREEBUSY component representing free/busy time information.
+   * Used to publish or request free/busy time for calendar users.
+   *
+   * @example
+   * const data = ical.parseICS(icsString);
+   * const freebusy = Object.values(data).find(item => item.type === 'VFREEBUSY');
+   * if (freebusy) {
+   *   console.log(`Free/busy for: ${freebusy.organizer}`);
+   *   freebusy.freebusy?.forEach(period => {
+   *     console.log(`${period.type}: ${period.start} - ${period.end}`);
+   *   });
+   * }
+   */
+  export type VFreebusy = {
+    type: 'VFREEBUSY';
+    method?: Method;
+    uid?: string;
+    /** Organizer of the free/busy time (optional, not always present) */
+    organizer?: Organizer;
+    /** Start of free/busy period */
+    start?: DateWithTimeZone;
+    /** End of free/busy period */
+    end?: DateWithTimeZone;
+    dtstamp?: DateWithTimeZone;
+    /** URL to access the free/busy information */
+    url?: string;
+    /** Array of free/busy time periods */
+    freebusy?: FreebusyPeriod[];
+    /** Attendee information */
+    attendee?: Attendee[] | Attendee;
   } & BaseComponent;
 
   /**
