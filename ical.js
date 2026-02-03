@@ -1024,6 +1024,14 @@ module.exports = {
 
       throw new Error('duplicate DTEND encountered, line=' + line);
     },
+    DUE(value, parameters, curr, stack, line) {
+      // If already defined, this is a duplicate for this event
+      if (curr.due === undefined) {
+        return dateParameter('due')(value, parameters, curr, stack);
+      }
+
+      throw new Error('duplicate DUE encountered, line=' + line);
+    },
     EXDATE: exdateParameter('exdate'),
     ' CLASS': storeParameter('class'), // Should there be a space in this property?
     TRANSP: storeParameter('transparency'),
