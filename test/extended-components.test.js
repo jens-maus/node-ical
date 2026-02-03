@@ -25,7 +25,18 @@ describe('parser: extended component types', () => {
       assert_.equal(todo.uid, 'uid4@host1.com');
       assert_.equal(todo.summary, 'Submit Income Taxes');
       assert_.equal(todo.status, 'NEEDS-ACTION');
-      assert_.ok(todo.due);
+
+      // DUE should be parsed as a Date object (fixes #426)
+      // Note: DUE:19980415T235959 is floating time (no Z suffix), so the exact
+      // UTC timestamp depends on the local timezone. We verify the date components.
+      assert_.ok(todo.due instanceof Date, 'DUE should be a Date object');
+      assert_.equal(todo.due.getFullYear(), 1998);
+      assert_.equal(todo.due.getMonth(), 3); // April = 3 (0-indexed)
+      assert_.equal(todo.due.getDate(), 15);
+      assert_.equal(todo.due.getHours(), 23);
+      assert_.equal(todo.due.getMinutes(), 59);
+      assert_.equal(todo.due.getSeconds(), 59);
+
       assert_.ok(todo.organizer);
       assert_.ok(todo.attendee);
       assert_.ok(Array.isArray(todo.alarms) && todo.alarms.length > 0);
