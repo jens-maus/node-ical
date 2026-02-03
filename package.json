@@ -21,8 +21,10 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@js-temporal/polyfill": "^0.5.1",
     "rrule-temporal": "^1.4.5"
+  },
+  "overrides": {
+    "@js-temporal/polyfill": "npm:temporal-polyfill@^0.3.0"
   },
   "devDependencies": {
     "date-fns": "^4.1.0",
@@ -45,7 +47,8 @@
       "no-useless-catch": "off",
       "promise/prefer-await-to-then": "off",
       "unicorn/prefer-module": "off",
-      "unicorn/prefer-spread": "off"
+      "unicorn/prefer-spread": "off",
+      "import-x/no-extraneous-dependencies": "off"
     }
   },
   "scripts": {
