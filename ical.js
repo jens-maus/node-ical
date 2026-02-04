@@ -1123,7 +1123,11 @@ module.exports = {
     if (cb) {
       if (i < lines.length) {
         setImmediate(() => {
-          this.parseLines(lines, limit, ctx, stack, i + 1, cb);
+          try {
+            this.parseLines(lines, limit, ctx, stack, i + 1, cb);
+          } catch (error) {
+            cb(error, ctx);
+          }
         });
       } else {
         setImmediate(() => {
