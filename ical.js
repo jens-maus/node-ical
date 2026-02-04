@@ -1033,7 +1033,7 @@ module.exports = {
       throw new Error('duplicate DUE encountered, line=' + line);
     },
     EXDATE: exdateParameter('exdate'),
-    ' CLASS': storeParameter('class'), // Should there be a space in this property?
+    CLASS: storeParameter('class'),
     TRANSP: storeParameter('transparency'),
     GEO: geoParameter('geo'),
     'PERCENT-COMPLETE': storeParameter('completion'),
