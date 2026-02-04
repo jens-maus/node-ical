@@ -1,0 +1,87 @@
+name: Release (version bump + npm publish)
+
+on:
+  release:
+    types: [published]
+
+# Needed for:
+# - pushing the version-bump commit + tag back to the repo  -> contents: write
+# - requesting an OIDC token for npm Trusted Publishing     -> id-token: write
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      # npm Trusted Publishing via OIDC requires a recent npm CLI
+      # (npm docs mention npm >= 11.5.1). Installing latest is simplest.
+      - name: Ensure recent npm (for OIDC Trusted Publishing)
+        run: npm install -g npm@latest
+
+      - name: Compute version from release tag
+        id: ver
+        shell: bash
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]]; then
+            echo "Release tag '$TAG' does not look like a semver version."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Version bump (package.json + lockfile)
+        run: |
+          npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version
+
+      - name: Commit version bump & push tag
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage files (lockfile might not exist)
+          git add package.json package-lock.json 2>/dev/null || true
+          git add package.json
+
+          # If already bumped (e.g. rerun), don't fail
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore(release): v${{ steps.ver.outputs.version }}"
+          fi
+
+          # Ensure tag exists (re-tag is idempotent with -f, but we avoid force)
+          if git rev-parse "v${{ steps.ver.outputs.version }}" >/dev/null 2>&1; then
+            echo "Tag v${{ steps.ver.outputs.version }} already exists."
+          else
+            git tag "v${{ steps.ver.outputs.version }}"
+          fi
+
+          git push origin HEAD
+          git push origin "v${{ steps.ver.outputs.version }}"
+
+      - name: Publish to npm (Trusted Publishing / OIDC)
+        run: |
+          # For scoped public packages: keep --access public
+          npm publish --access public --dry-run
