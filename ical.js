@@ -1082,7 +1082,7 @@ module.exports = {
    * @param {Array} [stack] - Parser stack for nested components (internal)
    * @param {number} [startIndex=0] - Current position in lines array (internal)
    * @param {Function} [cb] - Callback for async mode: cb(error, data)
-   * @returns {Object|undefined} Parsed calendar data (sync) or undefined (async)
+   * @returns {Object|undefined} Parsed calendar data (sync mode), undefined (async mode with callback)
    *
    * @example
    * // Sync mode (no batching)
@@ -1096,6 +1096,9 @@ module.exports = {
     ctx ||= {};
     stack ||= [];
 
+    let parseError = null;
+    let parseResult = null;
+
     try {
       const endIndex = batchSize > 0 ? Math.min(startIndex + batchSize, lines.length) : lines.length;
 
@@ -1107,7 +1110,7 @@ module.exports = {
           i++;
         }
 
-        // Remove any double quotes in any tzid statement// except around (utc+hh:mm
+        // Remove any double quotes in any tzid statement // except around (utc+hh:mm
         if (l.includes('TZID=') && !l.includes('"(')) {
           l = l.replaceAll('"', '');
         }
@@ -1132,31 +1135,31 @@ module.exports = {
       // Check if more batches needed
       if (batchSize > 0 && endIndex < lines.length) {
         // Async mode: schedule next batch
-        // Wrap in try-catch to catch errors in recursive calls
         setImmediate(() => {
-          try {
-            this.parseLines(lines, batchSize, ctx, stack, endIndex, cb);
-          } catch (error) {
-            cb(error, {});
-          }
+          this.parseLines(lines, batchSize, ctx, stack, endIndex, cb);
         });
-      } else {
-        // Finished parsing
-        delete ctx.type;
-        delete ctx.params;
+        return; // Exit early, callback will be invoked by recursive call
+      }
 
-        if (cb) {
-          cb(null, ctx);
-        } else {
-          return ctx;
-        }
-      }
+      // Finished parsing - prepare result
+      delete ctx.type;
+      delete ctx.params;
+      parseResult = ctx;
     } catch (error) {
-      if (cb) {
-        cb(error, {});
+      parseError = error;
+    }
+
+    // Call callback outside try-catch to prevent double-calling if cb throws
+    if (cb) {
+      if (parseError) {
+        cb(parseError, {});
       } else {
-        throw error;
+        cb(null, parseResult);
       }
+    } else if (parseError) {
+      throw parseError;
+    } else {
+      return parseResult;
     }
   },
 
@@ -1177,6 +1180,10 @@ module.exports = {
    *   if (err) console.error(err);
    *   else console.log(data);
    * });
+   *
+   * @todo for v1.0: Split into separate parseICS() (sync) and parseICSAsync() (Promise-based) functions.
+   * The current dual-mode API (sync if no callback, async if callback) is an anti-pattern that
+   * makes the function behavior unpredictable and harder to type correctly in TypeScript.
    */
   parseICS(string, cb) {
     const lines = string.split(/\r?\n/);

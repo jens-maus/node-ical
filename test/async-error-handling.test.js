@@ -203,6 +203,31 @@ END:VCALENDAR`;
         done();
       });
     });
+
+    it('should call callback only once even if it throws', function (done) {
+      // Regression test: if callback is inside try-catch, an error thrown by
+      // the callback would be caught and cause a double callback
+      let callbackCount = 0;
+
+      ical.parseICS(validICS, () => {
+        callbackCount++;
+
+        if (callbackCount > 1) {
+          done(new Error('Callback was called more than once'));
+          return;
+        }
+
+        // Throw after incrementing counter - this tests that parseICS
+        // doesn't catch this error and call the callback again
+        throw new Error('User callback error');
+      });
+
+      // Give it time for potential double callback
+      setTimeout(() => {
+        assert.equal(callbackCount, 1);
+        done();
+      }, 50);
+    });
   });
 });
 
