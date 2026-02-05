@@ -4,7 +4,7 @@
  * Related to Issue #144: Uncatchable exception in async mode
  * @see https://github.com/jens-maus/node-ical/issues/144
  */
-/* eslint-disable prefer-arrow-callback */
+/* eslint-disable prefer-arrow-callback, max-nested-callbacks */
 
 const assert = require('node:assert/strict');
 const process = require('node:process');
@@ -98,38 +98,7 @@ describe('parseICS async mode', function () {
         }
       };
 
-      try {
-        ical.parseICS(malformedDtstartICS, (error, _data) => {
-          if (handled) {
-            return;
-          }
-
-          if (error) {
-            // EXPECTED behavior after fix
-            handled = true;
-            cleanup();
-            assert.ok(
-              error.message.includes('toISOString') || error.message.includes('Invalid'),
-              'Error message should indicate parsing failure',
-            );
-            done();
-          }
-        });
-      } catch (syncError) {
-        // Some errors thrown synchronously - also acceptable
-        if (handled) {
-          return;
-        }
-
-        handled = true;
-        cleanup();
-        assert.ok(syncError.message.includes('toISOString'), 'Sync error should indicate parsing failure');
-        done();
-        return;
-      }
-
-      // Wait to see if uncaught exception occurs (the bug)
-      setTimeout(() => {
+      const checkComplete = () => {
         if (handled) {
           return;
         }
@@ -138,11 +107,30 @@ describe('parseICS async mode', function () {
         cleanup();
 
         if (uncaughtError) {
-          assert.fail(`BUG #144: Error escaped to uncaughtException: ${uncaughtError.message}`);
+          return done(new Error(`BUG #144: Error escaped to uncaughtException: ${uncaughtError.message}`));
         }
 
-        assert.fail('BUG #144: Neither callback nor try-catch received the error');
-      }, 2000);
+        done(new Error('BUG #144: Neither callback nor try-catch received the error'));
+      };
+
+      ical.parseICS(malformedDtstartICS, (error, _data) => {
+        if (handled || !error) {
+          return;
+        }
+
+        // EXPECTED behavior - error passed to callback
+        handled = true;
+        cleanup();
+
+        assert.ok(
+          error.message.includes('toISOString') || error.message.includes('Invalid'),
+          'Error message should indicate parsing failure',
+        );
+        done();
+      });
+
+      // Wait to see if uncaught exception occurs (the bug)
+      setTimeout(checkComplete, 2000);
     });
 
     it('should not require try-catch for async error handling', function (done) {
@@ -150,23 +138,22 @@ describe('parseICS async mode', function () {
 
       let errorCaught = false;
 
-      try {
-        ical.parseICS(malformedDtstartICS, (error, _data) => {
-          if (error && !errorCaught) {
-            errorCaught = true;
-            done();
-          }
-        });
-      } catch {
+      const handleError = () => {
         if (!errorCaught) {
           errorCaught = true;
           done();
         }
-      }
+      };
+
+      ical.parseICS(malformedDtstartICS, (error, _data) => {
+        if (error) {
+          handleError();
+        }
+      });
 
       setTimeout(() => {
         if (!errorCaught) {
-          done(new Error('Error was not caught by callback or try-catch'));
+          done(new Error('Error was not caught by callback'));
         }
       }, 2000);
     });
