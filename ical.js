@@ -565,7 +565,7 @@ module.exports = {
     BEGIN(component, parameters, curr, stack) {
       stack.push(curr);
 
-      return {type: component, params: parameters};
+      return {type: component};
     },
     END(value, parameters, curr, stack) {
       // Original end function
