@@ -66,12 +66,27 @@ function promiseCallback(fn, cb) {
     return promise;
   }
 
+  // Store result/error outside .then/.catch to avoid double-callback
+  // if the user's callback throws (the thrown error would be caught by
+  // the promise chain and trigger .catch, calling cb a second time)
+  let callbackError = null;
+  let callbackResult = null;
+  let hasResult = false;
+
   promise
     .then(returnValue => {
-      cb(null, returnValue);
+      callbackResult = returnValue;
+      hasResult = true;
     })
     .catch(error => {
-      cb(error, null);
+      callbackError = error;
+    })
+    .finally(() => {
+      if (callbackError) {
+        cb(callbackError, null);
+      } else if (hasResult) {
+        cb(null, callbackResult);
+      }
     });
 }
 

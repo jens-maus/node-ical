@@ -557,6 +557,9 @@ const freebusyParameter = function (name) {
   };
 };
 
+// Default batch size for async parsing to prevent event loop blocking
+const PARSE_BATCH_SIZE = 2000;
+
 module.exports = {
   objectHandlers: {
     BEGIN(component, parameters, curr, stack) {
@@ -1069,83 +1072,130 @@ module.exports = {
     return storeParameter(name.toLowerCase())(value, parameters, ctx);
   },
 
-  parseLines(lines, limit, ctx, stack, lastIndex, cb) {
-    if (!cb && typeof ctx === 'function') {
-      cb = ctx;
-      ctx = undefined;
-    }
-
+  /**
+   * Parse iCalendar lines into a structured object.
+   * Supports both sync and async (batched) modes.
+   *
+   * @param {string[]} lines - Array of iCalendar lines
+   * @param {number} [batchSize=0] - Lines per batch (0=sync mode, >0=async batching)
+   * @param {Object} [ctx] - Context object (internal, created if not provided)
+   * @param {Array} [stack] - Parser stack for nested components (internal)
+   * @param {number} [startIndex=0] - Current position in lines array (internal)
+   * @param {Function} [cb] - Callback for async mode: cb(error, data)
+   * @returns {Object|undefined} Parsed calendar data (sync mode), undefined (async mode with callback)
+   *
+   * @example
+   * // Sync mode (no batching)
+   * const data = parseLines(lines);
+   *
+   * @example
+   * // Async mode (with batching)
+   * parseLines(lines, 2000, undefined, undefined, 0, (err, data) => { ... });
+   */
+  parseLines(lines, batchSize = 0, ctx, stack, startIndex = 0, cb) {
     ctx ||= {};
     stack ||= [];
 
-    let limitCounter = 0;
+    let parseError = null;
+    let parseResult = null;
 
-    let i = lastIndex || 0;
-    for (let ii = lines.length; i < ii; i++) {
-      let l = lines[i];
-      // Unfold : RFC#3.1
-      while (lines[i + 1] && /[ \t]/.test(lines[i + 1][0])) {
-        l += lines[i + 1].slice(1);
-        i++;
+    try {
+      const endIndex = batchSize > 0 ? Math.min(startIndex + batchSize, lines.length) : lines.length;
+
+      for (let i = startIndex; i < endIndex; i++) {
+        let l = lines[i];
+        // Unfold : RFC#3.1
+        while (lines[i + 1] && /[ \t]/.test(lines[i + 1][0])) {
+          l += lines[i + 1].slice(1);
+          i++;
+        }
+
+        // Remove any double quotes in any tzid statement // except around (utc+hh:mm
+        if (l.includes('TZID=') && !l.includes('"(')) {
+          l = l.replaceAll('"', '');
+        }
+
+        const exp = /^([\w\d-]+)((?:;[\w\d-]+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/;
+        let kv = l.match(exp);
+
+        if (kv === null) {
+          // Invalid line - must have k&v
+          continue;
+        }
+
+        kv = kv.slice(1);
+
+        const value = kv.at(-1);
+        const name = kv[0];
+        const parameters = kv[1] ? kv[1].split(';').slice(1) : [];
+
+        ctx = this.handleObject(name, value, parameters, ctx, stack, l) || {};
       }
 
-      // Remove any double quotes in any tzid statement// except around (utc+hh:mm
-      if (l.includes('TZID=') && !l.includes('"(')) {
-        l = l.replaceAll('"', '');
+      // Check if more batches needed
+      if (batchSize > 0 && endIndex < lines.length) {
+        // Async mode: schedule next batch
+        setImmediate(() => {
+          this.parseLines(lines, batchSize, ctx, stack, endIndex, cb);
+        });
+        return; // Exit early, callback will be invoked by recursive call
       }
 
-      const exp = /^([\w\d-]+)((?:;[\w\d-]+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/;
-      let kv = l.match(exp);
-
-      if (kv === null) {
-        // Invalid line - must have k&v
-        continue;
-      }
-
-      kv = kv.slice(1);
-
-      const value = kv.at(-1);
-      const name = kv[0];
-      const parameters = kv[1] ? kv[1].split(';').slice(1) : [];
-
-      ctx = this.handleObject(name, value, parameters, ctx, stack, l) || {};
-      if (++limitCounter > limit) {
-        break;
-      }
-    }
-
-    if (i >= lines.length) {
-      // Type and params are added to the list of items, get rid of them.
+      // Finished parsing - prepare result
       delete ctx.type;
       delete ctx.params;
+      parseResult = ctx;
+    } catch (error) {
+      parseError = error;
     }
 
+    // Call callback outside try-catch to prevent double-calling if cb throws
     if (cb) {
-      if (i < lines.length) {
-        setImmediate(() => {
-          this.parseLines(lines, limit, ctx, stack, i + 1, cb);
-        });
+      if (parseError) {
+        cb(parseError, {});
       } else {
-        setImmediate(() => {
-          cb(null, ctx);
-        });
+        cb(null, parseResult);
       }
+    } else if (parseError) {
+      throw parseError;
     } else {
-      return ctx;
+      return parseResult;
     }
   },
 
+  /**
+   * Parse an iCalendar string.
+   *
+   * @param {string} string - Raw iCalendar data (ICS format)
+   * @param {Function} [cb] - Optional callback for async mode: cb(error, data)
+   * @returns {Object|undefined} Parsed calendar data (sync) or undefined (async)
+   *
+   * @example
+   * // Synchronous parsing
+   * const data = ical.parseICS(icsString);
+   *
+   * @example
+   * // Asynchronous parsing with callback
+   * ical.parseICS(icsString, (err, data) => {
+   *   if (err) console.error(err);
+   *   else console.log(data);
+   * });
+   *
+   * @todo for v1.0: Split into separate parseICS() (sync) and parseICSAsync() (Promise-based) functions.
+   * The current dual-mode API (sync if no callback, async if callback) is an anti-pattern that
+   * makes the function behavior unpredictable and harder to type correctly in TypeScript.
+   */
   parseICS(string, cb) {
     const lines = string.split(/\r?\n/);
-    let ctx;
 
     if (cb) {
-      // Asynchronous execution
-      this.parseLines(lines, 2000, cb);
+      // Async mode: use batching to prevent event loop blocking
+      setImmediate(() => {
+        this.parseLines(lines, PARSE_BATCH_SIZE, undefined, undefined, 0, cb);
+      });
     } else {
-      // Synchronous execution
-      ctx = this.parseLines(lines, lines.length);
-      return ctx;
+      // Sync mode: parse all at once (no batching)
+      return this.parseLines(lines);
     }
   },
 };
