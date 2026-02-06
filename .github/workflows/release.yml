@@ -84,4 +84,4 @@ jobs:
       - name: Publish to npm (Trusted Publishing / OIDC)
         run: |
           # For scoped public packages: keep --access public
-          npm publish --access public --dry-run
+          npm publish --access public
