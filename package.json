@@ -35,6 +35,7 @@
     "mocha": "^11.7.5",
     "moment-timezone": "^0.6.0",
     "simple-git-hooks": "^2.13.1",
+    "typescript": "^5.9.3",
     "xo": "^1.2.3"
   },
   "xo": {
@@ -53,7 +54,8 @@
   },
   "scripts": {
     "examples": "node examples/example-rrule-moment.js && node examples/example-rrule-luxon.js && node examples/example-rrule-dayjs.js && node examples/example-rrule-datefns.js && node examples/example-rrule-vanilla.js && node examples/example.js",
-    "test": "xo && mocha --timeout 8000",
+    "test": "npm run test:types && xo && mocha --timeout 8000",
+    "test:types": "tsc --project test/tsconfig.json",
     "lint": "xo",
     "lintfix": "xo --fix",
     "prepare": "simple-git-hooks",

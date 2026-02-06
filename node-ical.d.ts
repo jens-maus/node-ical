@@ -237,6 +237,13 @@ declare module 'node-ical' {
 
   export type VEvent = CalendarComponentCommon & {
     type: 'VEVENT';
+    // RFC 5545 required fields (override optional from CalendarComponentCommon)
+    uid: string;
+    dtstamp: DateWithTimeZone;
+    start: DateWithTimeZone;
+    datetype: DateType;
+    summary: ParameterValue;
+    // VEvent-specific fields
     method?: Method;
     /** Event location – may include params (e.g., LANGUAGE, ALTREP) */
     location?: ParameterValue;
@@ -286,6 +293,10 @@ declare module 'node-ical' {
    */
   export type VTodo = CalendarComponentCommon & {
     type: 'VTODO';
+    // RFC 5545 required fields (override optional from CalendarComponentCommon)
+    uid: string;
+    dtstamp: DateWithTimeZone;
+    // VTodo-specific fields
     method?: Method;
     /** Task location – may include params (e.g., LANGUAGE, ALTREP) */
     location?: ParameterValue;
@@ -319,6 +330,10 @@ declare module 'node-ical' {
    */
   export type VJournal = CalendarComponentCommon & {
     type: 'VJOURNAL';
+    // RFC 5545 required fields (override optional from CalendarComponentCommon)
+    uid: string;
+    dtstamp: DateWithTimeZone;
+    // VJournal-specific fields
     method?: Method;
     status?: VJournalStatus;
     /**
@@ -404,9 +419,7 @@ declare module 'node-ical' {
     'WR-TIMEZONE'?: string;
   };
 
-  export type BaseComponent = {
-    params: any[];
-  };
+  export type BaseComponent = Record<string, unknown>;
 
   export type TimeZoneDef = {
     type: 'DAYLIGHT' | 'STANDARD';
