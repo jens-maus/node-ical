@@ -108,6 +108,43 @@ describe('parser: advanced cases', () => {
       assert.equal(event2.start.getUTCHours(), 14, 'Start time should be 14:00 (from SEQUENCE 3)');
     });
 
+    // Issue #450: RECURRENCE-ID with higher SEQUENCE appearing before base series with lower SEQUENCE
+    // The base series (RRULE) should still be accepted even though it has lower SEQUENCE
+    it('accepts base series (RRULE) even when RECURRENCE-ID with higher SEQUENCE comes first (issue #450)', () => {
+      const data = ical.parseFile('./test/data/google-recurrence-order.ics');
+      const event = data['aaaaaaaaaa888se1rr0b24sm4p@google.com'];
+
+      assert.ok(event, 'Event should exist');
+      assert.ok(event.rrule, 'Base series should have RRULE');
+      assert.equal(event.summary, 'TEST RECURR 3', 'Base series summary should be preserved');
+      assert.strictEqual(event.sequence, 0, 'Base series should have SEQUENCE 0');
+
+      // The modified occurrence should be in recurrences array
+      assert.ok(event.recurrences, 'Should have recurrences array');
+      const recurrenceKeys = Object.keys(event.recurrences);
+      assert.ok(recurrenceKeys.length > 0, 'Should have at least one recurrence override');
+
+      // Find the modified occurrence
+      const modifiedOccurrence = Object.values(event.recurrences).find(r => r.summary === 'TEST RECURR 3 - MODIFIED');
+      assert.ok(modifiedOccurrence, 'Modified occurrence should exist in recurrences');
+      assert.strictEqual(modifiedOccurrence.sequence, 1, 'Modified occurrence should have SEQUENCE 1');
+    });
+
+    // Duplicate UIDs with RRULE: SEQUENCE logic should apply to recurring events too
+    it('applies SEQUENCE logic to duplicate RRULE events', () => {
+      const data = ical.parseFile('./test/data/duplicate-rrule-sequence.ics');
+      const event = data['rrule-sequence-test@node-ical.test'];
+
+      assert.ok(event, 'Event should exist');
+      assert.ok(event.rrule, 'Event should have RRULE');
+      assert.equal(event.summary, 'Daily Meeting (SEQUENCE 2)', 'Higher SEQUENCE should be kept');
+      assert.strictEqual(event.sequence, 2, 'SEQUENCE should be 2');
+      assert.equal(event.start.getUTCHours(), 10, 'Start time should be 10:00 (from SEQUENCE 2)');
+
+      // Lower SEQUENCE version should be ignored
+      assert.notEqual(event.start.getUTCHours(), 14, 'Start time should not be 14:00 (from lower SEQUENCE)');
+    });
+
     // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
     it('parses comma-separated EXDATEs (test14.ics)', () => {
       const data = ical.parseFile('./test/test14.ics');

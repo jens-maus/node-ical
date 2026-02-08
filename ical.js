@@ -653,19 +653,37 @@ module.exports = {
             // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
             // to the entry (SEQUENCE).
 
-            // Check SEQUENCE to determine which version to keep (RFC 5545)
-            // Normalize SEQUENCE to number, default to 0 if invalid/missing
-            const existingSeq = Number.isFinite(par[curr.uid].sequence) ? par[curr.uid].sequence : 0;
-            const newSeq = Number.isFinite(curr.sequence) ? curr.sequence : 0;
+            // Special case: If existing entry is a RECURRENCE-ID override but current entry is the base series (has RRULE),
+            // we should always accept the base series regardless of SEQUENCE, as they serve different purposes.
+            // The RECURRENCE-ID will be stored separately in the recurrences array later.
+            const existingIsRecurrence = par[curr.uid].recurrenceid !== undefined;
+            const currentIsBaseSeries = curr.rrule !== undefined;
 
-            if (newSeq < existingSeq) {
-              // Older version - ignore it entirely
-              console.warn(`[node-ical] Ignoring older event version (SEQUENCE ${newSeq} < ${existingSeq}) for UID ${curr.uid}`);
-            } else {
-              // Newer or same version - merge fields from the new record into the existing one
+            if (existingIsRecurrence && currentIsBaseSeries) {
+              // Existing is a recurrence override, current is the base series - always accept the base series
+              // Note: The stale recurrenceid on par[curr.uid] will be cleaned up by the
+              // existing recurrenceid-cleanup block below (after the recurrence-id handling section).
               for (const key in curr) {
                 if (key !== null) {
                   par[curr.uid][key] = curr[key];
+                }
+              }
+            } else {
+              // Both are base series entries (no RECURRENCE-ID) - apply SEQUENCE logic
+              // Check SEQUENCE to determine which version to keep (RFC 5545)
+              // Normalize SEQUENCE to number, default to 0 if invalid/missing
+              const existingSeq = Number.isFinite(par[curr.uid].sequence) ? par[curr.uid].sequence : 0;
+              const newSeq = Number.isFinite(curr.sequence) ? curr.sequence : 0;
+
+              if (newSeq < existingSeq) {
+                // Older version - ignore it entirely
+                console.warn(`[node-ical] Ignoring older event version (SEQUENCE ${newSeq} < ${existingSeq}) for UID ${curr.uid}`);
+              } else {
+                // Newer or same version - merge fields from the new record into the existing one
+                for (const key in curr) {
+                  if (key !== null) {
+                    par[curr.uid][key] = curr[key];
+                  }
                 }
               }
             }
