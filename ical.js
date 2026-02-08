@@ -657,6 +657,8 @@ module.exports = {
             // we should always accept the base series regardless of SEQUENCE, as they serve different purposes.
             // The RECURRENCE-ID will be stored separately in the recurrences array later.
             const existingIsRecurrence = par[curr.uid].recurrenceid !== undefined;
+            // Note: This only detects RRULE-based series. RDATE-based recurring series
+            // (without RRULE) will fall through to SEQUENCE comparison.
             const currentIsBaseSeries = curr.rrule !== undefined;
 
             if (existingIsRecurrence && currentIsBaseSeries) {
