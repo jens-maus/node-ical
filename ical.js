@@ -653,18 +653,17 @@ module.exports = {
             // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
             // to the entry (SEQUENCE).
 
-            // Check SEQUENCE to determine which version to keep (RFC 5545)
-            // Normalize SEQUENCE to number, default to 0 if invalid/missing
-            const existingSeq = Number.isFinite(par[curr.uid].sequence) ? par[curr.uid].sequence : 0;
-            const newSeq = Number.isFinite(curr.sequence) ? curr.sequence : 0;
 
-            if (newSeq < existingSeq) {
-              // Older version - ignore it entirely
-              console.warn(`[node-ical] Ignoring older event version (SEQUENCE ${newSeq} < ${existingSeq}) for UID ${curr.uid}`);
-            } else {
-              // Newer or same version - merge fields from the new record into the existing one
-              for (const key in curr) {
-                if (key !== null) {
+            // Newer or same version - merge fields from the new record into the existing one
+            for (const key in curr) {
+              if (key !== null) {
+                // Check SEQUENCE to determine which version to keep (RFC 5545)
+                // Normalize SEQUENCE to number, default to 0 if invalid/missing
+                // Check at the [key] level so that series with SEQUENCE:0 can still apply other occurrences
+                // even when there are occurrences with SEQUENCE:1 that have already been processed. 
+                const existingSeq = Number.isFinite(par[curr.uid][key].sequence) ? par[curr.uid][key].sequence : 0;
+                const newSeq = Number.isFinite(curr[key].sequence) ? curr[key].sequence : 0;
+                if (newSeq < existingSeq) {
                   par[curr.uid][key] = curr[key];
                 }
               }
