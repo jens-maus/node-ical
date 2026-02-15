@@ -21,7 +21,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "rrule-temporal": "^1.4.5"
+    "rrule-temporal": "^1.4.6"
   },
   "overrides": {
     "@js-temporal/polyfill": "npm:temporal-polyfill@^0.3.0"

@@ -5,6 +5,16 @@ const assert = require('node:assert/strict');
 const {describe, it} = require('mocha');
 const ical = require('../node-ical.js');
 
+/**
+ * Regression tests for Google Calendar's UNTIL format bug (#435, rrule-temporal#104).
+ *
+ * Google Calendar sometimes produces RRULE with DATE-only UNTIL when DTSTART is DATE-TIME:
+ *   DTSTART;TZID=Europe/Oslo:20211216T180000
+ *   RRULE:FREQ=WEEKLY;UNTIL=20211216  ← Missing time component
+ *
+ * Since rrule-temporal 1.4.6, this normalization is handled upstream by the library.
+ * These tests verify that the library correctly interprets UNTIL in the event's timezone.
+ */
 describe('Google Calendar UNTIL format bug (regression test for #435 and rrule-temporal #104)', function () {
   it('should parse DATE-TIME event with TZID when UNTIL has no time component', function () {
     // Google Calendar sometimes produces RRULE with UNTIL that has no time part
