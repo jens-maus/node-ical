@@ -379,8 +379,32 @@ function processRecurringInstance(date, event, options, baseDurationMs) {
   const dateKey = generateDateKey(date, isFullDay);
 
   // Check EXDATE exclusions
-  if (excludeExdates && event.exdate && event.exdate[dateKey]) {
-    return null;
+  if (excludeExdates && event.exdate) {
+    if (isFullDay) {
+      // Full-day: compare by calendar date using timezone-aware formatting
+      // (e.g., Exchange/O365 stores EXDATE as DATE-TIME with timezone, so we need
+      // to extract the calendar date in the EXDATE's timezone, not host-local time)
+      for (const exdateValue of Object.values(event.exdate)) {
+        if (!(exdateValue instanceof Date)) {
+          continue;
+        }
+
+        // Use timezone-aware formatting to extract the calendar date
+        const tz = exdateValue.tz || 'UTC';
+        const exdateDateKey = new Intl.DateTimeFormat('en-CA', {
+          timeZone: tz,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(exdateValue);
+
+        if (exdateDateKey === dateKey) {
+          return null;
+        }
+      }
+    } else if (event.exdate[dateKey]) {
+      return null;
+    }
   }
 
   // Check for RECURRENCE-ID override
