@@ -157,6 +157,67 @@ describe('expandRecurringEvent', () => {
         'Should have more instances when excludeExdates=false',
       );
     });
+
+    it('should exclude the correct full-day instance for Exchange/O365 EXDATE with timezone', () => {
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'METHOD:PUBLISH',
+        'PRODID:Microsoft Exchange Server 2010',
+        'VERSION:2.0',
+        'X-WR-CALNAME:Kalender',
+        'BEGIN:VTIMEZONE',
+        'TZID:W. Europe Standard Time',
+        'BEGIN:STANDARD',
+        'DTSTART:16010101T030000',
+        'TZOFFSETFROM:+0200',
+        'TZOFFSETTO:+0100',
+        'RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=-1SU;BYMONTH=10',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:16010101T020000',
+        'TZOFFSETFROM:+0100',
+        'TZOFFSETTO:+0200',
+        'RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=-1SU;BYMONTH=3',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+        'BEGIN:VEVENT',
+        String.raw`DESCRIPTION:\n`,
+        'RRULE:FREQ=DAILY;UNTIL=20260222T230000Z;INTERVAL=1',
+        'EXDATE;TZID=W. Europe Standard Time:20260218T000000',
+        'UID:040000008200E00074C5B7101A82E008000000006604E89FF09DDC010000000000000000100000007D7F17AB9D66A54C9F0B00B70CEEF454',
+        'SUMMARY:Test - Recurr - Whole day - With one exception',
+        'DTSTART;VALUE=DATE:20260216',
+        'DTEND;VALUE=DATE:20260217',
+        'CLASS:PUBLIC',
+        'PRIORITY:5',
+        'DTSTAMP:20260214T204054Z',
+        'TRANSP:TRANSPARENT',
+        'STATUS:CONFIRMED',
+        'SEQUENCE:0',
+        'LOCATION:',
+        'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n');
+
+      const events = ical.sync.parseICS(ics);
+      const event = Object.values(events).find(event => event.type === 'VEVENT');
+
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date(2026, 1, 15),
+        to: new Date(2026, 1, 23),
+        excludeExdates: true,
+      });
+
+      const starts = new Set(instances.map(instance => [
+        instance.start.getFullYear(),
+        String(instance.start.getMonth() + 1).padStart(2, '0'),
+        String(instance.start.getDate()).padStart(2, '0'),
+      ].join('-')));
+
+      assert.ok(!starts.has('2026-02-18'), 'EXDATE day (2026-02-18) should be excluded');
+      assert.ok(starts.has('2026-02-17'), 'Previous day (2026-02-17) should still be included');
+    });
   });
 
   describe('RECURRENCE-ID overrides', () => {
