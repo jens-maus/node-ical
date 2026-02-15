@@ -1,14 +1,12 @@
-name: Release (version bump + npm publish)
+name: Release (npm publish via OIDC + version bump PR)
 
 on:
   release:
     types: [published]
 
-# Needed for:
-# - pushing the version-bump commit + tag back to the repo  -> contents: write
-# - requesting an OIDC token for npm Trusted Publishing     -> id-token: write
 permissions:
   contents: write
+  pull-requests: write
   id-token: write
 
 jobs:
@@ -16,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout (release tag)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -28,60 +26,64 @@ jobs:
           cache: npm
           registry-url: https://registry.npmjs.org
 
-      # npm Trusted Publishing via OIDC requires a recent npm CLI
-      # (npm docs mention npm >= 11.5.1). Installing latest is simplest.
-      - name: Ensure recent npm (for OIDC Trusted Publishing)
+      - name: Ensure recent npm (for Trusted Publishing / OIDC)
         run: npm install -g npm@latest
 
-      - name: Compute version from release tag
+      - name: Validate release tag (must be SemVer without leading "v")
         id: ver
         shell: bash
         run: |
           TAG="${{ github.event.release.tag_name }}"
-          VERSION="${TAG#v}"
 
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]]; then
-            echo "Release tag '$TAG' does not look like a semver version."
+          # Enforce: no leading "v"
+          if [[ "$TAG" == v* ]]; then
+            echo "Release tag '$TAG' starts with 'v'. Please use tags like '0.25.1' (no leading v)."
             exit 1
           fi
 
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Enforce: SemVer-like
+          if ! [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]]; then
+            echo "Release tag '$TAG' does not look like SemVer (expected e.g. 0.25.1)."
+            exit 1
+          fi
+
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Version bump (package.json + lockfile)
-        run: |
-          npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version
-
-      - name: Commit version bump & push tag
+      - name: Ensure package is not private
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          node -e '
+            const p=require("./package.json");
+            if (p.private === true) {
+              console.error("package.json has private:true - refusing to publish.");
+              process.exit(1);
+            }
+          '
 
-          # Stage files (lockfile might not exist)
-          git add package.json package-lock.json 2>/dev/null || true
-          git add package.json
+      - name: Set package version to release version (no git tag)
+        run: npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version
 
-          # If already bumped (e.g. rerun), don't fail
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "chore(release): v${{ steps.ver.outputs.version }}"
-          fi
-
-          # Ensure tag exists (re-tag is idempotent with -f, but we avoid force)
-          if git rev-parse "v${{ steps.ver.outputs.version }}" >/dev/null 2>&1; then
-            echo "Tag v${{ steps.ver.outputs.version }} already exists."
-          else
-            git tag "v${{ steps.ver.outputs.version }}"
-          fi
-
-          git push origin HEAD
-          git push origin "v${{ steps.ver.outputs.version }}"
+      - name: Preflight: show what will be published
+        run: |
+          node -p "require('./package.json').name + '@' + require('./package.json').version"
+          npm pack --dry-run
 
       - name: Publish to npm (Trusted Publishing / OIDC)
-        run: |
-          # For scoped public packages: keep --access public
-          npm publish --access public
+        run: npm publish --access public
+
+      - name: Create PR for version bump back to default branch
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(release): ${{ steps.ver.outputs.version }}"
+          title: "chore(release): ${{ steps.ver.outputs.version }}"
+          body: |
+            Automated version bump after GitHub Release `${{ github.event.release.tag_name }}`.
+
+            - Updates package.json (and lockfile if present) to `${{ steps.ver.outputs.version }}`
+            - Published to npm via Trusted Publishing (OIDC)
+          branch: "chore/release-${{ steps.ver.outputs.version }}"
+          delete-branch: true
+          labels: release
