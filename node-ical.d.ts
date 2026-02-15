@@ -125,9 +125,9 @@ declare module 'node-ical' {
    */
   export type EventInstance = {
     /** Start date/time of this instance */
-    start: Date;
+    start: DateWithTimeZone;
     /** End date/time of this instance */
-    end: Date;
+    end: DateWithTimeZone;
     /** Event summary/title - copied from event, may include params */
     summary: ParameterValue;
     /** Whether this is a full-day event (date-only, no time component) */

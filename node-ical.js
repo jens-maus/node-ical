@@ -273,6 +273,24 @@ function generateDateKey(date, isFullDay) {
 }
 
 /**
+ * Copy timezone metadata (tz, dateOnly) from source Date to target Date.
+ * @param {Date} target - Target Date object to copy metadata to
+ * @param {Date} source - Source Date object to copy metadata from
+ * @returns {Date} Target Date with copied metadata
+ */
+function copyDateMeta(target, source) {
+  if (source?.tz) {
+    target.tz = source.tz;
+  }
+
+  if (source?.dateOnly) {
+    target.dateOnly = source.dateOnly;
+  }
+
+  return target;
+}
+
+/**
  * Create date from UTC components to avoid DST issues for full-day events.
  * This ensures that a DATE value of 20250107 stays as January 7th regardless of timezone.
  * @param {Date} utcDate - Date from RRULE (UTC midnight)
@@ -352,7 +370,7 @@ function processNonRecurringEvent(event, options) {
     return [];
   }
 
-  return [{
+  const instance = {
     start: eventStart,
     end: eventEnd,
     summary: event.summary || '',
@@ -360,7 +378,13 @@ function processNonRecurringEvent(event, options) {
     isRecurring: false,
     isOverride: false,
     event,
-  }];
+  };
+
+  // Preserve timezone metadata
+  copyDateMeta(instance.start, event.start);
+  copyDateMeta(instance.end, event.end);
+
+  return [instance];
 }
 
 /**
@@ -408,7 +432,7 @@ function processRecurringInstance(date, event, options, baseDurationMs) {
   // For recurring events, use override duration when available; otherwise use base duration
   const end = calculateEndTime(start, instanceEvent, isFullDay, baseDurationMs);
 
-  return {
+  const instance = {
     start,
     end,
     summary: instanceEvent.summary || event.summary || '',
@@ -417,6 +441,12 @@ function processRecurringInstance(date, event, options, baseDurationMs) {
     isOverride,
     event: instanceEvent,
   };
+
+  // Preserve timezone metadata
+  copyDateMeta(instance.start, isOverride ? instanceEvent.start : event.start);
+  copyDateMeta(instance.end, instanceEvent.end || event.end);
+
+  return instance;
 }
 
 /**
