@@ -345,6 +345,69 @@ describe('expandRecurringEvent', () => {
     });
   });
 
+  describe('Timezone metadata preservation', () => {
+    it('should preserve timezone metadata (tz, dateOnly) on instance start/end dates', () => {
+      // Create a test event with timezone metadata
+      const testEvent = {
+        type: 'VEVENT',
+        uid: 'test-tz-metadata@test',
+        summary: 'Event with Timezone',
+        start: new Date('2025-01-06T10:00:00.000Z'),
+        end: new Date('2025-01-06T11:00:00.000Z'),
+        rrule: {
+          freq: 'DAILY',
+          between(_start, _end) {
+            return [
+              new Date('2025-01-06T10:00:00.000Z'),
+              new Date('2025-01-07T10:00:00.000Z'),
+            ];
+          },
+        },
+      };
+      testEvent.start.tz = 'Europe/Berlin';
+      testEvent.end.tz = 'Europe/Berlin';
+
+      const instances = ical.expandRecurringEvent(testEvent, {
+        from: new Date(2025, 0, 6),
+        to: new Date(2025, 0, 7),
+      });
+
+      assert.ok(instances.length > 0);
+
+      // Verify timezone metadata is preserved on all instances
+      for (const instance of instances) {
+        assert.strictEqual(instance.start.tz, 'Europe/Berlin', 'start.tz should be preserved');
+        assert.strictEqual(instance.end.tz, 'Europe/Berlin', 'end.tz should be preserved');
+      }
+    });
+
+    it('should preserve dateOnly metadata for full-day events', () => {
+      // Create a test full-day event with dateOnly metadata
+      const testEvent = {
+        type: 'VEVENT',
+        uid: 'test-dateonly@test',
+        summary: 'Full Day Event',
+        start: new Date('2025-01-15T00:00:00.000Z'),
+        end: new Date('2025-01-16T00:00:00.000Z'),
+        datetype: 'date',
+      };
+      testEvent.start.dateOnly = true;
+      testEvent.end.dateOnly = true;
+
+      const instances = ical.expandRecurringEvent(testEvent, {
+        from: new Date(2025, 0, 14),
+        to: new Date(2025, 0, 16),
+      });
+
+      assert.ok(instances.length > 0, 'Should find full-day event');
+
+      for (const instance of instances) {
+        assert.strictEqual(instance.start.dateOnly, true, 'Instance start should have dateOnly=true');
+        assert.strictEqual(instance.end.dateOnly, true, 'Instance end should have dateOnly=true');
+      }
+    });
+  });
+
   describe('Duration calculation', () => {
     it('should calculate end from DURATION property when present', () => {
       const events = ical.sync.parseFile(path.join(__dirname, 'test_date_time_duration.ics'));
