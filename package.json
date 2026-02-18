@@ -1,6 +1,6 @@
 {
   "name": "node-ical",
-  "version": "0.25.2",
+  "version": "0.25.3",
   "main": "node-ical.js",
   "types": "node-ical.d.ts",
   "description": "NodeJS class for parsing iCalendar/ICS files",
