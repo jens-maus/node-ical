@@ -293,12 +293,24 @@ function copyDateMeta(target, source) {
 /**
  * Create date from UTC components to avoid DST issues for full-day events.
  * This ensures that a DATE value of 20250107 stays as January 7th regardless of timezone.
- * @param {Date} utcDate - Date from RRULE (UTC midnight)
+ * For dateOnly events, uses local components (DATE values are timezone-independent).
+ * @param {Date} utcDate - Date from RRULE (UTC midnight) or dateOnly event
  * @returns {Date} Date representing the same calendar day at local midnight
  */
 function createLocalDateFromUTC(utcDate) {
-  // For full-day events, we want the calendar date, not the moment in time
-  // Extract the UTC date components and create a local date with same calendar day
+  // For DATE-only events (dateOnly flag set), use local components
+  // because DATE values represent calendar dates, not moments in time.
+  // This prevents timezone-shift issues (e.g., 20260227 in CET being
+  // stored as 2026-02-26T23:00:00Z and then wrongly extracted as Feb 26)
+  if (utcDate?.dateOnly) {
+    const year = utcDate.getFullYear();
+    const month = utcDate.getMonth();
+    const day = utcDate.getDate();
+    return new Date(year, month, day, 0, 0, 0, 0);
+  }
+
+  // For regular full-day events from RRULE (no dateOnly flag),
+  // extract UTC components to create the local date
   const year = utcDate.getUTCFullYear();
   const month = utcDate.getUTCMonth();
   const day = utcDate.getUTCDate();
