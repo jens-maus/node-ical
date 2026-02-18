@@ -1220,3 +1220,5 @@ module.exports = {
     }
   },
 };
+
+module.exports.getDateKey = getDateKey;

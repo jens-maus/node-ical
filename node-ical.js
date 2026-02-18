@@ -1,6 +1,8 @@
 const fs = require('node:fs');
 const ical = require('./ical.js');
 
+const {getDateKey} = ical;
+
 /**
  * ICal event object.
  *
@@ -253,22 +255,24 @@ autodetect.parseICS = function (data, cb) {
 };
 
 /**
- * Generate date key for EXDATE/RECURRENCE-ID lookups
- * Must match ical.js getDateKey semantics for lookups to succeed.
- * @param {Date} date
+ * Generate date key for EXDATE/RECURRENCE-ID lookups from an RRULE-generated date.
+ * RRULE-generated dates carry no .tz or .dateOnly metadata, so isFullDay must be
+ * passed explicitly to decide between local-time and UTC-based key extraction.
+ * (For parsed calendar dates that carry .tz/.dateOnly, use getDateKey directly.)
+ * @param {Date} date - RRULE-generated Date (no .tz, no .dateOnly)
  * @param {boolean} isFullDay
  * @returns {string} Date key in YYYY-MM-DD format
  */
 function generateDateKey(date, isFullDay) {
   if (isFullDay) {
-    // Use local getters for date-only events to match ical.js behavior
+    // Full-day events: use local getters — RRULE returns local-midnight dates
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const day = date.getDate();
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
-  // For timed events, return date portion only to match ical.js
+  // Timed events: UTC date portion
   return date.toISOString().slice(0, 10);
 }
 
@@ -425,16 +429,7 @@ function processRecurringInstance(date, event, options, baseDurationMs) {
           continue;
         }
 
-        // Use timezone-aware formatting to extract the calendar date
-        const tz = exdateValue.tz || 'UTC';
-        const exdateDateKey = new Intl.DateTimeFormat('en-CA', {
-          timeZone: tz,
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        }).format(exdateValue);
-
-        if (exdateDateKey === dateKey) {
+        if (getDateKey(exdateValue) === dateKey) {
           return null;
         }
       }
