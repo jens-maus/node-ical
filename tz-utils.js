@@ -1,9 +1,15 @@
 // Thin abstraction over Intl to centralize all timezone logic
 // This simplifies swapping libraries later and is easy to mock in tests.
 
+// Load Temporal polyfill if not natively available (mirrors ical.js)
+const Temporal = globalThis.Temporal || require('temporal-polyfill').Temporal;
+const windowsZones = require('./windowsZones.json');
+
+// Ensure polyfill is globally available for downstream modules
+globalThis.Temporal ??= Temporal;
+
 // Minimal alias map to emulate the subset of moment.tz.link behavior tests rely on
 const aliasMap = new Map();
-const windowsZones = require('./windowsZones.json');
 
 /**
  * Normalize a Windows timezone display label so that visually similar strings compare equally.
@@ -232,66 +238,6 @@ function minutesToEtcZone(totalMinutes) {
   const hours = Math.abs(totalMinutes) / 60;
   const sign = totalMinutes > 0 ? '-' : '+'; // Etc/GMT zones invert sign
   return `Etc/GMT${sign}${hours}`;
-}
-
-/**
- * Convert a `{year, month, day, hour, minute, second}` structure into UTC milliseconds.
- *
- * @param {{year: number, month: number, day: number, hour?: number, minute?: number, second?: number}} parts
- * @returns {number}
- */
-function ymdhmsToUtcMs(parts = {}) {
-  const {
-    year,
-    month,
-    day,
-    hour = 0,
-    minute = 0,
-    second = 0,
-  } = parts;
-
-  return Date.UTC(year, month - 1, day, hour, minute, second);
-}
-
-/**
- * Fixed-point iteration that aligns an initial UTC guess to the desired local wall time.
- * Runs up to three passes to survive DST gaps/folds and returns the closest valid instant.
- *
- * For spring-forward gaps (e.g., 2:30 AM during DST transition when clocks jump to 3:30 AM):
- * - Returns the first valid instant after the gap
- * For fall-back folds (e.g., 1:30 AM occurs twice when clocks fall back):
- * - Returns the first occurrence (standard time interpretation)
- *
- * @param {number} initialUtcMs
- * @param {{year: number, month: number, day: number, hour: number, minute: number, second: number}} targetParts
- * @param {(date: Date) => {year: number, month: number, day: number, hour: number, minute: number, second: number}} getLocalParts
- * @returns {Date}
- */
-function convergeLocalInstant(initialUtcMs, targetParts, getLocalParts) {
-  const targetUtc = ymdhmsToUtcMs(targetParts);
-  let t = initialUtcMs;
-  let estimate;
-  let delta = 0;
-
-  for (let i = 0; i < 3; i++) {
-    estimate = new Date(t);
-    const current = getLocalParts(estimate);
-    delta = ymdhmsToUtcMs(current) - targetUtc;
-    if (delta === 0) {
-      return estimate;
-    }
-
-    t -= delta;
-  }
-
-  const finalCandidate = new Date(t);
-  const finalDelta = ymdhmsToUtcMs(getLocalParts(finalCandidate)) - targetUtc;
-  if (finalDelta >= 0) {
-    return finalCandidate;
-  }
-
-  // Fall back to the last estimate, which will be the closest instant before the fold/gap.
-  return estimate;
 }
 
 /**
@@ -540,51 +486,16 @@ function parseDateTimeInZone(yyyymmddThhmmss, zone) {
     return undefined;
   }
 
-  // Initial guess: interpret local fields as if they were UTC
-  const t = Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second);
+  // Use Temporal to convert local wall-clock time in the given zone to a UTC instant.
+  // For DST gaps (missing hour, e.g. spring-forward): moves to the first valid instant after
+  // the gap ('later' behaves identically to 'compatible'/'earlier' here).
+  // For DST folds (repeated hour, e.g. fall-back): picks the second (post-DST) occurrence,
+  // matching the behaviour of the previous Intl-based convergeLocalInstant implementation.
+  const epochMs = Temporal.PlainDateTime.from(fields)
+    .toZonedDateTime(tz, {disambiguation: 'later'})
+    .epochMilliseconds;
 
-  const getLocalParts = date => {
-    const df = getFormatter(tz);
-
-    const parts = df.formatToParts(date);
-    const out = {};
-    for (const p of parts) {
-      if (p.type === 'year') {
-        out.year = Number(p.value);
-      }
-
-      if (p.type === 'month') {
-        out.month = Number(p.value);
-      }
-
-      if (p.type === 'day') {
-        out.day = Number(p.value);
-      }
-
-      if (p.type === 'hour') {
-        out.hour = Number(p.value);
-      }
-
-      if (p.type === 'minute') {
-        out.minute = Number(p.value);
-      }
-
-      if (p.type === 'second') {
-        out.second = Number(p.value);
-      }
-    }
-
-    // Handle 24:00 edge case which some TZs may produce for midnight
-    // This seems only happen with node < 22 and only for certain zones
-    if (Object.hasOwn(out, 'hour') && out.hour === 24) {
-      normalizeMidnightParts(date, df, out);
-    }
-
-    return out;
-  };
-
-  const converged = convergeLocalInstant(t, fields, getLocalParts);
-  return attachTz(converged, zone);
+  return attachTz(new Date(epochMs), zone);
 }
 
 function parseWithOffset(yyyymmddThhmmss, offset) {

@@ -4,7 +4,7 @@ const {randomUUID} = require('node:crypto');
 
 // Load Temporal polyfill if not natively available
 // TODO: Drop the polyfill branch once our minimum Node version ships Temporal
-const Temporal = globalThis.Temporal || require('@js-temporal/polyfill').Temporal;
+const Temporal = globalThis.Temporal || require('temporal-polyfill').Temporal;
 // Ensure Temporal exists before loading rrule-temporal
 globalThis.Temporal ??= Temporal;
 
