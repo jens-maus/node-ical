@@ -99,75 +99,8 @@ function pad2(value) {
   return String(value).padStart(2, '0');
 }
 
-// Simple per-zone formatter cache to reduce Intl constructor churn
-const dtfCache = new Map();
-
 // Memoize IANA zone validity checks to avoid repeated Intl constructor throws
 const validIanaCache = new Map();
-
-/**
- * Get a cached Intl.DateTimeFormat instance for the specified timezone.
- * Creates and caches a new formatter if one doesn't exist for the zone.
- *
- * @param {string} tz - The IANA timezone identifier.
- * @returns {Intl.DateTimeFormat} The cached formatter instance.
- */
-function getFormatter(tz) {
-  let formatter = dtfCache.get(tz);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-    dtfCache.set(tz, formatter);
-  }
-
-  return formatter;
-}
-
-/**
- * Work around the legacy Intl bug where some Node.js releases prior to v22 emit "24" for the
- * hour component at local midnight (verified with Node 20 against zones like Africa/Abidjan).
- * Node 22+ normalizes the output to "00", so this helper becomes unnecessary once we require
- * Node 22 or newer and can be safely removed at that point.
- *
- * @param {Date} date
- * @param {Intl.DateTimeFormat} formatter
- * @param {{year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number}} parts
- * @returns {{year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number}}
- */
-function normalizeMidnightParts(date, formatter, parts) {
-  if (!parts || typeof formatter?.formatToParts !== 'function') {
-    return parts;
-  }
-
-  const next = new Date(date.getTime() + 1000);
-  const nextParts = formatter.formatToParts(next);
-  for (const p of nextParts) {
-    if (p.type === 'year') {
-      parts.year = Number(p.value);
-    }
-
-    if (p.type === 'month') {
-      parts.month = Number(p.value);
-    }
-
-    if (p.type === 'day') {
-      parts.day = Number(p.value);
-    }
-  }
-
-  parts.hour = 0;
-  parts.minute = 0;
-  parts.second = 0;
-  return parts;
-}
 
 /**
  * Convert textual UTC offsets ("+05:30", "UTC-4", "(UTC+02:00)") into signed minute counts.
@@ -308,7 +241,9 @@ function resolveTZID(value) {
 
 /**
  * Format a Date as a local wall-time string (`YYYYMMDDTHHmmss`) suitable for RRULE DTSTART emission.
- * Prefers Intl when a valid IANA zone exists; otherwise falls back to offset arithmetic.
+ * Converts the UTC instant to the given timezone using Temporal, then formats the wall-clock fields.
+ * Accepts either an IANA zone name (via `tzInfo.iana`) or a UTC-offset zone derived from
+ * `tzInfo.offsetMinutes` (e.g. `+01:00`).
  *
  * @param {Date} date
  * @param {{iana?: string, offsetMinutes?: number}} tzInfo
@@ -319,43 +254,20 @@ function formatDateForRrule(date, tzInfo = {}) {
     return undefined;
   }
 
-  if (tzInfo.iana && isValidIana(tzInfo.iana)) {
-    const formatter = getFormatter(tzInfo.iana);
+  const tzId
+    = tzInfo.iana && isValidIana(tzInfo.iana)
+      ? tzInfo.iana
+      : (Number.isFinite(tzInfo.offsetMinutes)
+        ? minutesToOffset(tzInfo.offsetMinutes)
+        : undefined);
 
-    const parts = formatter.formatToParts(date);
-    const numericParts = new Map([
-      ['year', 'year'],
-      ['month', 'month'],
-      ['day', 'day'],
-      ['hour', 'hour'],
-      ['minute', 'minute'],
-      ['second', 'second'],
-    ]);
-    const out = {};
-    for (const part of parts) {
-      const target = numericParts.get(part.type);
-      if (!target) {
-        continue;
-      }
-
-      out[target] = Number(part.value);
-    }
-
-    if (out.hour === 24) {
-      normalizeMidnightParts(date, formatter, out);
-    }
-
-    if (out.year && out.month && out.day && out.hour !== undefined && out.minute !== undefined && out.second !== undefined) {
-      return `${out.year}${pad2(out.month)}${pad2(out.day)}T${pad2(out.hour)}${pad2(out.minute)}${pad2(out.second)}`;
-    }
+  if (!tzId) {
+    return undefined;
   }
 
-  if (Number.isFinite(tzInfo.offsetMinutes)) {
-    const local = new Date(date.getTime() + (tzInfo.offsetMinutes * 60_000));
-    return `${local.getUTCFullYear()}${pad2(local.getUTCMonth() + 1)}${pad2(local.getUTCDate())}T${pad2(local.getUTCHours())}${pad2(local.getUTCMinutes())}${pad2(local.getUTCSeconds())}`;
-  }
-
-  return undefined;
+  const {year, month, day, hour, minute, second} = Temporal.Instant.fromEpochMilliseconds(date.getTime())
+    .toZonedDateTimeISO(tzId);
+  return `${year}${pad2(month)}${pad2(day)}T${pad2(hour)}${pad2(minute)}${pad2(second)}`;
 }
 
 /**
@@ -579,7 +491,6 @@ module.exports = {
 
 // Expose some internals for testing
 module.exports.__test__ = {
-  normalizeMidnightParts,
   isUtcTimezone,
 };
 

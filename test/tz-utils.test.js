@@ -18,37 +18,6 @@ describe('unit: tz-utils', () => {
     assert.throws(() => tz.parseWithOffset('20240101T120000', 'bogus'), /Invalid offset string: bogus/);
   });
 
-  // TODO: Remove this guard once Node 22+ is the minimum runtime and Intl stops emitting "24" hours.
-  it('rolls midnight forward when formatter emits 24:00', () => {
-    const base = new Date('2024-03-25T23:59:59.000Z');
-    const parts = {
-      year: 2024,
-      month: 3,
-      day: 25,
-      hour: 24,
-      minute: 0,
-      second: 0,
-    };
-    const fakeFormatter = {
-      formatToParts: () => [
-        {type: 'year', value: '2024'},
-        {type: 'month', value: '03'},
-        {type: 'day', value: '26'},
-        {type: 'hour', value: '00'},
-        {type: 'minute', value: '00'},
-        {type: 'second', value: '00'},
-      ],
-    };
-
-    const normalized = tz.__test__.normalizeMidnightParts(base, fakeFormatter, {...parts});
-    assert.equal(normalized.year, 2024);
-    assert.equal(normalized.month, 3);
-    assert.equal(normalized.day, 26);
-    assert.equal(normalized.hour, 0);
-    assert.equal(normalized.minute, 0);
-    assert.equal(normalized.second, 0);
-  });
-
   it('parses local wall time within a named zone (standard time)', () => {
     // Europe/Berlin observes UTC+1 in January, so Intl-backed parsing should subtract one hour
     const d = tz.parseDateTimeInZone('20240101T120000', 'Europe/Berlin');
