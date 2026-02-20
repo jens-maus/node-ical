@@ -1149,6 +1149,6 @@ module.exports = {
       return this.parseLines(lines);
     }
   },
-};
 
-module.exports.getDateKey = getDateKey;
+  getDateKey,
+};
