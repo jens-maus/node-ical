@@ -1,7 +1,6 @@
 const fs = require('node:fs');
 const ical = require('./ical.js');
-
-const {getDateKey} = ical;
+const {getDateKey} = require('./lib/date-utils.js');
 
 /**
  * ICal event object.
