@@ -48,8 +48,8 @@ function getDateKey(dateValue) {
           .toPlainDate()
           .toString();
       }
-    } catch {
-      // Fall through to UTC-based key if timezone resolution fails
+    } catch (error) {
+      console.warn(`[node-ical] Failed to resolve timezone for date key (TZID="${dateValue.tz}"), falling back to UTC: ${error?.message ?? String(error)}`);
     }
   }
 
@@ -944,7 +944,7 @@ module.exports = {
               dtstartTemporal = Temporal.Instant.fromEpochMilliseconds(curr.start.getTime())
                 .toZonedDateTimeISO(timeZone);
             } catch (error) {
-              console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error.message}`);
+              console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error?.message ?? String(error)}`);
               dtstartTemporal = Temporal.Instant.fromEpochMilliseconds(curr.start.getTime())
                 .toZonedDateTimeISO('UTC');
             }
