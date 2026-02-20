@@ -932,7 +932,12 @@ module.exports = {
           } else {
             // DATE-TIME events: convert curr.start (Date) to Temporal.ZonedDateTime
             const tzInfo = curr.start.tz ? tzUtil.resolveTZID(curr.start.tz) : undefined;
-            const timeZone = tzInfo?.iana || tzInfo?.offset || 'UTC';
+            let timeZone = 'UTC';
+            if (tzInfo?.iana || tzInfo?.offset) {
+              timeZone = tzInfo.iana || tzInfo.offset;
+            } else if (tzInfo) {
+              console.warn('[node-ical] TZID resolved to neither IANA nor UTC offset; falling back to UTC for DTSTART conversion.');
+            }
 
             let dtstartTemporal;
             try {
