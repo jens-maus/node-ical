@@ -791,31 +791,15 @@ module.exports = {
           // This a whole day event
           if (curr.datetype === 'date') {
             const originalStart = curr.start;
-            // Get the timezone offset
-            // The internal date is stored in UTC format
-            const offset = originalStart.getTimezoneOffset();
-            let nextStart;
 
-            // Only east of gmt is a problem
-            if (offset < 0) {
-              // Calculate the new startdate with the offset applied, bypass RRULE/Luxon confusion
-              // Make the internally stored DATE the actual date (not UTC offseted)
-              // Luxon expects local time, not utc, so gets start date wrong if not adjusted
-              nextStart = new Date(originalStart.getTime() + (Math.abs(offset) * 60_000));
-            } else {
-              // Strip any residual time component by rebuilding local midnight
-              nextStart = new Date(
-                originalStart.getFullYear(),
-                originalStart.getMonth(),
-                originalStart.getDate(),
-                0,
-                0,
-                0,
-                0,
-              );
-            }
+            // Date-only: pass the wall-clock date from the local components directly,
+            // no system-timezone offset compensation needed.
+            const y = originalStart.getFullYear();
+            const m = originalStart.getMonth();
+            const d = originalStart.getDate();
 
-            curr.start = nextStart;
+            // Rebuild as local midnight so downstream RRULE string formatting is unaffected
+            curr.start = new Date(y, m, d, 0, 0, 0, 0);
 
             // Preserve any metadata that was attached to the original Date instance.
             if (originalStart && originalStart.tz) {
@@ -947,71 +931,17 @@ module.exports = {
             curr.rrule = new RRuleCompatWrapper(rruleTemporal);
           } else {
             // DATE-TIME events: convert curr.start (Date) to Temporal.ZonedDateTime
+            const tzInfo = curr.start.tz ? tzUtil.resolveTZID(curr.start.tz) : undefined;
+            const timeZone = tzInfo?.iana || tzInfo?.offset || 'UTC';
+
             let dtstartTemporal;
-
-            if (curr.start.tz) {
-              // Has timezone - use Intl to get the local wall-clock time in that timezone
-              const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-              const timeZone = tzInfo?.tzid || tzInfo?.iana || curr.start.tz || 'UTC';
-
-              try {
-                // Extract local time components in the target timezone.
-                // We use Intl.DateTimeFormat because curr.start is a Date in UTC but represents
-                // wall-clock time in the event's timezone.
-                const formatter = new Intl.DateTimeFormat('en-US', {
-                  timeZone,
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: 'numeric',
-                  second: 'numeric',
-                  hour12: false,
-                });
-
-                const parts = formatter.formatToParts(curr.start);
-                const partMap = {};
-                for (const part of parts) {
-                  if (part.type !== 'literal') {
-                    partMap[part.type] = Number.parseInt(part.value, 10);
-                  }
-                }
-
-                // Create a PlainDateTime from the local time components
-                const plainDateTime = Temporal.PlainDateTime.from({
-                  year: partMap.year,
-                  month: partMap.month,
-                  day: partMap.day,
-                  hour: partMap.hour,
-                  minute: partMap.minute,
-                  second: partMap.second,
-                });
-
-                dtstartTemporal = plainDateTime.toZonedDateTime(timeZone, {disambiguation: 'compatible'});
-              } catch (error) {
-                // Invalid timezone - fall back to UTC interpretation
-                console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error.message}`);
-                dtstartTemporal = Temporal.ZonedDateTime.from({
-                  year: curr.start.getUTCFullYear(),
-                  month: curr.start.getUTCMonth() + 1,
-                  day: curr.start.getUTCDate(),
-                  hour: curr.start.getUTCHours(),
-                  minute: curr.start.getUTCMinutes(),
-                  second: curr.start.getUTCSeconds(),
-                  timeZone: 'UTC',
-                });
-              }
-            } else {
-              // No timezone - use UTC
-              dtstartTemporal = Temporal.ZonedDateTime.from({
-                year: curr.start.getUTCFullYear(),
-                month: curr.start.getUTCMonth() + 1,
-                day: curr.start.getUTCDate(),
-                hour: curr.start.getUTCHours(),
-                minute: curr.start.getUTCMinutes(),
-                second: curr.start.getUTCSeconds(),
-                timeZone: 'UTC',
-              });
+            try {
+              dtstartTemporal = Temporal.Instant.fromEpochMilliseconds(curr.start.getTime())
+                .toZonedDateTimeISO(timeZone);
+            } catch (error) {
+              console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error.message}`);
+              dtstartTemporal = Temporal.Instant.fromEpochMilliseconds(curr.start.getTime())
+                .toZonedDateTimeISO('UTC');
             }
 
             const rruleTemporal = new RRuleTemporal({

@@ -152,4 +152,51 @@ END:VCALENDAR`;
     const recurrences = event.rrule.all();
     assert.strictEqual(recurrences.length, 3, 'Should have 3 occurrences');
   });
+
+  it('should normalize VALUE=DATE RRULE start to midnight regardless of server timezone', function () {
+    // Regression test: the old getTimezoneOffset()-based code shifted the time by the
+    // server's UTC offset on machines east of UTC (e.g. UTC+2 produced 02:00:00 instead
+    // of 00:00:00 for a DATE-only event). This was invisible on UTC servers (CI) and only
+    // surfaced locally – a classic timezone-dependent bug.
+    //
+    // This test uses a DTSTART with a time component ("T120000") as it appears in feeds
+    // from providers like the foobar demoparty, where VALUE=DATE events still carry a time.
+    // The parser treats these as date-only (dateOnly=true); the time must be ignored.
+
+    const icsData = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20110804T120000
+DTEND;VALUE=DATE:20110804T120000
+RRULE:FREQ=WEEKLY;BYDAY=MO,FR;INTERVAL=5;UNTIL=20130130T230000Z
+DTSTAMP:20260220T120000Z
+UID:test-date-only-midnight-normalization
+SUMMARY:foobarTV broadcast starts
+LOCATION:foobarTV
+END:VEVENT
+END:VCALENDAR`;
+
+    const parsed = ical.parseICS(icsData);
+    const event = Object.values(parsed).find(event_ => event_.type === 'VEVENT');
+
+    assert.ok(event, 'Event should be defined');
+    assert.strictEqual(event.start.dateOnly, true, 'Start should be date-only');
+
+    // The start time must be local midnight (00:00:00), not offset-shifted.
+    // With the old bug on a UTC+2 machine: getHours() === 2, not 0.
+    assert.strictEqual(event.start.getHours(), 0, 'DATE-only event must start at local midnight (hour must be 0, not UTC-offset-shifted)');
+    assert.strictEqual(event.start.getMinutes(), 0, 'DATE-only event minutes must be 0');
+    assert.strictEqual(event.start.getSeconds(), 0, 'DATE-only event seconds must be 0');
+
+    // Date must be August 4, not shifted to August 3 or 5
+    assert.strictEqual(event.start.getDate(), 4, 'Date must be the 4th');
+    assert.strictEqual(event.start.getMonth(), 7, 'Month must be August (index 7)');
+    assert.strictEqual(event.start.getFullYear(), 2011, 'Year must be 2011');
+
+    // Recurrences must also expand correctly
+    assert.ok(event.rrule, 'RRULE should be defined');
+    const recurrences = event.rrule.all();
+    assert.ok(recurrences.length > 0, 'Should have recurrences');
+  });
 });
