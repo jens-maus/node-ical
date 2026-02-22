@@ -72,6 +72,14 @@ jobs:
       - name: Publish to npm (Trusted Publishing / OIDC)
         run: npm publish --access public
 
+      # The release event checks out the tag (detached HEAD).
+      # peter-evans/create-pull-request needs a real branch to work from,
+      # so we switch to master and re-apply the version bump there.
+      - name: Switch to default branch for version bump
+        run: |
+          git checkout master
+          npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version
+
       - name: Create PR for version bump back to default branch
         uses: peter-evans/create-pull-request@v6
         with:
