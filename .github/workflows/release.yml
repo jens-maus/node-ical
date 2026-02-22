@@ -75,9 +75,14 @@ jobs:
       # The release event checks out the tag (detached HEAD).
       # peter-evans/create-pull-request needs a real branch to work from,
       # so we switch to the default branch and re-apply the version bump there.
+      # Discard the intermediate package.json changes from the earlier
+      # "Set package version" step so that git checkout succeeds.
       - name: Switch to default branch for version bump
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          git checkout ${{ github.event.repository.default_branch }}
+          git restore package.json package-lock.json
+          git checkout "$DEFAULT_BRANCH"
           npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version
 
       - name: Create PR for version bump back to default branch
