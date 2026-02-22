@@ -1,5 +1,5 @@
 ---
-name: Release (npm publish + version bump PR)
+name: Release (npm publish + version bump)
 
 on:
   release:
@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
   id-token: write
 
 jobs:
@@ -72,30 +71,19 @@ jobs:
       - name: Publish to npm (Trusted Publishing / OIDC)
         run: npm publish --access public
 
-      # The release event checks out the tag (detached HEAD).
-      # peter-evans/create-pull-request needs a real branch to work from,
-      # so we switch to the default branch and re-apply the version bump there.
-      # Discard the intermediate package.json changes from the earlier
-      # "Set package version" step so that git checkout succeeds.
-      - name: Switch to default branch for version bump
+      # After publishing, commit the version bump directly to the default branch.
+      # The release event checks out the tag (detached HEAD), so we switch to
+      # the default branch and re-apply the version bump there.
+      - name: Commit version bump to default branch
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           git restore package.json package-lock.json
           git checkout "$DEFAULT_BRANCH"
-          npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version
-
-      - name: Create PR for version bump back to default branch
-        uses: peter-evans/create-pull-request@v8
-        with:
-          base: ${{ github.event.repository.default_branch }}
-          commit-message: "chore(release): ${{ steps.ver.outputs.version }}"
-          title: "chore(release): ${{ steps.ver.outputs.version }}"
-          body: |
-            Automated version bump after GitHub Release `${{ github.event.release.tag_name }}`.
-
-            - Updates package.json (and lockfile if present) to `${{ steps.ver.outputs.version }}`
-            - Published to npm via Trusted Publishing (OIDC)
-          branch: "chore/release-${{ steps.ver.outputs.version }}"
-          delete-branch: true
-          labels: release
+          npm version "$VERSION" --no-git-tag-version
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore(release): ${VERSION}"
+          git push origin "$DEFAULT_BRANCH"
