@@ -1,6 +1,7 @@
 Gruntfile.js
 tasks
 test
+tsconfig.json
 *.tgz
 .DS_Store
 .idea
