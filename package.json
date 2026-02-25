@@ -54,7 +54,7 @@
     }
   },
   "scripts": {
-    "examples": "node examples/example-rrule-moment.js && node examples/example-rrule-luxon.js && node examples/example-rrule-dayjs.js && node examples/example-rrule-datefns.js && node examples/example-rrule-vanilla.js && node examples/example.js",
+    "examples": "node examples/example-rrule-moment.js && node examples/example-rrule-luxon.js && node examples/example-rrule-dayjs.js && node examples/example-rrule-datefns.js && node examples/example-rrule-vanilla.js && node examples/example.mjs",
     "test": "npm run test:types && xo && mocha --timeout 8000",
     "test:types": "tsc --project test/tsconfig.json",
     "lint": "xo",
