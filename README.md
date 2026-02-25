@@ -197,22 +197,21 @@ Fetch the specified URL using the native fetch API (```options``` are passed to 
 
 #### Example: Print list of upcoming node conferences
 
-See [`examples/example.js`](./examples/example.js) for a synchronous example script.
+See [`examples/example.mjs`](./examples/example.mjs) for a full example script.
 
 ```javascript
-const ical = require('node-ical');
-const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+import ical from 'node-ical';
 
-ical.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', {}, function (err, data) {
-    for (let k in data) {
-        if (data.hasOwnProperty(k)) {
-            const ev = data[k];
-            if (data[k].type == 'VEVENT') {
-                console.log(`${ev.summary} is in ${ev.location} on the ${ev.start.getDate()} of ${months[ev.start.getMonth()]} at ${ev.start.toLocaleTimeString('en-GB')}`);
-            }
-        }
-    }
-});
+const dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'long', timeStyle: 'short' });
+
+const data = await ical.fromURL('https://raw.githubusercontent.com/jens-maus/node-ical/master/test/test6.ics');
+for (const ev of Object.values(data)) {
+  if (ev.type === 'VEVENT') {
+    const when = ev.start ? dateFormat.format(ev.start) : 'unknown time';
+    const where = ev.location ? ` in ${ev.location}` : '';
+    console.log(`${ev.summary}${where} — ${when}`);
+  }
+}
 ```
 
 ### Recurrence rule (RRULE) and Timezone Handling
