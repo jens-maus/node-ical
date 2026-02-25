@@ -80,13 +80,13 @@ const ical = require('node-ical');
     const events = await ical.async.parseFile('example-calendar.ics');
 
     // you can also use the async lib to download and parse iCal from the web
-    const webEvents = await ical.async.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics');
+    const webEvents = await ical.async.fromURL('https://raw.githubusercontent.com/jens-maus/node-ical/master/test/test6.ics');
     // you can pass standard fetch() options (e.g. headers, signal for timeout)
     // Example: 5s timeout
     const ac = new AbortController();
     setTimeout(() => ac.abort(), 5000);
     const headerWebEvents = await ical.async.fromURL(
-        'http://lanyrd.com/topics/nodejs/nodejs.ics',
+        'https://raw.githubusercontent.com/jens-maus/node-ical/master/test/test6.ics',
         { headers: { 'User-Agent': 'API-Example/1.0' }, signal: ac.signal }
     );
 
@@ -119,7 +119,7 @@ ical.async.parseFile('example-calendar.ics', function(err, data) {
 });
 
 // or a URL
-ical.async.fromURL('http://lanyrd.com/topics/nodejs/nodejs.ics', function(err, data) { console.log(data); });
+ical.async.fromURL('https://raw.githubusercontent.com/jens-maus/node-ical/master/test/test6.ics', function(err, data) { console.log(data); });
 
 // or directly
 ical.async.parseICS(`
