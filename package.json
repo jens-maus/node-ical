@@ -61,7 +61,7 @@
     "lintfix": "xo --fix",
     "prepare": "simple-git-hooks",
     "build": "node build/update-windows-zones.mjs",
-    "build:strict": "CI=true node build/update-windows-zones.mjs"
+    "build:strict": "node build/update-windows-zones.mjs --strict"
   },
   "simple-git-hooks": {
     "pre-commit": "npx --no lint-staged",
