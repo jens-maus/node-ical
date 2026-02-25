@@ -42,8 +42,8 @@ function normalizeNewlines(text) {
   return text.replaceAll('\r\n', '\n');
 }
 
-// RRULE example scripts should stay in sync after dedupe/override logic changes
-describe('RRULE example output snapshots', function () {
+// Example scripts should stay in sync after logic changes
+describe('example output snapshots', function () {
   this.timeout(10_000);
 
   for (const script of exampleScripts) {
