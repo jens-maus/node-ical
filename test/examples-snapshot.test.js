@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const {describe, it} = require('mocha');
 
 const exampleScripts = [
-  'example.js',
+  'example.mjs',
   'example-rrule-basic.js',
   'example-rrule-moment.js',
   'example-rrule-luxon.js',
@@ -49,7 +49,7 @@ describe('RRULE example output snapshots', function () {
   for (const script of exampleScripts) {
     it(`${script} output matches snapshot`, function () {
       const output = normalizeNewlines(runExample(script));
-      const snapshotFile = path.join(snapshotDir, script.replace('.js', '.txt'));
+      const snapshotFile = path.join(snapshotDir, script.replace(/\.m?js$/, '.txt'));
       if (fs.existsSync(snapshotFile)) {
         const expected = normalizeNewlines(fs.readFileSync(snapshotFile, 'utf8')).trim();
         assert.strictEqual(output, expected, `Output of ${script} does not match snapshot. If this is intentional, update the snapshot.`);
