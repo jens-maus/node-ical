@@ -199,6 +199,8 @@ Fetch the specified URL using the native fetch API (```options``` are passed to 
 
 See [`examples/example.mjs`](./examples/example.mjs) for a full example script.
 
+> **Note:** This snippet uses `import` and top-level `await` (ESM). Save it as a `.mjs` file, or add `"type": "module"` to your `package.json`.
+
 ```javascript
 import ical from 'node-ical';
 
