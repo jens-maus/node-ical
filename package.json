@@ -70,6 +70,5 @@
   "lint-staged": {
     "!**/*.d.ts": [],
     "**/*.{js,cjs,mjs,ts,tsx}": "xo --fix"
-  },
-  "readmeFilename": "README.md"
+  }
 }
