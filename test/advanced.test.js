@@ -33,7 +33,7 @@ describe('parser: advanced cases', () => {
       assert.strictEqual(event.recurrences[dateOnlyKey], event.recurrences[fullIsoKey], 'DATE-TIME RECURRENCE-ID should be accessible by both date-only and full ISO keys');
     });
 
-    // Test13.ics – RECURRENCE-ID appears before RRULE and must still bind correctly
+    // Google-calendar-kiev-tz.ics – RECURRENCE-ID appears before RRULE and must still bind correctly
     it('handles RECURRENCE-ID before RRULE (google-calendar-kiev-tz.ics)', () => {
       const data = ical.parseFile('./test/fixtures/google-calendar-kiev-tz.ics');
       const event = Object.values(data).find(x => x.uid === '6m2q7kb2l02798oagemrcgm6pk@google.com' && x.summary === 'repeated');
@@ -145,7 +145,7 @@ describe('parser: advanced cases', () => {
       assert.notEqual(event.start.getUTCHours(), 14, 'Start time should not be 14:00 (from lower SEQUENCE)');
     });
 
-    // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
+    // Biweekly-exdate-until.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
     it('parses comma-separated EXDATEs (biweekly-exdate-until.ics)', () => {
       const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
       const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
@@ -272,10 +272,10 @@ describe('parser: advanced cases', () => {
     });
   });
 
-  // Test15.ics – Microsoft Exchange timezone naming
+  // Exchange-custom-tz.ics – Microsoft Exchange timezone naming
   // Moved under the consolidated 'Microsoft time zones' section below to reduce nesting.
 
-  // Test16.ics – quoted parameter values survive the parameter parser rewrite
+  // windows-quoted-tz-rrule.ics – quoted parameter values survive the parameter parser rewrite
   describe('Metadata and parsing robustness', () => {
     it('parses quoted parameter values (windows-quoted-tz-rrule.ics)', () => {
       const data = ical.parseFile('./test/fixtures/windows-quoted-tz-rrule.ics');
@@ -283,7 +283,7 @@ describe('parser: advanced cases', () => {
       assert.ok(event.start.tz);
     });
 
-    // Test17.ics – start/end should surface as Date objects, not serialized strings
+    // Sabredav-school-holidays.ics – start/end should surface as Date objects, not serialized strings
     it('produces Date objects (non-strings) (sabredav-school-holidays.ics)', () => {
       const data = ical.parseFile('./test/fixtures/sabredav-school-holidays.ics');
       const event = Object.values(data)[0];
@@ -292,7 +292,7 @@ describe('parser: advanced cases', () => {
     });
   });
 
-  // Test18.ics – timezone detection scenarios exercise resolveTZID fallbacks
+  // Mixed-timezone-handling.ics – timezone detection scenarios exercise resolveTZID fallbacks
   describe('Timezone detection', () => {
     it('infers/retains timezone per event (mixed-timezone-handling.ics)', () => {
       const data = ical.parseFile('./test/fixtures/mixed-timezone-handling.ics');
@@ -334,7 +334,7 @@ END:VCALENDAR`;
     });
   });
 
-  // Test19.ics – organizer params must propagate untouched
+  // Event-organizer-cn.ics – organizer params must propagate untouched
   describe('Organizer and status', () => {
     it('preserves organizer params (event-organizer-cn.ics)', () => {
       const data = ical.parseFile('./test/fixtures/event-organizer-cn.ics');
@@ -343,7 +343,7 @@ END:VCALENDAR`;
       assert.equal(event.organizer.val, 'mailto:stomlinson@mozilla.com');
     });
 
-    // Test20.ics – VEVENT status values remain intact across parsing
+    // Tentative-apple-calendar.ics – VEVENT status values remain intact across parsing
     it('parses VEVENT status values (tentative-apple-calendar.ics)', () => {
       const data = ical.parseFile('./test/fixtures/tentative-apple-calendar.ics');
       const getByUid = uid => Object.values(data).find(x => x.uid === uid);
@@ -354,7 +354,7 @@ END:VCALENDAR`;
     });
   });
 
-  // Test21.ics – VTIMEZONE entries apply to floating DTSTART values with Intl helpers
+  // Dst-transition-rules.ics – VTIMEZONE entries apply to floating DTSTART values with Intl helpers
   describe('Floating DTSTART with VTIMEZONE', () => {
     it('applies VTIMEZONE to floating DTSTART (dst-transition-rules.ics)', () => {
       const data = ical.parseFile('./test/fixtures/dst-transition-rules.ics');
@@ -364,7 +364,7 @@ END:VCALENDAR`;
     });
   });
 
-  // Test22.ics – quoted attendee parameters + X-RESPONSE-COMMENT retain metadata
+  // Attendee-with-url.ics – quoted attendee parameters + X-RESPONSE-COMMENT retain metadata
   describe('Attendee params', () => {
     it('parses attendee params incl. X-RESPONSE-COMMENT (attendee-with-url.ics)', () => {
       const data = ical.parseFile('./test/fixtures/attendee-with-url.ics');
@@ -375,7 +375,7 @@ END:VCALENDAR`;
     });
   });
 
-  // Test23.ics – RRULE with timezone DTSTART carries tzid through rrule options
+  // Yearly-party.ics – RRULE with timezone DTSTART carries tzid through rrule options
   describe('RRULE with timezone DTSTART', () => {
     it('handles RRULE with timezone DTSTART (yearly-party.ics)', () => {
       const data = ical.parseFile('./test/fixtures/yearly-party.ics');

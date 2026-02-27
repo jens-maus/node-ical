@@ -119,7 +119,7 @@ describe('parser: extended component types', () => {
 
       const types = new Set(components.map(c => c.type).filter(Boolean));
 
-      // Test2.ics contains multiple component types
+      // Vtodo-vfreebusy.ics contains multiple component types
       assert_.ok(types.has('VEVENT'));
       assert_.ok(types.has('VTODO'));
       assert_.ok(types.has('VJOURNAL'));
