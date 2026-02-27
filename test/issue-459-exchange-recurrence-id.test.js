@@ -20,7 +20,7 @@ describe('Issue #459 - Exchange DATE-TIME RECURRENCE-ID on DATE-only event', () 
   let event;
 
   before(() => {
-    events = ical.sync.parseFile(path.join(__dirname, 'exchange_whole_day_moved_recurrence.ics'));
+    events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'exchange_whole_day_moved_recurrence.ics'));
     event = Object.values(events).find(foundEvent => foundEvent.type === 'VEVENT' && foundEvent.rrule);
   });
 
@@ -112,7 +112,7 @@ describe('Issue #459 - Exchange DATE-TIME RECURRENCE-ID on DATE-only event', () 
     let offsetEvent;
 
     before(() => {
-      const offsetEvents = ical.sync.parseFile(path.join(__dirname, 'exchange_whole_day_moved_recurrence_offset_tz.ics'));
+      const offsetEvents = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'exchange_whole_day_moved_recurrence_offset_tz.ics'));
       offsetEvent = Object.values(offsetEvents).find(foundEvent => foundEvent.type === 'VEVENT' && foundEvent.rrule);
     });
 

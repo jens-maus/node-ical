@@ -6,7 +6,7 @@ const ical = require('../node-ical.js');
 describe('expandRecurringEvent', () => {
   describe('Basic functionality', () => {
     it('should expand a simple daily recurring event', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test_daily_recurring.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'test_daily_recurring.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT');
 
       const instances = ical.expandRecurringEvent(event, {
@@ -407,7 +407,7 @@ describe('expandRecurringEvent', () => {
     it('should handle full-day recurring events correctly across DST', () => {
       // This is the critical DST bug test from the proposal
       // Full-day Monday events should stay on Monday, not shift to Sunday
-      const events = ical.sync.parseFile(path.join(__dirname, 'whole_day_moved_over_dst_change_berlin.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'whole_day_moved_over_dst_change_berlin.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.datetype === 'date');
 
       const instances = ical.expandRecurringEvent(event, {
@@ -460,7 +460,7 @@ describe('expandRecurringEvent', () => {
 
     it('should preserve local time for timed events across DST', function () {
       // Timed events should maintain their local time even across DST
-      const events = ical.sync.parseFile(path.join(__dirname, 'germany_at_end_of_day_repeating.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'germany_at_end_of_day_repeating.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.datetype === 'date-time');
 
       if (!event) {
@@ -544,7 +544,7 @@ describe('expandRecurringEvent', () => {
 
   describe('Duration calculation', () => {
     it('should calculate end from DURATION property when present', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test_date_time_duration.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'test_date_time_duration.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT');
 
       const instances = ical.expandRecurringEvent(event, {
@@ -677,7 +677,7 @@ describe('expandRecurringEvent', () => {
     it('should handle expandOngoing option for recurring events', () => {
       // For recurring events, expandOngoing=true includes events that end within the range
       // even if they started before the range
-      const events = ical.sync.parseFile(path.join(__dirname, 'test_daily_recurring.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'test_daily_recurring.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.rrule);
 
       // Use a range that starts at Jan 5

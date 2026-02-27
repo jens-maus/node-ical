@@ -10,7 +10,7 @@ const ical = require('../node-ical.js');
 describe('Non-UTC UNTIL in RRULE', function () {
   describe('when DTSTART has TZID=Europe/Berlin', function () {
     it('should convert non-UTC UNTIL to UTC', function () {
-      const data = readFileSync(path.join(__dirname, 'non-utc-until.ics'), 'utf8');
+      const data = readFileSync(path.join(__dirname, 'fixtures', 'non-utc-until.ics'), 'utf8');
       const parsed = ical.parseICS(data);
 
       const event = Object.values(parsed).find(event_ => event_.type === 'VEVENT');
@@ -36,7 +36,7 @@ describe('Non-UTC UNTIL in RRULE', function () {
     });
 
     it('should generate recurrences correctly with converted UNTIL', function () {
-      const data = readFileSync(path.join(__dirname, 'non-utc-until.ics'), 'utf8');
+      const data = readFileSync(path.join(__dirname, 'fixtures', 'non-utc-until.ics'), 'utf8');
       const parsed = ical.parseICS(data);
 
       const event = Object.values(parsed).find(event_ => event_.type === 'VEVENT');
@@ -57,7 +57,7 @@ describe('Non-UTC UNTIL in RRULE', function () {
 
   describe('when DTSTART has TZID=America/New_York', function () {
     it('should convert non-UTC UNTIL to UTC for different timezone', function () {
-      const data = readFileSync(path.join(__dirname, 'non-utc-until-ny.ics'), 'utf8');
+      const data = readFileSync(path.join(__dirname, 'fixtures', 'non-utc-until-ny.ics'), 'utf8');
       const parsed = ical.parseICS(data);
 
       const event = Object.values(parsed).find(event_ => event_.type === 'VEVENT');
