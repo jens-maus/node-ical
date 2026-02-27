@@ -288,7 +288,7 @@ describe('parseICS sync vs async parity', function () {
       const fs = require('node:fs');
       const path = require('node:path');
       const largeICS = fs.readFileSync(
-        path.join(__dirname, 'data', 'large-file-with-late-error.ics'),
+        path.join(__dirname, 'fixtures', 'large-file-with-late-error.ics'),
         'utf8',
       );
 

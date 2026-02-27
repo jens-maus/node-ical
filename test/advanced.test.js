@@ -52,7 +52,7 @@ describe('parser: advanced cases', () => {
 
     // RECURRENCE-ID with SEQUENCE: newer versions should win over older ones (RFC 5545)
     it('applies SEQUENCE logic to RECURRENCE-ID overrides', () => {
-      const data = ical.parseFile('./test/data/recurrence-sequence.ics');
+      const data = ical.parseFile('./test/fixtures/recurrence-sequence.ics');
       const event = data['sequence-test@node-ical.test'];
 
       assert.ok(event, 'Event should exist');
@@ -89,7 +89,7 @@ describe('parser: advanced cases', () => {
 
     // Duplicate UIDs without RECURRENCE-ID: SEQUENCE determines which version wins
     it('applies SEQUENCE logic to duplicate UIDs without RECURRENCE-ID', () => {
-      const data = ical.parseFile('./test/data/duplicate-uid-sequence.ics');
+      const data = ical.parseFile('./test/fixtures/duplicate-uid-sequence.ics');
 
       // Test case 1: SEQUENCE 2 appears first, then SEQUENCE 0
       // The higher SEQUENCE (2) should be kept
@@ -111,7 +111,7 @@ describe('parser: advanced cases', () => {
     // Issue #450: RECURRENCE-ID with higher SEQUENCE appearing before base series with lower SEQUENCE
     // The base series (RRULE) should still be accepted even though it has lower SEQUENCE
     it('accepts base series (RRULE) even when RECURRENCE-ID with higher SEQUENCE comes first (issue #450)', () => {
-      const data = ical.parseFile('./test/data/google-recurrence-order.ics');
+      const data = ical.parseFile('./test/fixtures/google-recurrence-order.ics');
       const event = data['aaaaaaaaaa888se1rr0b24sm4p@google.com'];
 
       assert.ok(event, 'Event should exist');
@@ -132,7 +132,7 @@ describe('parser: advanced cases', () => {
 
     // Duplicate UIDs with RRULE: SEQUENCE logic should apply to recurring events too
     it('applies SEQUENCE logic to duplicate RRULE events', () => {
-      const data = ical.parseFile('./test/data/duplicate-rrule-sequence.ics');
+      const data = ical.parseFile('./test/fixtures/duplicate-rrule-sequence.ics');
       const event = data['rrule-sequence-test@node-ical.test'];
 
       assert.ok(event, 'Event should exist');
