@@ -10,11 +10,11 @@ tz.linkAlias('Etc/Unknown', 'Etc/GMT');
 describe('parser: advanced cases', () => {
   // Recurrence and exceptions remain intact with Intl-backed date parsing
   describe('Recurrence and exceptions', () => {
-    it('handles RRULE + EXDATEs + RECURRENCE-ID override (test12.ics)', function () {
+    it('handles RRULE + EXDATEs + RECURRENCE-ID override (daily-count-exdate-recurrence-id.ics)', function () {
       // Windows CI occasionally takes longer to initialise Intl time zone data on Node 20.
       // Give this parsing-heavy regression test extra breathing room to avoid spurious timeouts.
       this.timeout(20_000);
-      const data = ical.parseFile('./test/test12.ics');
+      const data = ical.parseFile('./test/fixtures/daily-count-exdate-recurrence-id.ics');
       const event = Object.values(data).find(x => x.uid === '0000001' && x.summary === 'Treasure Hunting');
       assert.ok(event.rrule);
       assert.equal(event.summary, 'Treasure Hunting');
@@ -34,8 +34,8 @@ describe('parser: advanced cases', () => {
     });
 
     // Test13.ics – RECURRENCE-ID appears before RRULE and must still bind correctly
-    it('handles RECURRENCE-ID before RRULE (test13.ics)', () => {
-      const data = ical.parseFile('./test/test13.ics');
+    it('handles RECURRENCE-ID before RRULE (google-calendar-kiev-tz.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/google-calendar-kiev-tz.ics');
       const event = Object.values(data).find(x => x.uid === '6m2q7kb2l02798oagemrcgm6pk@google.com' && x.summary === 'repeated');
       assert.ok(event.rrule);
       assert.equal(event.summary, 'repeated');
@@ -146,8 +146,8 @@ describe('parser: advanced cases', () => {
     });
 
     // Test14.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
-    it('parses comma-separated EXDATEs (test14.ics)', () => {
-      const data = ical.parseFile('./test/test14.ics');
+    it('parses comma-separated EXDATEs (biweekly-exdate-until.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
       const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
       assert.equal(event.summary, 'Example of comma-separated exdates');
       assert.ok(event.exdate);
@@ -164,8 +164,8 @@ describe('parser: advanced cases', () => {
       assert.equal(event.exdate[new Date(Date.UTC(2017, 4, 5, 12)).toISOString().slice(0, 10)], undefined);
     });
 
-    it('tolerates EXDATEs with bad times (test14.ics)', () => {
-      const data = ical.parseFile('./test/test14.ics');
+    it('tolerates EXDATEs with bad times (biweekly-exdate-until.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
       const event = Object.values(data).find(x => x.uid === '1234567-ABCD-ABCD-ABCD-123456789012');
       assert.equal(event.summary, 'Example of exdate with bad times');
       assert.ok(event.exdate);
@@ -178,8 +178,8 @@ describe('parser: advanced cases', () => {
       }
     });
 
-    it('exdate is a plain object, not an array (test14.ics)', () => {
-      const data = ical.parseFile('./test/test14.ics');
+    it('exdate is a plain object, not an array (biweekly-exdate-until.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
       const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
       assert.ok(event.exdate);
 
@@ -231,7 +231,7 @@ describe('parser: advanced cases', () => {
     // Regression test for issue #167: "Exdate showing blank array when EXDATE parameters exist"
     // https://github.com/jens-maus/node-ical/issues/167
     it('exdate is not shown as blank/empty array (regression for #167)', () => {
-      const data = ical.parseFile('./test/test14.ics');
+      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
       const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
 
       // The bug was: JSON.stringify showed [] even though data existed
@@ -258,7 +258,7 @@ describe('parser: advanced cases', () => {
     // Regression test for issue #360: "Recurring events with exclusions are not handled"
     // https://github.com/jens-maus/node-ical/issues/360
     it('recurring events with EXDATE exclusions are properly parsed (regression for #360)', () => {
-      const data = ical.parseFile('./test/test14.ics');
+      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
       const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
 
       // The bug was: parseIcs ignored exceptions and created exdate: []
@@ -277,15 +277,15 @@ describe('parser: advanced cases', () => {
 
   // Test16.ics – quoted parameter values survive the parameter parser rewrite
   describe('Metadata and parsing robustness', () => {
-    it('parses quoted parameter values (test16.ics)', () => {
-      const data = ical.parseFile('./test/test16.ics');
+    it('parses quoted parameter values (windows-quoted-tz-rrule.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/windows-quoted-tz-rrule.ics');
       const event = Object.values(data)[0];
       assert.ok(event.start.tz);
     });
 
     // Test17.ics – start/end should surface as Date objects, not serialized strings
-    it('produces Date objects (non-strings) (test17.ics)', () => {
-      const data = ical.parseFile('./test/test17.ics');
+    it('produces Date objects (non-strings) (sabredav-school-holidays.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/sabredav-school-holidays.ics');
       const event = Object.values(data)[0];
       assert.notEqual(typeof event.start, 'string');
       assert.notEqual(typeof event.end, 'string');
@@ -294,8 +294,8 @@ describe('parser: advanced cases', () => {
 
   // Test18.ics – timezone detection scenarios exercise resolveTZID fallbacks
   describe('Timezone detection', () => {
-    it('infers/retains timezone per event (test18.ics)', () => {
-      const data = ical.parseFile('./test/test18.ics');
+    it('infers/retains timezone per event (mixed-timezone-handling.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/mixed-timezone-handling.ics');
       const events = Object.values(data).filter(x => x.type === 'VEVENT');
       assert.equal(events.length, 5);
       const uids = ['1C9439B1-FF65-11D6-9973-003065F99D04', '2C9439B1-FF65-11D6-9973-003065F99D04', '3C9439B1-FF65-11D6-9973-003065F99D04', '4C9439B1-FF65-11D6-9973-003065F99D04', '5C9439B1-FF65-11D6-9973-003065F99D04'];
@@ -336,16 +336,16 @@ END:VCALENDAR`;
 
   // Test19.ics – organizer params must propagate untouched
   describe('Organizer and status', () => {
-    it('preserves organizer params (test19.ics)', () => {
-      const data = ical.parseFile('./test/test19.ics');
+    it('preserves organizer params (event-organizer-cn.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/event-organizer-cn.ics');
       const event = Object.values(data)[0];
       assert.equal(event.organizer.params.CN, 'stomlinson@mozilla.com');
       assert.equal(event.organizer.val, 'mailto:stomlinson@mozilla.com');
     });
 
     // Test20.ics – VEVENT status values remain intact across parsing
-    it('parses VEVENT status values (test20.ics)', () => {
-      const data = ical.parseFile('./test/test20.ics');
+    it('parses VEVENT status values (tentative-apple-calendar.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/tentative-apple-calendar.ics');
       const getByUid = uid => Object.values(data).find(x => x.uid === uid);
       assert.equal(getByUid('31a1ffc9-9b76-465b-ae4a-cadb694c9d37').status, 'TENTATIVE');
       assert.equal(getByUid('F00F3710-BF4D-46D3-9A2C-1037AB24C6AC').status, 'CONFIRMED');
@@ -356,8 +356,8 @@ END:VCALENDAR`;
 
   // Test21.ics – VTIMEZONE entries apply to floating DTSTART values with Intl helpers
   describe('Floating DTSTART with VTIMEZONE', () => {
-    it('applies VTIMEZONE to floating DTSTART (test21.ics)', () => {
-      const data = ical.parseFile('./test/test21.ics');
+    it('applies VTIMEZONE to floating DTSTART (dst-transition-rules.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/dst-transition-rules.ics');
       const event = Object.values(data).find(x => x.uid === 'f683404f-aede-43eb-8774-27f62bb27c92');
       assert.equal(event.start.toJSON(), '2022-10-09T08:00:00.000Z');
       assert.equal(event.end.toJSON(), '2022-10-09T09:00:00.000Z');
@@ -366,8 +366,8 @@ END:VCALENDAR`;
 
   // Test22.ics – quoted attendee parameters + X-RESPONSE-COMMENT retain metadata
   describe('Attendee params', () => {
-    it('parses attendee params incl. X-RESPONSE-COMMENT (test22.ics)', () => {
-      const data = ical.parseFile('./test/test22.ics');
+    it('parses attendee params incl. X-RESPONSE-COMMENT (attendee-with-url.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/attendee-with-url.ics');
       const event = Object.values(data)[0];
       assert.equal(event.attendee.params['X-RESPONSE-COMMENT'], 'Test link: https://example.com/test');
       assert.equal(event.attendee.params.CUTYPE, 'INDIVIDUAL');
@@ -377,8 +377,8 @@ END:VCALENDAR`;
 
   // Test23.ics – RRULE with timezone DTSTART carries tzid through rrule options
   describe('RRULE with timezone DTSTART', () => {
-    it('handles RRULE with timezone DTSTART (test23.ics)', () => {
-      const data = ical.parseFile('./test/test23.ics');
+    it('handles RRULE with timezone DTSTART (yearly-party.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/yearly-party.ics');
       const first = Object.values(data).find(x => x.uid === '000021a');
       assert.equal(first.datetype, 'date-time');
       assert.equal(first.start.tz, 'Europe/Berlin');
@@ -399,7 +399,7 @@ END:VCALENDAR`;
       // Regression test: when building the RRULE string internally, node-ical must
       // filter out orphaned segments (like TZID=...) that result from splitting
       // DTSTART;TZID=... on semicolons. The output should have clean RFC5545 format.
-      const data = ical.parseFile('./test/test23.ics');
+      const data = ical.parseFile('./test/fixtures/yearly-party.ics');
       const first = Object.values(data).find(x => x.uid === '000021a');
 
       // RRULE must be successfully parsed (would fail if string was malformed)
@@ -415,8 +415,8 @@ END:VCALENDAR`;
 
   // Ms_timezones.ics – Microsoft Windows zone mapping and custom tz handling flow through tz-utils
   describe('Microsoft time zones', () => {
-    it('maps Exchange tz to IANA (test15.ics)', () => {
-      const data = ical.parseFile('./test/test15.ics');
+    it('maps Exchange tz to IANA (exchange-custom-tz.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/exchange-custom-tz.ics');
       const event = Object.values(data).find(x => x.uid === '040000008200E00074C5B7101A82E00800000000C9AB6E5A6AFED401000000000000000010000000C55132227F0F0948A7D58F6190A3AEF9');
       assert.equal(event.start.tz, 'Asia/Bangkok');
       assert.equal(event.end.tz, 'Asia/Bangkok');

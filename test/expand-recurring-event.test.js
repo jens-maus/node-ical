@@ -21,7 +21,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should handle non-recurring events (return single instance)', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test1.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && !event.rrule);
 
       const instances = ical.expandRecurringEvent(event, {
@@ -35,7 +35,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should return empty array if event outside date range', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test1.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && !event.rrule);
 
       const instances = ical.expandRecurringEvent(event, {
@@ -49,7 +49,7 @@ describe('expandRecurringEvent', () => {
 
   describe('Return value structure', () => {
     it('should return instances with all required properties', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test6.ics')); // Has RRULE
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'festival-multiday-rrule.ics')); // Has RRULE
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.rrule);
 
       const instances = ical.expandRecurringEvent(event, {
@@ -72,7 +72,7 @@ describe('expandRecurringEvent', () => {
 
     it('should set isFullDay correctly for date-only events', () => {
       // Test with full-day event (datetype: 'date')
-      const events = ical.sync.parseFile(path.join(__dirname, 'test1.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.datetype === 'date');
 
       const instances = ical.expandRecurringEvent(event, {
@@ -88,7 +88,7 @@ describe('expandRecurringEvent', () => {
 
     it('should set isFullDay correctly for date-time events', () => {
       // Test with timed event (datetype: 'date-time')
-      const events = ical.sync.parseFile(path.join(__dirname, 'test5.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'meetup-timed-tz.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.datetype === 'date-time');
 
       const instances = ical.expandRecurringEvent(event, {
@@ -101,7 +101,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should include summary property from event', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test6.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'festival-multiday-rrule.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.summary);
 
       const instances = ical.expandRecurringEvent(event, {
@@ -116,7 +116,7 @@ describe('expandRecurringEvent', () => {
 
   describe('EXDATE handling', () => {
     it('should exclude dates in EXDATE by default', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test12.ics')); // Has EXDATE
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'daily-count-exdate-recurrence-id.ics')); // Has EXDATE
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.exdate);
 
       const instances = ical.expandRecurringEvent(event, {
@@ -137,7 +137,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should include EXDATE dates when excludeExdates=false', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test12.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'daily-count-exdate-recurrence-id.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.exdate);
 
       const withExclusion = ical.expandRecurringEvent(event, {
@@ -295,7 +295,7 @@ describe('expandRecurringEvent', () => {
 
   describe('RECURRENCE-ID overrides', () => {
     it('should apply RECURRENCE-ID overrides by default', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test12.ics')); // Has recurrences
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'daily-count-exdate-recurrence-id.ics')); // Has recurrences
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.recurrences);
 
       const instances = ical.expandRecurringEvent(event, {
@@ -314,7 +314,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should use original event when includeOverrides=false', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test12.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'daily-count-exdate-recurrence-id.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.recurrences);
 
       const instances = ical.expandRecurringEvent(event, {
@@ -331,7 +331,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should set isOverride=true for modified instances', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test12.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'daily-count-exdate-recurrence-id.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.recurrences);
 
       const instances = ical.expandRecurringEvent(event, {
@@ -561,7 +561,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should use event.end when available', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test1.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.end);
 
       const instances = ical.expandRecurringEvent(event, {
@@ -576,7 +576,7 @@ describe('expandRecurringEvent', () => {
 
     it('should handle 0-duration for date-only events without end', () => {
       // Some full-day events may not have explicit end times
-      const events = ical.sync.parseFile(path.join(__dirname, 'test1.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.datetype === 'date');
 
       const instances = ical.expandRecurringEvent(event, {
@@ -595,7 +595,7 @@ describe('expandRecurringEvent', () => {
   describe('Edge cases', () => {
     it('should handle events with COUNT limit', function () {
       // Event with RRULE that has COUNT=10
-      const events = ical.sync.parseFile(path.join(__dirname, 'test12.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'daily-count-exdate-recurrence-id.ics'));
       const event = Object.values(events).find(_ =>
         _.type === 'VEVENT'
         && _.rrule
@@ -618,7 +618,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should handle events with UNTIL date', function () {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test6.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'festival-multiday-rrule.ics'));
       const event = Object.values(events).find(_ =>
         _.type === 'VEVENT'
         && _.rrule
@@ -646,7 +646,7 @@ describe('expandRecurringEvent', () => {
 
     it('should handle expandOngoing option for non-recurring events', () => {
       // Event that started before the range but is still ongoing
-      const events = ical.sync.parseFile(path.join(__dirname, 'test1.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT');
 
       // Set range that starts after event start
@@ -709,7 +709,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should throw TypeError for invalid from date', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test1.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT');
 
       assert.throws(
@@ -726,7 +726,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should throw TypeError for invalid to date', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test1.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT');
 
       assert.throws(
@@ -737,7 +737,7 @@ describe('expandRecurringEvent', () => {
     });
 
     it('should throw RangeError when from is after to', () => {
-      const events = ical.sync.parseFile(path.join(__dirname, 'test1.ics'));
+      const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT');
 
       assert.throws(

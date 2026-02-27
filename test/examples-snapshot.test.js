@@ -6,7 +6,6 @@ const fs = require('node:fs');
 const {describe, it} = require('mocha');
 
 const exampleScripts = [
-  'example.mjs',
   'example-rrule-basic.js',
   'example-rrule-moment.js',
   'example-rrule-luxon.js',

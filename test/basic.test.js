@@ -20,8 +20,8 @@ function findItem(array, predicate) {
 
 describe('parser: basic cases', () => {
   describe('VEVENT basics', () => {
-    it('parses basic VEVENTs (test1.ics)', () => {
-      const data = ical.parseFile('./test/test1.ics');
+    it('parses basic VEVENTs (multi-event-basic.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/multi-event-basic.ics');
       const events = filterItems(values(data), x => x.type === 'VEVENT');
       assert_.equal(events.length, 9);
 
@@ -44,8 +44,8 @@ describe('parser: basic cases', () => {
       assert_.equal(invalid.start, 'Next Year');
     });
 
-    it('parses tvcountdown event (test3.ics)', () => {
-      const data = ical.parseFile('./test/test3.ics');
+    it('parses tvcountdown event (tv-show-episode.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/tv-show-episode.ics');
       const ev = findItem(values(data), x => x.uid === '20110505T220000Z-83@tvcountdown.com');
       assert_.equal(ev.start.getUTCFullYear(), 2011);
       assert_.equal(ev.start.getUTCMonth(), 4);
@@ -53,8 +53,8 @@ describe('parser: basic cases', () => {
       assert_.equal(ev.datetype, 'date-time');
     });
 
-    it('parses TripIt event (test4.ics)', () => {
-      const data = ical.parseFile('./test/test4.ics');
+    it('parses TripIt event (tripit-location-escaping.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/tripit-location-escaping.ics');
       const ev = findItem(values(data), x => x.uid === 'c32a5eaba2354bb29e012ec18da827db90550a3b@tripit.com');
       assert_.equal(ev.start.getFullYear(), 2011);
       assert_.equal(ev.start.getMonth(), 9);
@@ -66,8 +66,8 @@ describe('parser: basic cases', () => {
       assert_.equal(ev.transparency, 'TRANSPARENT');
     });
 
-    it('parses Meetup event with tz (test5.ics)', () => {
-      const data = ical.parseFile('./test/test5.ics');
+    it('parses Meetup event with tz (meetup-timed-tz.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/meetup-timed-tz.ics');
       const ev = findItem(values(data), x => x.uid === 'event_nsmxnyppbfc@meetup.com');
       assert_.equal(ev.start.tz, 'America/Phoenix');
       assert_.equal(ev.start.toISOString(), new Date(Date.UTC(2011, 10, 10, 2, 0, 0)).toISOString());
@@ -76,8 +76,8 @@ describe('parser: basic cases', () => {
   });
 
   describe('VTODO and VFREEBUSY', () => {
-    it('parses VTODO and VFREEBUSY (test2.ics)', () => {
-      const data = ical.parseFile('./test/test2.ics');
+    it('parses VTODO and VFREEBUSY (vtodo-vfreebusy.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/vtodo-vfreebusy.ics');
       const todo = findItem(values(data), item => item.uid === 'uid4@host1.com');
       assert_.equal(todo.type, 'VTODO');
 
@@ -98,8 +98,8 @@ describe('parser: basic cases', () => {
   });
 
   describe('Recurrence and RRULE', () => {
-    it('handles RRULE with summaries (test6.ics)', () => {
-      const data = ical.parseFile('./test/test6.ics');
+    it('handles RRULE with summaries (festival-multiday-rrule.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/festival-multiday-rrule.ics');
       const first = findItem(values(data), x => x.summary === 'foobar Summer 2011 starts!');
       assert_.equal(first.start.toISOString(), new Date(2011, 7, 4, 0, 0, 0).toISOString());
       const recur = findItem(values(data), x => x.summary === 'foobarTV broadcast starts');
@@ -107,8 +107,8 @@ describe('parser: basic cases', () => {
       assert_.equal(recur.rrule.toText(), 'every 5 weeks on Monday and Friday until January 30, 2013');
     });
 
-    it('handles RRULE with DTSTART (test7.ics)', () => {
-      const data = ical.parseFile('./test/test7.ics');
+    it('handles RRULE with DTSTART (yearly-recurring-unicode.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/yearly-recurring-unicode.ics');
       const ev = values(data)[0];
       const dates = ev.rrule.between(new Date(2013, 0, 1), new Date(2014, 0, 1));
       assert_.equal(dates[0].toDateString(), new Date(2013, 6, 14).toDateString());
@@ -287,8 +287,8 @@ END:VCALENDAR`;
   });
 
   describe('VTODO', () => {
-    it('parses VTODO completion (test8.ics)', () => {
-      const data = ical.parseFile('./test/test8.ics');
+    it('parses VTODO completion (utf8-french-calendar.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/utf8-french-calendar.ics');
       const task = values(data)[0];
       assert_.equal(Number(task.completion), 100);
       // Monaco is UTC+2 in July, so completed time should be 08:57:45Z
@@ -297,8 +297,8 @@ END:VCALENDAR`;
   });
 
   describe('Alarms', () => {
-    it('parses single VALARM (DISPLAY, -PT5M) (test9.ics)', () => {
-      const data = ical.parseFile('./test/test9.ics');
+    it('parses single VALARM (DISPLAY, -PT5M) (event-with-valarm.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/event-with-valarm.ics');
       const task = values(data)[0];
       assert_.equal(task.summary, 'Event with an alarm');
       assert_.equal(task.alarms?.length, 1);
@@ -310,8 +310,8 @@ END:VCALENDAR`;
   });
 
   describe('Categories', () => {
-    it('parses categories variants (test10.ics)', () => {
-      const data = ical.parseFile('./test/test10.ics');
+    it('parses categories variants (event-with-category.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/event-with-category.ics');
       const list = values(data);
       assert_.deepEqual(list[0].categories, ['cat1', 'cat2', 'cat3']);
       assert_.deepEqual(list[1].categories, ['cat1', 'cat2', 'cat3']);
@@ -322,8 +322,8 @@ END:VCALENDAR`;
   });
 
   describe('Freebusy', () => {
-    it('parses Zimbra freebusy (test11.ics)', () => {
-      const data = ical.parseFile('./test/test11.ics');
+    it('parses Zimbra freebusy (vfreebusy-zimbra.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/vfreebusy-zimbra.ics');
       const fb = values(data)[0];
       assert_.equal(fb.url, 'http://mail.example.com/yvr-2a@example.com/20140416');
       assert_.equal(fb.organizer, 'mailto:yvr-2a@example.com');

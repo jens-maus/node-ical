@@ -7,7 +7,7 @@
 
 import ical from '../node-ical.js';
 
-const url = 'https://raw.githubusercontent.com/jens-maus/node-ical/master/test/test6.ics';
+const url = 'https://raw.githubusercontent.com/jens-maus/node-ical/master/test/fixtures/festival-multiday-rrule.ics';
 
 const dateFormat = new Intl.DateTimeFormat('en-GB', {
   dateStyle: 'long',

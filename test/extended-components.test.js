@@ -17,8 +17,8 @@ function findItem(array, predicate) {
 
 describe('parser: extended component types', () => {
   describe('VTODO', () => {
-    it('parses VTODO with all properties (test2.ics)', () => {
-      const data = ical.parseFile('./test/test2.ics');
+    it('parses VTODO with all properties (vtodo-vfreebusy.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/vtodo-vfreebusy.ics');
       const todo = findItem(values(data), item => item.uid === 'uid4@host1.com');
 
       assert_.equal(todo.type, 'VTODO');
@@ -42,8 +42,8 @@ describe('parser: extended component types', () => {
       assert_.ok(Array.isArray(todo.alarms) && todo.alarms.length > 0);
     });
 
-    it('parses VTODO with completion (test8.ics)', () => {
-      const data = ical.parseFile('./test/test8.ics');
+    it('parses VTODO with completion (utf8-french-calendar.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/utf8-french-calendar.ics');
       const todos = values(data).filter(item => item.type === 'VTODO');
 
       assert_.equal(todos.length, 2);
@@ -58,8 +58,8 @@ describe('parser: extended component types', () => {
   });
 
   describe('VJOURNAL', () => {
-    it('parses VJOURNAL with all properties (test2.ics)', () => {
-      const data = ical.parseFile('./test/test2.ics');
+    it('parses VJOURNAL with all properties (vtodo-vfreebusy.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/vtodo-vfreebusy.ics');
       const journal = findItem(values(data), item => item.type === 'VJOURNAL');
 
       assert_.equal(journal.type, 'VJOURNAL');
@@ -75,8 +75,8 @@ describe('parser: extended component types', () => {
   });
 
   describe('VFREEBUSY', () => {
-    it('parses VFREEBUSY with periods (test2.ics)', () => {
-      const data = ical.parseFile('./test/test2.ics');
+    it('parses VFREEBUSY with periods (vtodo-vfreebusy.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/vtodo-vfreebusy.ics');
       const vfb = findItem(values(data), item => item.type === 'VFREEBUSY');
 
       assert_.equal(vfb.type, 'VFREEBUSY');
@@ -93,8 +93,8 @@ describe('parser: extended component types', () => {
       assert_.ok(period.end);
     });
 
-    it('parses VFREEBUSY with multiple FBTYPE values (test11.ics)', () => {
-      const data = ical.parseFile('./test/test11.ics');
+    it('parses VFREEBUSY with multiple FBTYPE values (vfreebusy-zimbra.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/vfreebusy-zimbra.ics');
       const vfb = findItem(values(data), item => item.type === 'VFREEBUSY');
 
       assert_.equal(vfb.type, 'VFREEBUSY');
@@ -102,7 +102,7 @@ describe('parser: extended component types', () => {
       assert_.ok(vfb.url);
       assert_.ok(Array.isArray(vfb.freebusy));
 
-      // All periods in test11.ics should be BUSY type
+      // All periods in vfreebusy-zimbra.ics should be BUSY type
       for (const period of vfb.freebusy) {
         assert_.equal(period.type, 'BUSY');
         assert_.ok(period.start instanceof Date);
@@ -113,8 +113,8 @@ describe('parser: extended component types', () => {
   });
 
   describe('CalendarComponent union', () => {
-    it('handles mixed component types in one file (test2.ics)', () => {
-      const data = ical.parseFile('./test/test2.ics');
+    it('handles mixed component types in one file (vtodo-vfreebusy.ics)', () => {
+      const data = ical.parseFile('./test/fixtures/vtodo-vfreebusy.ics');
       const components = values(data);
 
       const types = new Set(components.map(c => c.type).filter(Boolean));
@@ -127,7 +127,7 @@ describe('parser: extended component types', () => {
     });
 
     it('properly indexes all components by UID', () => {
-      const data = ical.parseFile('./test/test2.ics');
+      const data = ical.parseFile('./test/fixtures/vtodo-vfreebusy.ics');
 
       // Each component type should be accessible by its UID
       assert_.ok(data['uid4@host1.com']?.type === 'VTODO');
