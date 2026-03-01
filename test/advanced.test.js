@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const {describe, it} = require('mocha');
+const {describe, it, before} = require('mocha');
 const tz = require('../tz-utils.js');
 const ical = require('../node-ical.js');
 
@@ -10,6 +10,11 @@ tz.linkAlias('Etc/Unknown', 'Etc/GMT');
 describe('parser: advanced cases', () => {
   // Recurrence and exceptions remain intact with Intl-backed date parsing
   describe('Recurrence and exceptions', () => {
+    let biweeklyData;
+    before(() => {
+      biweeklyData = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
+    });
+
     it('handles RRULE + EXDATEs + RECURRENCE-ID override (daily-count-exdate-recurrence-id.ics)', function () {
       // Windows CI occasionally takes longer to initialise Intl time zone data on Node 20.
       // Give this parsing-heavy regression test extra breathing room to avoid spurious timeouts.
@@ -147,8 +152,7 @@ describe('parser: advanced cases', () => {
 
     // Biweekly-exdate-until.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
     it('parses comma-separated EXDATEs (biweekly-exdate-until.ics)', () => {
-      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
-      const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+      const event = Object.values(biweeklyData).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
       assert.equal(event.summary, 'Example of comma-separated exdates');
       assert.ok(event.exdate);
       const checks = [
@@ -165,8 +169,7 @@ describe('parser: advanced cases', () => {
     });
 
     it('tolerates EXDATEs with bad times (biweekly-exdate-until.ics)', () => {
-      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
-      const event = Object.values(data).find(x => x.uid === '1234567-ABCD-ABCD-ABCD-123456789012');
+      const event = Object.values(biweeklyData).find(x => x.uid === '1234567-ABCD-ABCD-ABCD-123456789012');
       assert.equal(event.summary, 'Example of exdate with bad times');
       assert.ok(event.exdate);
       const bads = [
@@ -179,8 +182,7 @@ describe('parser: advanced cases', () => {
     });
 
     it('exdate is a plain object, not an array (biweekly-exdate-until.ics)', () => {
-      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
-      const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+      const event = Object.values(biweeklyData).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
       assert.ok(event.exdate);
 
       // Should be a plain object, not an array
@@ -231,8 +233,7 @@ describe('parser: advanced cases', () => {
     // Regression test for issue #167: "Exdate showing blank array when EXDATE parameters exist"
     // https://github.com/jens-maus/node-ical/issues/167
     it('exdate is not shown as blank/empty array (regression for #167)', () => {
-      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
-      const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+      const event = Object.values(biweeklyData).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
 
       // The bug was: JSON.stringify showed [] even though data existed
       const stringified = JSON.stringify(event.exdate);
@@ -258,8 +259,7 @@ describe('parser: advanced cases', () => {
     // Regression test for issue #360: "Recurring events with exclusions are not handled"
     // https://github.com/jens-maus/node-ical/issues/360
     it('recurring events with EXDATE exclusions are properly parsed (regression for #360)', () => {
-      const data = ical.parseFile('./test/fixtures/biweekly-exdate-until.ics');
-      const event = Object.values(data).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+      const event = Object.values(biweeklyData).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
 
       // The bug was: parseIcs ignored exceptions and created exdate: []
       assert.ok(event.exdate, 'exdate should exist');
@@ -422,6 +422,11 @@ END:VCALENDAR`;
       assert.equal(event.end.tz, 'Asia/Bangkok');
     });
     describe('Windows mapping and custom tz', () => {
+      let officeData;
+      before(() => {
+        officeData = ical.parseFile('./test/fixtures/Office-2012-owa.ics');
+      });
+
       it('maps Windows zones to times (ms_timezones.ics)', () => {
         const data = ical.parseFile('./test/fixtures/ms_timezones.ics');
         const event = Object.values(data).find(x => x.summary === 'Log Yesterday\'s Jira time');
@@ -445,14 +450,12 @@ END:VCALENDAR`;
       });
 
       it('applies old MS tz before DST (Office-2012-owa.ics)', () => {
-        const data = ical.parseFile('./test/fixtures/Office-2012-owa.ics');
-        const event = Object.values(data).find(x => x.summary === ' TEST');
+        const event = Object.values(officeData).find(x => x.summary === ' TEST');
         assert.equal(event.end.toISOString().slice(0, 10), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().slice(0, 10));
       });
 
       it('applies old MS tz after DST (Office-2012-owa.ics)', () => {
-        const data = ical.parseFile('./test/fixtures/Office-2012-owa.ics');
-        const event = Object.values(data).find(x => x.summary === ' TEST 3');
+        const event = Object.values(officeData).find(x => x.summary === ' TEST 3');
         assert.equal(event.end.toISOString().slice(0, 10), new Date(Date.UTC(2020, 10, 2, 20, 0, 0)).toISOString().slice(0, 10));
       });
 
