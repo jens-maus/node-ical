@@ -498,14 +498,15 @@ function buildRecurringInstance(date, event, isFullDay, baseDurationMs, options)
     return null;
   }
 
-  // For timed events, try the precise ISO key first so that a RECURRENCE-ID
-  // override for one instance of an event that recurs multiple times per day
-  // is not mistakenly applied to the other instances on the same date.
-  // Falls back to the date-only key, matching the dual-key strategy in
-  // storeRecurrenceOverride (ical.js).
+  // For timed events use only the precise ISO key: storeRecurrenceOverride (ical.js)
+  // stores every DATE-TIME RECURRENCE-ID under both the ISO key and the date-only
+  // key, so a miss on the ISO key unambiguously means "no override for this
+  // specific instance".  Falling back to the date-only key would incorrectly apply
+  // a different occurrence's override when two instances share the same calendar
+  // date (e.g. BYHOUR=9,15).  Full-day events have no ISO key and use dateKey only.
   const isoKey = isFullDay ? null : date.toISOString();
   const overrideEvent = includeOverrides
-    && ((isoKey && event.recurrences?.[isoKey]) || event.recurrences?.[dateKey]);
+    && (isoKey ? event.recurrences?.[isoKey] : event.recurrences?.[dateKey]);
   const isOverride = Boolean(overrideEvent);
   const instanceEvent = isOverride ? overrideEvent : event;
 
