@@ -403,65 +403,124 @@ function processNonRecurringEvent(event, options) {
 }
 
 /**
- * Process a recurring event instance
- * @param {Date} date
- * @param {object} event
- * @param {object} options
+ * Check if a date is excluded by EXDATE rules.
+ * @param {Date} date - The instance date to check
+ * @param {object} event - The calendar event
+ * @param {string} dateKey - Pre-computed date key
+ * @param {boolean} isFullDay - Whether the event is a full-day event
+ * @returns {boolean} True if the date is excluded
+ */
+function isExcludedByExdate(date, event, dateKey, isFullDay) {
+  if (!event.exdate) {
+    return false;
+  }
+
+  if (isFullDay) {
+    // Full-day: compare by calendar date using timezone-aware formatting
+    // (e.g., Exchange/O365 stores EXDATE as DATE-TIME with timezone, so we need
+    // to extract the calendar date in the EXDATE's timezone, not host-local time)
+    // Use Set to deduplicate — exdateParameter stores the same Date under both
+    // a date-key and an ISO-string key, so Object.values() can yield duplicates.
+    for (const exdateValue of new Set(Object.values(event.exdate))) {
+      if (exdateValue instanceof Date && getDateKey(exdateValue) === dateKey) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // For timed events:
+  //   1. Prefer an exact ISO-string match — a DATE-TIME EXDATE is stored under
+  //      both dateKey AND isoKey, so only checking isoKey ensures we don't
+  //      accidentally exclude the 09:00 instance when only 14:00 is excluded.
+  //   2. Fall back to dateKey only when the EXDATE itself is DATE-only (dateOnly
+  //      is true), which by RFC 5545 intentionally excludes every instance on
+  //      that calendar day regardless of time.
+  return Boolean(event.exdate[date.toISOString()] || event.exdate[dateKey]?.dateOnly);
+}
+
+/**
+ * Validate that from/to are proper Dates in the right order.
+ * @param {Date} from
+ * @param {Date} to
+ */
+function validateDateRange(from, to) {
+  if (!(from instanceof Date) || Number.isNaN(from.getTime())) {
+    throw new TypeError('options.from must be a valid Date object');
+  }
+
+  if (!(to instanceof Date) || Number.isNaN(to.getTime())) {
+    throw new TypeError('options.to must be a valid Date object');
+  }
+
+  if (from > to) {
+    throw new RangeError('options.from must be before or equal to options.to');
+  }
+}
+
+/**
+ * Compute the effective RRULE search window from the user-facing range.
+ * For full-day events the upper bound is pushed to end-of-day so RRULE doesn't
+ * skip the last day due to timezone offsets.
+ * For expandOngoing mode the lower bound is moved back by the event duration.
+ * @param {Date} from
+ * @param {Date} to
+ * @param {boolean} isFullDay
+ * @param {boolean} expandOngoing
  * @param {number} baseDurationMs
+ * @returns {{searchFrom: Date, searchTo: Date}}
+ */
+function adjustSearchRange(from, to, isFullDay, expandOngoing, baseDurationMs) {
+  const isMidnight = to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0;
+  const searchTo = (isFullDay && isMidnight)
+    ? new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999)
+    : to;
+  const searchFrom = expandOngoing ? new Date(from.getTime() - baseDurationMs) : from;
+  return {searchFrom, searchTo};
+}
+
+/**
+ * Build a single recurring event instance for an RRULE-generated date.
+ * Returns null when the date is excluded by EXDATE.
+ * @param {Date} date - RRULE-generated Date
+ * @param {object} event - The base VEVENT
+ * @param {boolean} isFullDay - Pre-computed full-day flag
+ * @param {number} baseDurationMs - Pre-computed base duration
+ * @param {{excludeExdates: boolean, includeOverrides: boolean}} options
  * @returns {object|null} Event instance or null if excluded
  */
-function processRecurringInstance(date, event, options, baseDurationMs) {
+function buildRecurringInstance(date, event, isFullDay, baseDurationMs, options) {
   const {excludeExdates, includeOverrides} = options;
-  const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
-
-  // Generate date key for lookups
   const dateKey = generateDateKey(date, isFullDay);
 
-  // Check EXDATE exclusions
-  if (excludeExdates && event.exdate) {
-    if (isFullDay) {
-      // Full-day: compare by calendar date using timezone-aware formatting
-      // (e.g., Exchange/O365 stores EXDATE as DATE-TIME with timezone, so we need
-      // to extract the calendar date in the EXDATE's timezone, not host-local time)
-      for (const exdateValue of Object.values(event.exdate)) {
-        if (!(exdateValue instanceof Date)) {
-          continue;
-        }
-
-        if (getDateKey(exdateValue) === dateKey) {
-          return null;
-        }
-      }
-    } else if (event.exdate[dateKey] || event.exdate[date.toISOString()]) {
-      return null;
-    }
+  if (excludeExdates && isExcludedByExdate(date, event, dateKey, isFullDay)) {
+    return null;
   }
 
-  // Check for RECURRENCE-ID override
-  let instanceEvent = event;
-  let isOverride = false;
+  // For timed events use only the precise ISO key: storeRecurrenceOverride (ical.js)
+  // stores every DATE-TIME RECURRENCE-ID under both the ISO key and the date-only
+  // key, so a miss on the ISO key unambiguously means "no override for this
+  // specific instance".  Falling back to the date-only key would incorrectly apply
+  // a different occurrence's override when two instances share the same calendar
+  // date (e.g. BYHOUR=9,15).  Full-day events have no ISO key and use dateKey only.
+  const isoKey = isFullDay ? null : date.toISOString();
+  const overrideEvent = includeOverrides
+    && (isoKey ? event.recurrences?.[isoKey] : event.recurrences?.[dateKey]);
+  const isOverride = Boolean(overrideEvent);
+  const instanceEvent = isOverride ? overrideEvent : event;
 
-  if (includeOverrides && event.recurrences && event.recurrences[dateKey]) {
-    instanceEvent = event.recurrences[dateKey];
-    isOverride = true;
-  }
+  // Override's own DTSTART takes priority over the RRULE-generated date
+  let start = (isOverride && instanceEvent.start)
+    ? (instanceEvent.start instanceof Date ? instanceEvent.start : new Date(instanceEvent.start))
+    : date;
 
-  // Calculate start time for this instance
-  let start = date;
-
-  // If override has its own DTSTART, use that instead of the RRULE-generated date
-  if (isOverride && instanceEvent.start) {
-    start = instanceEvent.start instanceof Date ? instanceEvent.start : new Date(instanceEvent.start);
-  }
-
-  // For full-day events, extract UTC components to avoid DST issues
+  // Normalise full-day dates to local calendar midnight to avoid DST shifts
   if (isFullDay) {
     start = createLocalDateFromUTC(start);
   }
 
-  // For recurring events, use override duration when available; otherwise use base duration
   const end = calculateEndTime(start, instanceEvent, isFullDay, baseDurationMs);
-
   const instance = {
     start,
     end,
@@ -472,7 +531,6 @@ function processRecurringInstance(date, event, options, baseDurationMs) {
     event: instanceEvent,
   };
 
-  // Preserve timezone metadata
   copyDateMeta(instance.start, isOverride ? instanceEvent.start : event.start);
   copyDateMeta(instance.end, instanceEvent.end || event.end);
 
@@ -529,42 +587,21 @@ function expandRecurringEvent(event, options) {
     expandOngoing = false,
   } = options;
 
-  // Input validation
-  if (!(from instanceof Date) || Number.isNaN(from.getTime())) {
-    throw new TypeError('options.from must be a valid Date object');
-  }
-
-  if (!(to instanceof Date) || Number.isNaN(to.getTime())) {
-    throw new TypeError('options.to must be a valid Date object');
-  }
-
-  if (from > to) {
-    throw new RangeError('options.from must be before or equal to options.to');
-  }
+  validateDateRange(from, to);
 
   // Handle non-recurring events
   if (!event.rrule) {
     return processNonRecurringEvent(event, {from, to, expandOngoing});
   }
 
-  // Handle recurring events
   const isFullDay = event.datetype === 'date' || Boolean(event.start?.dateOnly);
   const baseDurationMs = getEventDurationMs(event, isFullDay);
-
-  // For full-day events, adjust 'to' to end of day to ensure RRULE includes the full day
-  // in all timezones (otherwise timezone offset can truncate the last day)
-  let searchTo = to;
-  if (isFullDay && to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0) {
-    searchTo = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999);
-  }
-
-  // For expandOngoing, look back by the event duration to capture ongoing instances
-  const searchFrom = expandOngoing ? new Date(from.getTime() - baseDurationMs) : from;
+  const {searchFrom, searchTo} = adjustSearchRange(from, to, isFullDay, expandOngoing, baseDurationMs);
   const dates = event.rrule.between(searchFrom, searchTo, true);
   const instances = [];
 
   for (const date of dates) {
-    const instance = processRecurringInstance(date, event, {excludeExdates, includeOverrides}, baseDurationMs);
+    const instance = buildRecurringInstance(date, event, isFullDay, baseDurationMs, {excludeExdates, includeOverrides});
     if (instance && isInstanceInRange(instance, from, to, expandOngoing)) {
       instances.push(instance);
     }

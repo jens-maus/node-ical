@@ -21,7 +21,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "rrule-temporal": "^1.4.6",
+    "rrule-temporal": "^1.4.7",
     "temporal-polyfill": "^0.3.0"
   },
   "overrides": {
@@ -50,7 +50,8 @@
       "promise/prefer-await-to-then": "off",
       "unicorn/prefer-module": "off",
       "unicorn/prefer-spread": "off",
-      "import-x/no-extraneous-dependencies": "off"
+      "import-x/no-extraneous-dependencies": "off",
+      "max-params": ["warn", 5]
     }
   },
   "scripts": {

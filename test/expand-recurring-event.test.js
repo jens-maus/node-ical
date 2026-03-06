@@ -291,6 +291,50 @@ describe('expandRecurringEvent', () => {
       const hasNov15 = instances.some(instance => instance.start.toISOString() === '2023-11-16T00:00:00.000Z');
       assert.ok(hasNov15, 'Nov 15 16:00 PST instance (2023-11-16T00:00:00Z) should be present');
     });
+
+    it('should only exclude the exact timed instance when two instances share a calendar date', () => {
+      // Regression test: when an event generates two instances on the same calendar date
+      // (e.g. BYHOUR=9,15), only the instance whose timestamp matches the EXDATE should be
+      // excluded.  The old code looked up exdate by date-only key and wrongly excluded both.
+      const event = {
+        type: 'VEVENT',
+        uid: 'exdate-two-per-day@test',
+        summary: 'Twice Daily',
+        start: new Date('2025-01-13T09:00:00.000Z'),
+        end: new Date('2025-01-13T10:00:00.000Z'),
+        rrule: {
+          freq: 'DAILY',
+          between(_start, _end) {
+            return [
+              new Date('2025-01-13T09:00:00.000Z'),
+              new Date('2025-01-13T15:00:00.000Z'),
+              new Date('2025-01-14T09:00:00.000Z'),
+              new Date('2025-01-14T15:00:00.000Z'),
+            ];
+          },
+        },
+        // EXDATE targets only the 09:00 instance on Jan 13.
+        // ical.js stores timed EXDATEs under both the ISO key and the date-only key;
+        // only the ISO key should be used for timed-event lookup.
+        exdate: {
+          '2025-01-13T09:00:00.000Z': new Date('2025-01-13T09:00:00.000Z'),
+          '2025-01-13': new Date('2025-01-13T09:00:00.000Z'),
+        },
+      };
+
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2025-01-13T00:00:00Z'),
+        to: new Date('2025-01-14T23:59:59Z'),
+        excludeExdates: true,
+      });
+
+      const isos = new Set(instances.map(i => i.start.toISOString()));
+
+      assert.ok(!isos.has('2025-01-13T09:00:00.000Z'), 'Jan 13 09:00 should be excluded (matches EXDATE)');
+      assert.ok(isos.has('2025-01-13T15:00:00.000Z'), 'Jan 13 15:00 should NOT be excluded (different time)');
+      assert.ok(isos.has('2025-01-14T09:00:00.000Z'), 'Jan 14 09:00 should be present (different day)');
+      assert.ok(isos.has('2025-01-14T15:00:00.000Z'), 'Jan 14 15:00 should be present');
+    });
   });
 
   describe('RECURRENCE-ID overrides', () => {
@@ -374,13 +418,22 @@ describe('expandRecurringEvent', () => {
           },
         },
         recurrences: {
-          // Override for Jan 8 - moved to 14:00
-          // The key must match the date-only format that ical.js uses as primary key
-          '2025-01-08': {
+          // Override for Jan 8 - moved to 14:00.
+          // ical.js stores RECURRENCE-ID overrides under both the ISO key (the precise
+          // occurrence timestamp) and the date-only key (dual-key strategy).
+          '2025-01-08T10:00:00.000Z': {
             type: 'VEVENT',
             uid: 'test-override-dtstart@test',
             summary: 'Daily Meeting (Moved)',
             start: new Date('2025-01-08T14:00:00.000Z'), // Different time!
+            end: new Date('2025-01-08T15:00:00.000Z'),
+          },
+          // Date-only key alias (mirrors what ical.js stores)
+          '2025-01-08': {
+            type: 'VEVENT',
+            uid: 'test-override-dtstart@test',
+            summary: 'Daily Meeting (Moved)',
+            start: new Date('2025-01-08T14:00:00.000Z'),
             end: new Date('2025-01-08T15:00:00.000Z'),
           },
         },
@@ -400,6 +453,67 @@ describe('expandRecurringEvent', () => {
       assert.strictEqual(jan8Instance.start.getUTCHours(), 14, 'Should use override DTSTART time (14:00)');
       assert.strictEqual(jan8Instance.end.getUTCHours(), 15, 'Should use override end time (15:00)');
       assert.strictEqual(jan8Instance.summary, 'Daily Meeting (Moved)');
+    });
+
+    it('should apply RECURRENCE-ID override only to the matching timed instance when two share a date', () => {
+      // Regression test: when two instances fall on the same calendar date, a RECURRENCE-ID
+      // override keyed to the 09:00 instance must not bleed into the 15:00 instance.
+      // The old code resolved overrides by date-only key, returning the same override for both.
+      const event = {
+        type: 'VEVENT',
+        uid: 'recurrence-id-two-per-day@test',
+        summary: 'Base Event',
+        start: new Date('2025-01-08T09:00:00.000Z'),
+        end: new Date('2025-01-08T10:00:00.000Z'),
+        rrule: {
+          freq: 'DAILY',
+          between(_start, _end) {
+            return [
+              new Date('2025-01-08T09:00:00.000Z'),
+              new Date('2025-01-08T15:00:00.000Z'),
+            ];
+          },
+        },
+        // Override only the 09:00 instance.
+        // ical.js stores RECURRENCE-ID overrides under both the full ISO key
+        // and the date-only key; the ISO key must take precedence in lookup.
+        recurrences: {
+          '2025-01-08T09:00:00.000Z': {
+            type: 'VEVENT',
+            uid: 'recurrence-id-two-per-day@test',
+            summary: 'Morning Override',
+            start: new Date('2025-01-08T09:00:00.000Z'),
+            end: new Date('2025-01-08T10:00:00.000Z'),
+          },
+          '2025-01-08': {
+            type: 'VEVENT',
+            uid: 'recurrence-id-two-per-day@test',
+            summary: 'Morning Override',
+            start: new Date('2025-01-08T09:00:00.000Z'),
+            end: new Date('2025-01-08T10:00:00.000Z'),
+          },
+        },
+      };
+
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2025-01-08T00:00:00Z'),
+        to: new Date('2025-01-08T23:59:59Z'),
+        includeOverrides: true,
+      });
+
+      assert.strictEqual(instances.length, 2, 'Both instances should be present');
+
+      const morning = instances.find(i => i.start.getUTCHours() === 9);
+      const afternoon = instances.find(i => i.start.getUTCHours() === 15);
+
+      assert.ok(morning, 'Morning instance should exist');
+      assert.ok(afternoon, 'Afternoon instance should exist');
+
+      assert.strictEqual(morning.isOverride, true, 'Morning should use override');
+      assert.strictEqual(morning.event.summary, 'Morning Override', 'Morning should have override summary');
+
+      assert.strictEqual(afternoon.isOverride, false, 'Afternoon should NOT use override');
+      assert.strictEqual(afternoon.event.summary, 'Base Event', 'Afternoon should have base event summary');
     });
   });
 
