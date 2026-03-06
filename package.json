@@ -1,6 +1,6 @@
 {
   "name": "node-ical",
-  "version": "0.25.4",
+  "version": "0.25.5",
   "main": "node-ical.js",
   "types": "node-ical.d.ts",
   "description": "NodeJS class for parsing iCalendar/ICS files",
@@ -51,7 +51,10 @@
       "unicorn/prefer-module": "off",
       "unicorn/prefer-spread": "off",
       "import-x/no-extraneous-dependencies": "off",
-      "max-params": ["warn", 5]
+      "max-params": [
+        "warn",
+        5
+      ]
     }
   },
   "scripts": {
