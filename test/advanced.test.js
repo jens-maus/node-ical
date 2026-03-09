@@ -511,6 +511,25 @@ END:VCALENDAR`;
         assert.strictEqual(event.start.toISOString(), '2025-06-10T18:00:00.000Z');
         assert.strictEqual(event.end.toISOString(), '2025-06-10T19:00:00.000Z');
       });
+
+      // Multi-era VTIMEZONE (multiple STANDARD/DAYLIGHT blocks for different historic rules).
+      // resolveVTimezoneToIana must pick the block whose DTSTART year is closest to
+      // but not after the event year — not simply the first block encountered.
+      it('picks the right observance block for multi-era VTIMEZONE (multi-era-vtimezone.ics)', () => {
+        const data = ical.parseFile('./test/fixtures/multi-era-vtimezone.ics');
+
+        // 2025 event: modern rule (DTSTART 2007) applies → EDT in June → 14:00 wall = 18:00 UTC
+        const modern = Object.values(data).find(x => x.uid === 'multi-era-2025@test');
+        assert.ok(modern, '2025 event should exist');
+        // Modern rule (post-2007): EDT in June → 14:00-04:00 = 18:00 UTC
+        assert.strictEqual(modern.start.toISOString(), '2025-06-10T18:00:00.000Z');
+
+        // 1985 event: old rule (DTSTART 1671) applies → EDT in October 15 → 14:00 wall = 18:00 UTC
+        const vintage = Object.values(data).find(x => x.uid === 'multi-era-1985@test');
+        assert.ok(vintage, '1985 event should exist');
+        // Old rule (pre-2007): EDT in Oct 15 → 14:00-04:00 = 18:00 UTC
+        assert.strictEqual(vintage.start.toISOString(), '1985-10-15T18:00:00.000Z');
+      });
     });
   });
 

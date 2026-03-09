@@ -477,6 +477,36 @@ function linkAlias(arg1, arg2) {
 const vtimezoneIanaCache = new Map();
 
 /**
+/**
+ * Pick the STANDARD or DAYLIGHT sub-component that applies to a given reference year.
+ * A VTIMEZONE may carry multiple historic observance blocks (e.g. the US rule changed in 2007).
+ * We want the block whose DTSTART year is the largest one that is ≤ refYear — i.e. the most
+ * recent rule that has already come into effect.
+ *
+ * @param {Array} blocks - Array of STANDARD or DAYLIGHT components (all same type)
+ * @param {number} refYear - The event year to look up the rule for
+ * @returns {Object|undefined}
+ */
+function pickApplicableBlock(blocks, refYear) {
+  if (blocks.length === 0) {
+    return undefined;
+  }
+
+  if (blocks.length === 1) {
+    return blocks[0];
+  }
+
+  // Sort descending by the DTSTART year of each observance block.
+  // "start" is the parsed Date for the DTSTART field inside STANDARD/DAYLIGHT.
+  const getYear = block => (block.start instanceof Date ? block.start.getFullYear() : 0);
+  const sorted = [...blocks].sort((a, b) => getYear(b) - getYear(a));
+
+  // Take the first block whose DTSTART year is ≤ refYear (most recent applicable rule).
+  // Fall back to the oldest block if all blocks start after refYear (future-only rules).
+  return sorted.find(b => getYear(b) <= refYear) ?? sorted.at(-1);
+}
+
+/**
  * Attempt to match a parsed VTIMEZONE (with STANDARD/DAYLIGHT sub-components) to a
  * known IANA timezone by comparing UTC offsets at two probe dates (January and July).
  *
@@ -503,8 +533,10 @@ function resolveVTimezoneToIana(vTimezone, year) {
     return {iana: undefined, offset: undefined};
   }
 
-  const standard = components.find(c => c.type === 'STANDARD');
-  const daylight = components.find(c => c.type === 'DAYLIGHT');
+  // When multiple observance blocks exist (e.g. US pre-/post-2007 DST rule change),
+  // pick the one whose DTSTART year is the newest that is still ≤ the event year.
+  const standard = pickApplicableBlock(components.filter(c => c.type === 'STANDARD'), year);
+  const daylight = pickApplicableBlock(components.filter(c => c.type === 'DAYLIGHT'), year);
 
   const stdMins = standard ? offsetLabelToMinutes(standard.tzoffsetto) : undefined;
   const dstMins = daylight ? offsetLabelToMinutes(daylight.tzoffsetto) : undefined;
