@@ -492,7 +492,10 @@ END:VCALENDAR`;
       it('handles negative duration (bad_custom_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_custom_ms_tz.ics');
         const event = Object.values(data).find(x => x.summary === '*masked-away2*');
-        assert.equal(event.end.toISOString().slice(0, 10), new Date(Date.UTC(2021, 2, 23, 21, 56, 56)).toISOString().slice(0, 10));
+        // DATE-only DTSTART with time-component duration: the computed end falls
+        // on 2021-03-23 in *local* time in any sane timezone, so compare as a
+        // local calendar date rather than a UTC ISO string.
+        assert.equal(event.end.toDateString(), new Date(2021, 2, 23).toDateString());
       });
     });
   });

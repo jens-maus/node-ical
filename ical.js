@@ -95,8 +95,12 @@ function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
  * This maintains backward compatibility while using rrule-temporal internally
  */
 class RRuleCompatWrapper {
-  constructor(rruleTemporal) {
+  constructor(rruleTemporal, dateOnly = false) {
     this._rrule = rruleTemporal;
+    // VALUE=DATE events are anchored to UTC midnight in rrule-temporal.
+    // Converting via epochMilliseconds shifts the date backwards in timezones
+    // west of UTC; instead we use the ZonedDateTime calendar components directly.
+    this._dateOnly = dateOnly;
   }
 
   static #temporalToDate(value) {
@@ -132,25 +136,41 @@ class RRuleCompatWrapper {
     return converted;
   }
 
+  // Convert a ZonedDateTime to a JS Date.
+  // For VALUE=DATE events the ZDT calendar components (year/month/day in UTC)
+  // represent the intended calendar date; create a local-midnight Date so that
+  // .toDateString() returns the correct day regardless of the host timezone.
+  // Mark the result with dateOnly=true so that downstream helpers that
+  // distinguish date-only from timed dates (e.g. createLocalDateFromUTC) also
+  // use local getters rather than UTC getters.
+  #zdtToDate(zdt) {
+    if (this._dateOnly) {
+      const d = new Date(zdt.year, zdt.month - 1, zdt.day, 0, 0, 0, 0);
+      d.dateOnly = true;
+      return d;
+    }
+
+    return new Date(zdt.epochMilliseconds);
+  }
+
   between(after, before, inclusive = false) {
     const results = this._rrule.between(after, before, inclusive);
-    // Convert Temporal.ZonedDateTime → Date
-    return results.map(zdt => new Date(zdt.epochMilliseconds));
+    return results.map(zdt => this.#zdtToDate(zdt));
   }
 
   all(iterator) {
     const results = this._rrule.all(iterator);
-    return results.map(zdt => new Date(zdt.epochMilliseconds));
+    return results.map(zdt => this.#zdtToDate(zdt));
   }
 
   before(date, inclusive = false) {
     const result = this._rrule.before(date, inclusive);
-    return result ? new Date(result.epochMilliseconds) : null;
+    return result ? this.#zdtToDate(result) : null;
   }
 
   after(date, inclusive = false) {
     const result = this._rrule.after(date, inclusive);
-    return result ? new Date(result.epochMilliseconds) : null;
+    return result ? this.#zdtToDate(result) : null;
   }
 
   toText(locale) {
@@ -903,7 +923,7 @@ module.exports = {
               rruleString: fullRruleString,
             });
 
-            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
+            curr.rrule = new RRuleCompatWrapper(rruleTemporal, true /* dateOnly */);
           } else {
             // DATE-TIME events: convert curr.start (Date) to Temporal.ZonedDateTime
             const tzInfo = curr.start.tz ? tzUtil.resolveTZID(curr.start.tz) : undefined;
@@ -929,7 +949,7 @@ module.exports = {
               dtstart: dtstartTemporal,
             });
 
-            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
+            curr.rrule = new RRuleCompatWrapper(rruleTemporal, false /* dateOnly */);
           }
         }
       }
