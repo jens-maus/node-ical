@@ -447,7 +447,11 @@ const dateParameter = function (name) {
 
               if (stackVTimezone) {
                 const resolved = tzUtil.resolveVTimezoneToIana(stackVTimezone, year);
-                tz = resolved.iana || resolved.offset || tzUtil.guessLocalZone();
+                // Only override when resolution succeeds; keep the original tz otherwise
+                // so resolveTZID can make a best effort — never substitute guessLocalZone()
+                if (resolved.iana || resolved.offset) {
+                  tz = resolved.iana || resolved.offset;
+                }
               } else {
                 tz = tzUtil.guessLocalZone();
               }
