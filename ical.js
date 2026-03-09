@@ -371,19 +371,21 @@ const dateParameter = function (name) {
             return new Date(year, monthIndex, day, hour, minute, second);
           }
 
-          // Custom Microsoft TZIDs (e.g. "Customized Time Zone", "tzone://Microsoft/Custom")
-          // cannot be resolved by resolveTZID (which would just substitute the host's local
-          // zone).  When a VTIMEZONE with STANDARD/DAYLIGHT rules is available, resolve via
-          // its offset data first — same logic as the explicit-TZID branch (issue #478).
           let resolvedTzId = String(normalizedTzId).replace(/^"(.*)"$/, '$1');
-          const isCustomMsTz = resolvedTzId === 'tzone://Microsoft/Custom'
-            || resolvedTzId === '(no TZ description)'
-            || resolvedTzId.startsWith('Customized Time Zone')
-            || resolvedTzId.startsWith('tzone://Microsoft/');
 
-          if (isCustomMsTz && vTimezone) {
+          // When a VTIMEZONE block is present, prefer its STANDARD/DAYLIGHT offset data over
+          // a pure string-based TZID lookup.  This handles both well-known IANA names (where
+          // the embedded rules may be more historically precise) and completely custom TZIDs
+          // (e.g. Microsoft's "Customized Time Zone", "tzone://Microsoft/Custom") that
+          // resolveTZID cannot look up at all.
+          // Only replace resolvedTzId when resolution actually succeeds; otherwise keep the
+          // original value so resolveTZID can make a best effort — never substitute the host
+          // zone via guessLocalZone().
+          if (vTimezone) {
             const resolved = tzUtil.resolveVTimezoneToIana(vTimezone, year);
-            resolvedTzId = resolved.iana || resolved.offset || tzUtil.guessLocalZone();
+            if (resolved.iana || resolved.offset) {
+              resolvedTzId = resolved.iana || resolved.offset;
+            }
           }
 
           const tzInfo = tzUtil.resolveTZID(resolvedTzId);
