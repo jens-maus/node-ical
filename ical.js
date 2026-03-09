@@ -161,7 +161,7 @@ class RRuleCompatWrapper {
     // rather than a raw Temporal.ZonedDateTime — keeping the public API consistent
     // with between() and matching the declared return type.
     const wrappedIterator = iterator
-      ? (zdt, length) => iterator(this.#zdtToDate(zdt), length)
+      ? (zdt, index) => iterator(this.#zdtToDate(zdt), index)
       : undefined;
     const results = this._rrule.all(wrappedIterator);
     return results.map(zdt => this.#zdtToDate(zdt));
