@@ -10,7 +10,7 @@ globalThis.Temporal ??= Temporal;
 
 const {RRuleTemporal} = require('rrule-temporal');
 const {toText: toTextFunction} = require('rrule-temporal/totext');
-const tzUtil = require('./tz-utils.js');
+const tzUtil = require('./lib/tz-utils.js');
 const {getDateKey} = require('./lib/date-utils.js');
 
 /**

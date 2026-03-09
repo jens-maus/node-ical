@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const process = require('node:process');
 const {describe, it} = require('mocha');
-const tz = require('../tz-utils.js');
+const tz = require('../lib/tz-utils.js');
 
 describe('unit: tz-utils', () => {
   it('validates IANA zone names', () => {

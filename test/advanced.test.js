@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const {describe, it, before} = require('mocha');
-const tz = require('../tz-utils.js');
+const tz = require('../lib/tz-utils.js');
 const ical = require('../node-ical.js');
 
 // Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
