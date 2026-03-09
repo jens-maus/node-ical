@@ -157,18 +157,24 @@ class RRuleCompatWrapper {
   }
 
   all(iterator) {
-    const results = this._rrule.all(iterator);
+    // If the caller supplied an iterator, wrap it so it receives a converted Date
+    // rather than a raw Temporal.ZonedDateTime — keeping the public API consistent
+    // with between() and matching the declared return type.
+    const wrappedIterator = iterator
+      ? (zdt, length) => iterator(this.#zdtToDate(zdt), length)
+      : undefined;
+    const results = this._rrule.all(wrappedIterator);
     return results.map(zdt => this.#zdtToDate(zdt));
   }
 
   before(date, inclusive = false) {
     const result = this._rrule.before(date, inclusive);
-    return result ? this.#zdtToDate(result) : null;
+    return result ? this.#zdtToDate(result) : undefined;
   }
 
   after(date, inclusive = false) {
     const result = this._rrule.after(date, inclusive);
-    return result ? this.#zdtToDate(result) : null;
+    return result ? this.#zdtToDate(result) : undefined;
   }
 
   toText(locale) {
