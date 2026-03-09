@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 /* eslint-disable prefer-arrow-callback */
 
 // Regression tests for FREQ=MONTHLY with multiple BYMONTHDAY values.

@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 /* eslint-disable prefer-arrow-callback */
 
 const assert = require('node:assert/strict');
