@@ -1,13 +1,11 @@
-/* eslint-disable max-depth, max-params, no-warning-comments, complexity, import-x/order */
+/* eslint-disable max-depth, max-params, no-warning-comments, complexity */
 
 const {randomUUID} = require('node:crypto');
-
 // Load Temporal polyfill if not natively available
 // TODO: Drop the polyfill branch once our minimum Node version ships Temporal
 const Temporal = globalThis.Temporal || require('temporal-polyfill').Temporal;
 // Ensure Temporal exists before loading rrule-temporal
 globalThis.Temporal ??= Temporal;
-
 const {RRuleTemporal} = require('rrule-temporal');
 const {toText: toTextFunction} = require('rrule-temporal/totext');
 const tzUtil = require('./lib/tz-utils.js');
