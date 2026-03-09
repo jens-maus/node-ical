@@ -367,7 +367,22 @@ const dateParameter = function (name) {
             return new Date(year, monthIndex, day, hour, minute, second);
           }
 
-          const tzInfo = tzUtil.resolveTZID(normalizedTzId);
+          // Custom Microsoft TZIDs (e.g. "Customized Time Zone", "tzone://Microsoft/Custom")
+          // cannot be resolved by resolveTZID (which would just substitute the host's local
+          // zone).  When a VTIMEZONE with STANDARD/DAYLIGHT rules is available, resolve via
+          // its offset data first — same logic as the explicit-TZID branch (issue #478).
+          let resolvedTzId = String(normalizedTzId).replace(/^"(.*)"$/, '$1');
+          const isCustomMsTz = resolvedTzId === 'tzone://Microsoft/Custom'
+            || resolvedTzId === '(no TZ description)'
+            || resolvedTzId.startsWith('Customized Time Zone')
+            || resolvedTzId.startsWith('tzone://Microsoft/');
+
+          if (isCustomMsTz && vTimezone) {
+            const resolved = tzUtil.resolveVTimezoneToIana(vTimezone, year);
+            resolvedTzId = resolved.iana || resolved.offset || tzUtil.guessLocalZone();
+          }
+
+          const tzInfo = tzUtil.resolveTZID(resolvedTzId);
           const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
           if (offsetString) {
             return tzUtil.parseWithOffset(value, offsetString);

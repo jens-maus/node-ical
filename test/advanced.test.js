@@ -497,6 +497,20 @@ END:VCALENDAR`;
         // local calendar date rather than a UTC ISO string.
         assert.equal(event.end.toDateString(), new Date(2021, 2, 23).toDateString());
       });
+
+      // Floating DTSTART (no TZID param) should still resolve via the VTIMEZONE
+      // on the parser stack when the VTIMEZONE carries a custom TZID that
+      // resolveTZID alone cannot map.  This exercises the resolveVTimezoneToIana
+      // fallback inside fallbackWithStackTimezone().
+      it('resolves floating DTSTART via VTIMEZONE STANDARD/DAYLIGHT rules', () => {
+        const data = ical.parseFile('./test/fixtures/floating-dtstart-custom-vtimezone.ics');
+        const event = Object.values(data).find(x => x.uid === 'floating-with-custom-vtimezone@test');
+        assert.ok(event, 'event should exist');
+        // The VTIMEZONE defines STANDARD=-0500 / DAYLIGHT=-0400 (US Eastern).
+        // June 10 is in EDT (-04:00), so 14:00 wall → 18:00 UTC.
+        assert.strictEqual(event.start.toISOString(), '2025-06-10T18:00:00.000Z');
+        assert.strictEqual(event.end.toISOString(), '2025-06-10T19:00:00.000Z');
+      });
     });
   });
 
