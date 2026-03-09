@@ -106,4 +106,72 @@ describe('unit: tz-utils', () => {
       assert.equal(tz.__test__.isUtcTimezone('Etc/GMT+1'), false);
     });
   });
+
+  describe('resolveVTimezoneToIana', () => {
+    // Simulates the parsed VTIMEZONE from bad_ms_tz.ics (EST/EDT equivalent)
+    const estVTimezone = {
+      type: 'VTIMEZONE',
+      tzid: 'Customized Time Zone',
+      'abc-standard': {
+        type: 'STANDARD',
+        tzoffsetfrom: '-0400',
+        tzoffsetto: '-0500',
+        rrule: 'RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11',
+      },
+      'abc-daylight': {
+        type: 'DAYLIGHT',
+        tzoffsetfrom: '-0500',
+        tzoffsetto: '-0400',
+        rrule: 'RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3',
+      },
+    };
+
+    it('resolves EST/EDT VTIMEZONE to a valid IANA zone', () => {
+      const result = tz.resolveVTimezoneToIana(estVTimezone, 2020);
+      assert.ok(result.iana, 'should resolve to an IANA zone');
+      assert.ok(tz.isValidIana(result.iana), `resolved zone ${result.iana} should be a valid IANA zone`);
+      assert.equal(result.offset, '-05:00');
+    });
+
+    it('returns STANDARD offset as fallback for fixed-offset zones', () => {
+      const fixedVTimezone = {
+        type: 'VTIMEZONE',
+        tzid: 'No DST Zone',
+        'abc-standard': {
+          type: 'STANDARD',
+          tzoffsetfrom: '+0530',
+          tzoffsetto: '+0530',
+        },
+      };
+      const result = tz.resolveVTimezoneToIana(fixedVTimezone, 2020);
+      assert.equal(result.offset, '+05:30');
+    });
+
+    it('returns CET/CEST VTIMEZONE as Europe/Berlin (or equivalent)', () => {
+      const cetVTimezone = {
+        type: 'VTIMEZONE',
+        tzid: 'Customized Time Zone',
+        standard: {
+          type: 'STANDARD',
+          tzoffsetfrom: '+0200',
+          tzoffsetto: '+0100',
+        },
+        daylight: {
+          type: 'DAYLIGHT',
+          tzoffsetfrom: '+0100',
+          tzoffsetto: '+0200',
+        },
+      };
+      const result = tz.resolveVTimezoneToIana(cetVTimezone, 2020);
+      // Must be a valid CET/CEST IANA zone (could be Europe/Berlin, Europe/Paris, etc.)
+      assert.ok(result.iana, 'should resolve to an IANA zone');
+      assert.equal(result.offset, '+01:00');
+    });
+
+    it('returns undefined for empty/missing vtimezone input', () => {
+      assert.deepEqual(tz.resolveVTimezoneToIana(null, 2020), {iana: undefined, offset: undefined});
+      assert.deepEqual(tz.resolveVTimezoneToIana(undefined, 2020), {iana: undefined, offset: undefined});
+      assert.deepEqual(tz.resolveVTimezoneToIana({type: 'VTIMEZONE'}, 2020), {iana: undefined, offset: undefined});
+    });
+  });
 });

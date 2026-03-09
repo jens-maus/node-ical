@@ -443,6 +443,24 @@ END:VCALENDAR`;
         assert.notEqual(event.start.tz, 'Customized Time Zone');
       });
 
+      it('resolves VTIMEZONE to IANA zone for "Customized Time Zone" (bad_ms_tz.ics)', () => {
+        // Event DTSTART;TZID=Customized Time Zone:20200825T103500
+        // The VTIMEZONE defines STANDARD=-0500 / DAYLIGHT=-0400 (EST/EDT).
+        // node-ical should match this to a valid EST/EDT IANA zone so that
+        // recurring events spanning DST transitions are handled correctly.
+        // August is in EDT (-04:00), so correct UTC = 10:35 + 4h = 14:35 UTC.
+        const data = ical.parseFile('./test/fixtures/bad_ms_tz.ics');
+        const event = Object.values(data).find(x => x.summary === '[private]');
+        assert.strictEqual(event.start.toISOString(), '2020-08-25T14:35:00.000Z');
+        assert.strictEqual(event.end.toISOString(), '2020-08-25T15:50:00.000Z');
+        // The tz should be a real IANA zone, not 'Customized Time Zone' or a fixed offset
+        assert.notEqual(event.start.tz, 'Customized Time Zone');
+        assert.ok(
+          !event.start.tz.startsWith('+') && !event.start.tz.startsWith('-'),
+          `expected IANA zone, got offset: ${event.start.tz}`,
+        );
+      });
+
       it('rejects invalid custom tz (bad_custom_ms_tz2.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_custom_ms_tz2.ics');
         const event = Object.values(data).find(x => x.summary === '[private]');

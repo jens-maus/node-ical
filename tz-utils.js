@@ -473,6 +473,89 @@ function linkAlias(arg1, arg2) {
   aliasMap.set(String(arg1), String(arg2));
 }
 
+// Memoize VTIMEZONE→IANA lookups keyed by "stdOffset|dstOffset|year"
+const vtimezoneIanaCache = new Map();
+
+/**
+ * Attempt to match a parsed VTIMEZONE (with STANDARD/DAYLIGHT sub-components) to a
+ * known IANA timezone by comparing UTC offsets at two probe dates (January and July).
+ *
+ * This resolves Outlook's "Customized Time Zone" and similar Microsoft-generated
+ * identifiers to a real IANA zone so that recurring events that span DST boundaries
+ * are handled correctly by rrule-temporal.
+ *
+ * Falls back to a fixed UTC-offset string (e.g. "-05:00") when no IANA zone matches,
+ * or `undefined` when the VTIMEZONE contains no usable offset data.
+ *
+ * @param {Object} vTimezone - Parsed VTIMEZONE object (from the node-ical parser stack)
+ * @param {number} year - Reference year for probe dates (e.g. 2020)
+ * @returns {{iana: string|undefined, offset: string|undefined}} Best-effort resolution result
+ */
+function resolveVTimezoneToIana(vTimezone, year) {
+  if (!vTimezone || typeof vTimezone !== 'object') {
+    return {iana: undefined, offset: undefined};
+  }
+
+  // Collect STANDARD and DAYLIGHT sub-components
+  const components = Object.values(vTimezone).filter(v => v && typeof v === 'object' && typeof v.type === 'string' && (v.type === 'STANDARD' || v.type === 'DAYLIGHT'));
+
+  if (components.length === 0) {
+    return {iana: undefined, offset: undefined};
+  }
+
+  const standard = components.find(c => c.type === 'STANDARD');
+  const daylight = components.find(c => c.type === 'DAYLIGHT');
+
+  const stdMins = standard ? offsetLabelToMinutes(standard.tzoffsetto) : undefined;
+  const dstMins = daylight ? offsetLabelToMinutes(daylight.tzoffsetto) : undefined;
+
+  // Need at least a STANDARD offset to do anything useful
+  if (!Number.isFinite(stdMins)) {
+    return {iana: undefined, offset: undefined};
+  }
+
+  const stdOffset = minutesToOffset(stdMins);
+
+  // No DST component → fixed-offset zone; try Etc/GMT mapping or return raw offset
+  if (!Number.isFinite(dstMins)) {
+    const etc = minutesToEtcZone(stdMins);
+    return {iana: etc || undefined, offset: stdOffset};
+  }
+
+  // Cache key: unique per offset pair and year (DST boundaries can change historically)
+  const cacheKey = `${stdMins}|${dstMins}|${year}`;
+  if (vtimezoneIanaCache.has(cacheKey)) {
+    return vtimezoneIanaCache.get(cacheKey);
+  }
+
+  // Probe two dates: mid-January (winter in NH / summer in SH) and mid-July (inverse)
+  const probeJan = Temporal.Instant.from(`${year}-01-15T12:00:00Z`);
+  const probeJul = Temporal.Instant.from(`${year}-07-15T12:00:00Z`);
+
+  for (const zone of getZoneNames()) {
+    try {
+      const janOffset = probeJan.toZonedDateTimeISO(zone).offsetNanoseconds / 60_000_000_000;
+      const julOffset = probeJul.toZonedDateTimeISO(zone).offsetNanoseconds / 60_000_000_000;
+
+      // Match: both probe offsets must equal one of {stdMins, dstMins} (in either order,
+      // to handle both northern and southern hemisphere DST conventions)
+      const offsets = new Set([stdMins, dstMins]);
+      if (offsets.has(janOffset) && offsets.has(julOffset) && janOffset !== julOffset) {
+        const result = {iana: zone, offset: stdOffset};
+        vtimezoneIanaCache.set(cacheKey, result);
+        return result;
+      }
+    } catch {
+      // Skip zones that Temporal/Intl cannot resolve
+    }
+  }
+
+  // No IANA match found; return the STANDARD offset as fallback
+  const fallback = {iana: undefined, offset: stdOffset};
+  vtimezoneIanaCache.set(cacheKey, fallback);
+  return fallback;
+}
+
 // Public API
 module.exports = {
   guessLocalZone,
@@ -484,6 +567,7 @@ module.exports = {
   utcAdd,
   linkAlias,
   resolveTZID,
+  resolveVTimezoneToIana,
   formatDateForRrule,
   attachTz,
   isUtcTimezone,

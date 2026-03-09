@@ -391,7 +391,25 @@ const dateParameter = function (name) {
             tz = tz.toString().replace(/^"(.*)"$/, '$1');
 
             if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-              tz = tzUtil.guessLocalZone();
+              // Outlook and Exchange often emit custom TZID values (e.g. "Customized Time Zone")
+              // together with a VTIMEZONE section that contains the real STANDARD/DAYLIGHT rules.
+              // Try to match those rules to a known IANA zone so that recurring events that span
+              // DST boundaries are handled correctly.  Falls back to guessLocalZone() when no
+              // VTIMEZONE is present or its offsets cannot be resolved.
+              const originalTz = tz;
+              const stackVTimezone = (stack || [])
+                .flatMap(item => Object.values(item))
+                .find(v => v && v.type === 'VTIMEZONE'
+                  && (Array.isArray(v.tzid) ? v.tzid : [String(v.tzid)])
+                    .map(id => String(id).replace(/^"(.*)"$/, '$1'))
+                    .includes(originalTz));
+
+              if (stackVTimezone) {
+                const resolved = tzUtil.resolveVTimezoneToIana(stackVTimezone, year);
+                tz = resolved.iana || resolved.offset || tzUtil.guessLocalZone();
+              } else {
+                tz = tzUtil.guessLocalZone();
+              }
             }
 
             const tzInfo = tzUtil.resolveTZID(tz);
