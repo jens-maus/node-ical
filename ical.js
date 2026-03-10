@@ -311,6 +311,28 @@ const typeParameter = function (name) {
   };
 };
 
+// Find a VTIMEZONE block in the parser stack.  When tzid is given, only
+// the block whose (quote-stripped) tzid matches is returned; without tzid
+// the first VTIMEZONE found is returned (floating-DTSTART branch).
+function findVtimezoneInStack(stack, tzid) {
+  for (const item of (stack || [])) {
+    for (const v of Object.values(item)) {
+      if (!v || v.type !== 'VTIMEZONE') {
+        continue;
+      }
+
+      if (!tzid) {
+        return v;
+      }
+
+      const ids = Array.isArray(v.tzid) ? v.tzid : [v.tzid];
+      if (ids.some(id => String(id).replace(/^"(.*)"$/, '$1') === tzid)) {
+        return v;
+      }
+    }
+  }
+}
+
 const dateParameter = function (name) {
   return function (value, parameters, curr, stack) {
     // The regex from main gets confused by extra :
@@ -356,11 +378,7 @@ const dateParameter = function (name) {
         tzUtil.attachTz(newDate, 'Etc/UTC');
       } else {
         const fallbackWithStackTimezone = () => {
-          // Get the time zone from the stack
-          const stackItemWithTimeZone
-            = (stack || []).find(item => Object.values(item).find(subItem => subItem.type === 'VTIMEZONE')) || {};
-          const vTimezone
-            = Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
+          const vTimezone = findVtimezoneInStack(stack);
 
           // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
           const normalizedTzId = vTimezone
@@ -438,12 +456,7 @@ const dateParameter = function (name) {
               // DST boundaries are handled correctly.  Falls back to guessLocalZone() when no
               // VTIMEZONE is present or its offsets cannot be resolved.
               const originalTz = tz;
-              const stackVTimezone = (stack || [])
-                .flatMap(item => Object.values(item))
-                .find(v => v && v.type === 'VTIMEZONE'
-                  && (Array.isArray(v.tzid) ? v.tzid : [String(v.tzid)])
-                    .map(id => String(id).replace(/^"(.*)"$/, '$1'))
-                    .includes(originalTz));
+              const stackVTimezone = findVtimezoneInStack(stack, originalTz);
 
               if (stackVTimezone) {
                 const resolved = tzUtil.resolveVTimezoneToIana(stackVTimezone, year);
