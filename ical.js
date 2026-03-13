@@ -1,16 +1,14 @@
-/* eslint-disable max-depth, max-params, no-warning-comments, complexity, import-x/order */
+/* eslint-disable max-depth, max-params, no-warning-comments, complexity */
 
 const {randomUUID} = require('node:crypto');
-
 // Load Temporal polyfill if not natively available
 // TODO: Drop the polyfill branch once our minimum Node version ships Temporal
 const Temporal = globalThis.Temporal || require('temporal-polyfill').Temporal;
 // Ensure Temporal exists before loading rrule-temporal
 globalThis.Temporal ??= Temporal;
-
 const {RRuleTemporal} = require('rrule-temporal');
 const {toText: toTextFunction} = require('rrule-temporal/totext');
-const tzUtil = require('./tz-utils.js');
+const tzUtil = require('./lib/tz-utils.js');
 const {getDateKey} = require('./lib/date-utils.js');
 
 /**
@@ -95,8 +93,12 @@ function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
  * This maintains backward compatibility while using rrule-temporal internally
  */
 class RRuleCompatWrapper {
-  constructor(rruleTemporal) {
+  constructor(rruleTemporal, dateOnly = false) {
     this._rrule = rruleTemporal;
+    // VALUE=DATE events are anchored to UTC midnight in rrule-temporal.
+    // Converting via epochMilliseconds shifts the date backwards in timezones
+    // west of UTC; instead we use the ZonedDateTime calendar components directly.
+    this._dateOnly = dateOnly;
   }
 
   static #temporalToDate(value) {
@@ -132,25 +134,47 @@ class RRuleCompatWrapper {
     return converted;
   }
 
+  // Convert a ZonedDateTime to a JS Date.
+  // For VALUE=DATE events the ZDT calendar components (year/month/day in UTC)
+  // represent the intended calendar date; create a local-midnight Date so that
+  // .toDateString() returns the correct day regardless of the host timezone.
+  // Mark the result with dateOnly=true so that downstream helpers that
+  // distinguish date-only from timed dates (e.g. createLocalDateFromUTC) also
+  // use local getters rather than UTC getters.
+  #zdtToDate(zdt) {
+    if (this._dateOnly) {
+      const d = new Date(zdt.year, zdt.month - 1, zdt.day, 0, 0, 0, 0);
+      d.dateOnly = true;
+      return d;
+    }
+
+    return new Date(zdt.epochMilliseconds);
+  }
+
   between(after, before, inclusive = false) {
     const results = this._rrule.between(after, before, inclusive);
-    // Convert Temporal.ZonedDateTime → Date
-    return results.map(zdt => new Date(zdt.epochMilliseconds));
+    return results.map(zdt => this.#zdtToDate(zdt));
   }
 
   all(iterator) {
-    const results = this._rrule.all(iterator);
-    return results.map(zdt => new Date(zdt.epochMilliseconds));
+    // If the caller supplied an iterator, wrap it so it receives a converted Date
+    // rather than a raw Temporal.ZonedDateTime — keeping the public API consistent
+    // with between() and matching the declared return type.
+    const wrappedIterator = iterator
+      ? (zdt, index) => iterator(this.#zdtToDate(zdt), index)
+      : undefined;
+    const results = this._rrule.all(wrappedIterator);
+    return results.map(zdt => this.#zdtToDate(zdt));
   }
 
   before(date, inclusive = false) {
     const result = this._rrule.before(date, inclusive);
-    return result ? new Date(result.epochMilliseconds) : null;
+    return result ? this.#zdtToDate(result) : undefined;
   }
 
   after(date, inclusive = false) {
     const result = this._rrule.after(date, inclusive);
-    return result ? new Date(result.epochMilliseconds) : null;
+    return result ? this.#zdtToDate(result) : undefined;
   }
 
   toText(locale) {
@@ -287,6 +311,28 @@ const typeParameter = function (name) {
   };
 };
 
+// Find a VTIMEZONE block in the parser stack.  When tzid is given, only
+// the block whose (quote-stripped) tzid matches is returned; without tzid
+// the first VTIMEZONE found is returned (floating-DTSTART branch).
+function findVtimezoneInStack(stack, tzid) {
+  for (const item of (stack || [])) {
+    for (const v of Object.values(item)) {
+      if (!v || v.type !== 'VTIMEZONE') {
+        continue;
+      }
+
+      if (!tzid) {
+        return v;
+      }
+
+      const ids = Array.isArray(v.tzid) ? v.tzid : [v.tzid];
+      if (ids.some(id => String(id).replace(/^"(.*)"$/, '$1') === tzid)) {
+        return v;
+      }
+    }
+  }
+}
+
 const dateParameter = function (name) {
   return function (value, parameters, curr, stack) {
     // The regex from main gets confused by extra :
@@ -332,11 +378,7 @@ const dateParameter = function (name) {
         tzUtil.attachTz(newDate, 'Etc/UTC');
       } else {
         const fallbackWithStackTimezone = () => {
-          // Get the time zone from the stack
-          const stackItemWithTimeZone
-            = (stack || []).find(item => Object.values(item).find(subItem => subItem.type === 'VTIMEZONE')) || {};
-          const vTimezone
-            = Object.values(stackItemWithTimeZone).find(({type}) => type === 'VTIMEZONE');
+          const vTimezone = findVtimezoneInStack(stack);
 
           // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
           const normalizedTzId = vTimezone
@@ -347,7 +389,24 @@ const dateParameter = function (name) {
             return new Date(year, monthIndex, day, hour, minute, second);
           }
 
-          const tzInfo = tzUtil.resolveTZID(normalizedTzId);
+          let resolvedTzId = String(normalizedTzId).replace(/^"(.*)"$/, '$1');
+
+          // When a VTIMEZONE block is present, prefer its STANDARD/DAYLIGHT offset data over
+          // a pure string-based TZID lookup.  This handles both well-known IANA names (where
+          // the embedded rules may be more historically precise) and completely custom TZIDs
+          // (e.g. Microsoft's "Customized Time Zone", "tzone://Microsoft/Custom") that
+          // resolveTZID cannot look up at all.
+          // Only replace resolvedTzId when resolution actually succeeds; otherwise keep the
+          // original value so resolveTZID can make a best effort — never substitute the host
+          // zone via guessLocalZone().
+          if (vTimezone) {
+            const resolved = tzUtil.resolveVTimezoneToIana(vTimezone, year);
+            if (resolved.iana || resolved.offset) {
+              resolvedTzId = resolved.iana || resolved.offset;
+            }
+          }
+
+          const tzInfo = tzUtil.resolveTZID(resolvedTzId);
           const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
           if (offsetString) {
             return tzUtil.parseWithOffset(value, offsetString);
@@ -391,7 +450,24 @@ const dateParameter = function (name) {
             tz = tz.toString().replace(/^"(.*)"$/, '$1');
 
             if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-              tz = tzUtil.guessLocalZone();
+              // Outlook and Exchange often emit custom TZID values (e.g. "Customized Time Zone")
+              // together with a VTIMEZONE section that contains the real STANDARD/DAYLIGHT rules.
+              // Try to match those rules to a known IANA zone so that recurring events that span
+              // DST boundaries are handled correctly.  Falls back to guessLocalZone() when no
+              // VTIMEZONE is present or its offsets cannot be resolved.
+              const originalTz = tz;
+              const stackVTimezone = findVtimezoneInStack(stack, originalTz);
+
+              if (stackVTimezone) {
+                const resolved = tzUtil.resolveVTimezoneToIana(stackVTimezone, year);
+                // Only override when resolution succeeds; keep the original tz otherwise
+                // so resolveTZID can make a best effort — never substitute guessLocalZone()
+                if (resolved.iana || resolved.offset) {
+                  tz = resolved.iana || resolved.offset;
+                }
+              } else {
+                tz = tzUtil.guessLocalZone();
+              }
             }
 
             const tzInfo = tzUtil.resolveTZID(tz);
@@ -885,7 +961,7 @@ module.exports = {
               rruleString: fullRruleString,
             });
 
-            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
+            curr.rrule = new RRuleCompatWrapper(rruleTemporal, true /* dateOnly */);
           } else {
             // DATE-TIME events: convert curr.start (Date) to Temporal.ZonedDateTime
             const tzInfo = curr.start.tz ? tzUtil.resolveTZID(curr.start.tz) : undefined;
@@ -911,7 +987,7 @@ module.exports = {
               dtstart: dtstartTemporal,
             });
 
-            curr.rrule = new RRuleCompatWrapper(rruleTemporal);
+            curr.rrule = new RRuleCompatWrapper(rruleTemporal, false /* dateOnly */);
           }
         }
       }

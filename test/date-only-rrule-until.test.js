@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 /* eslint-disable prefer-arrow-callback */
 
 const assert = require('node:assert/strict');
@@ -43,17 +42,19 @@ END:VCALENDAR`;
     // UNTIL=20190312 means up to and including 2018-03-13 (not 2019-03-13)
     assert.strictEqual(recurrences.length, 3, 'Should have 3 occurrences');
 
-    // First occurrence should be on 2016-03-13
+    // First occurrence should be on 2016-03-13.
+    // DATE-only events are returned as local-midnight Dates; use local getters
+    // (.getFullYear / .getMonth / .getDate) so the assertion is TZ-independent.
     const firstDate = new Date(recurrences[0]);
-    assert.strictEqual(firstDate.getUTCFullYear(), 2016);
-    assert.strictEqual(firstDate.getUTCMonth(), 2); // March (0-indexed)
-    assert.strictEqual(firstDate.getUTCDate(), 13);
+    assert.strictEqual(firstDate.getFullYear(), 2016);
+    assert.strictEqual(firstDate.getMonth(), 2); // March (0-indexed)
+    assert.strictEqual(firstDate.getDate(), 13);
 
     // Last occurrence should be on 2018-03-13
     const lastDate = new Date(recurrences.at(-1));
-    assert.strictEqual(lastDate.getUTCFullYear(), 2018);
-    assert.strictEqual(lastDate.getUTCMonth(), 2);
-    assert.strictEqual(lastDate.getUTCDate(), 13);
+    assert.strictEqual(lastDate.getFullYear(), 2018);
+    assert.strictEqual(lastDate.getMonth(), 2);
+    assert.strictEqual(lastDate.getDate(), 13);
   });
 
   it('should preserve VALUE=DATE in DTSTART when creating RRULE string', function () {

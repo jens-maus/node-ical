@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const {describe, it, before} = require('mocha');
-const tz = require('../tz-utils.js');
+const tz = require('../lib/tz-utils.js');
 const ical = require('../node-ical.js');
 
 // Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
@@ -443,6 +443,24 @@ END:VCALENDAR`;
         assert.notEqual(event.start.tz, 'Customized Time Zone');
       });
 
+      it('resolves VTIMEZONE to IANA zone for "Customized Time Zone" (bad_ms_tz.ics)', () => {
+        // Event DTSTART;TZID=Customized Time Zone:20200825T103500
+        // The VTIMEZONE defines STANDARD=-0500 / DAYLIGHT=-0400 (EST/EDT).
+        // node-ical should match this to a valid EST/EDT IANA zone so that
+        // recurring events spanning DST transitions are handled correctly.
+        // August is in EDT (-04:00), so correct UTC = 10:35 + 4h = 14:35 UTC.
+        const data = ical.parseFile('./test/fixtures/bad_ms_tz.ics');
+        const event = Object.values(data).find(x => x.summary === '[private]');
+        assert.strictEqual(event.start.toISOString(), '2020-08-25T14:35:00.000Z');
+        assert.strictEqual(event.end.toISOString(), '2020-08-25T15:50:00.000Z');
+        // The tz should be a real IANA zone, not 'Customized Time Zone' or a fixed offset
+        assert.notEqual(event.start.tz, 'Customized Time Zone');
+        assert.ok(
+          !event.start.tz.startsWith('+') && !event.start.tz.startsWith('-'),
+          `expected IANA zone, got offset: ${event.start.tz}`,
+        );
+      });
+
       it('rejects invalid custom tz (bad_custom_ms_tz2.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_custom_ms_tz2.ics');
         const event = Object.values(data).find(x => x.summary === '[private]');
@@ -474,7 +492,43 @@ END:VCALENDAR`;
       it('handles negative duration (bad_custom_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_custom_ms_tz.ics');
         const event = Object.values(data).find(x => x.summary === '*masked-away2*');
-        assert.equal(event.end.toISOString().slice(0, 10), new Date(Date.UTC(2021, 2, 23, 21, 56, 56)).toISOString().slice(0, 10));
+        // DATE-only DTSTART with time-component duration: the computed end falls
+        // on 2021-03-23 in *local* time in any sane timezone, so compare as a
+        // local calendar date rather than a UTC ISO string.
+        assert.equal(event.end.toDateString(), new Date(2021, 2, 23).toDateString());
+      });
+
+      // Floating DTSTART (no TZID param) should still resolve via the VTIMEZONE
+      // on the parser stack when the VTIMEZONE carries a custom TZID that
+      // resolveTZID alone cannot map.  This exercises the resolveVTimezoneToIana
+      // fallback inside fallbackWithStackTimezone().
+      it('resolves floating DTSTART via VTIMEZONE STANDARD/DAYLIGHT rules', () => {
+        const data = ical.parseFile('./test/fixtures/floating-dtstart-custom-vtimezone.ics');
+        const event = Object.values(data).find(x => x.uid === 'floating-with-custom-vtimezone@test');
+        assert.ok(event, 'event should exist');
+        // The VTIMEZONE defines STANDARD=-0500 / DAYLIGHT=-0400 (US Eastern).
+        // June 10 is in EDT (-04:00), so 14:00 wall → 18:00 UTC.
+        assert.strictEqual(event.start.toISOString(), '2025-06-10T18:00:00.000Z');
+        assert.strictEqual(event.end.toISOString(), '2025-06-10T19:00:00.000Z');
+      });
+
+      // Multi-era VTIMEZONE (multiple STANDARD/DAYLIGHT blocks for different historic rules).
+      // resolveVTimezoneToIana must pick the block whose DTSTART year is closest to
+      // but not after the event year — not simply the first block encountered.
+      it('picks the right observance block for multi-era VTIMEZONE (multi-era-vtimezone.ics)', () => {
+        const data = ical.parseFile('./test/fixtures/multi-era-vtimezone.ics');
+
+        // 2025 event: modern rule (DTSTART 2007) applies → EDT in June → 14:00 wall = 18:00 UTC
+        const modern = Object.values(data).find(x => x.uid === 'multi-era-2025@test');
+        assert.ok(modern, '2025 event should exist');
+        // Modern rule (post-2007): EDT in June → 14:00-04:00 = 18:00 UTC
+        assert.strictEqual(modern.start.toISOString(), '2025-06-10T18:00:00.000Z');
+
+        // 1985 event: old rule (DTSTART 1671) applies → EDT in October 15 → 14:00 wall = 18:00 UTC
+        const vintage = Object.values(data).find(x => x.uid === 'multi-era-1985@test');
+        assert.ok(vintage, '1985 event should exist');
+        // Old rule (pre-2007): EDT in Oct 15 → 14:00-04:00 = 18:00 UTC
+        assert.strictEqual(vintage.start.toISOString(), '1985-10-15T18:00:00.000Z');
       });
     });
   });

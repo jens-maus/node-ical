@@ -472,11 +472,30 @@ function validateDateRange(from, to) {
  * @returns {{searchFrom: Date, searchTo: Date}}
  */
 function adjustSearchRange(from, to, isFullDay, expandOngoing, baseDurationMs) {
-  const isMidnight = to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0;
-  const searchTo = (isFullDay && isMidnight)
-    ? new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999)
-    : to;
-  const searchFrom = expandOngoing ? new Date(from.getTime() - baseDurationMs) : from;
+  let searchFrom;
+  let searchTo;
+
+  if (isFullDay) {
+    // VALUE=DATE occurrences are anchored to UTC midnight (rrule-temporal uses
+    // tzid='UTC' for all date-only events).  Normalise the caller-supplied
+    // local-midnight boundaries to their UTC-midnight equivalents so that
+    // rrule.between() comparisons are host-TZ-independent.
+    searchFrom = new Date(Date.UTC(from.getFullYear(), from.getMonth(), from.getDate()));
+    searchTo = new Date(Date.UTC(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999));
+  } else {
+    // Timed events: if `to` is exactly local midnight, extend to end of that day
+    // so events starting at any time that day are included.
+    const isMidnight = to.getHours() === 0 && to.getMinutes() === 0 && to.getSeconds() === 0;
+    searchFrom = from;
+    searchTo = isMidnight
+      ? new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999)
+      : to;
+  }
+
+  if (expandOngoing) {
+    searchFrom = new Date(searchFrom.getTime() - baseDurationMs);
+  }
+
   return {searchFrom, searchTo};
 }
 
