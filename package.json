@@ -37,7 +37,7 @@
     "moment-timezone": "^0.6.1",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5.9.3",
-    "xo": "^1.2.3"
+    "xo": "^2.0.2"
   },
   "xo": {
     "space": 2,
