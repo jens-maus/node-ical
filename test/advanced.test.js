@@ -408,8 +408,8 @@ END:VCALENDAR`;
 
       // String representation should follow RFC5545 format
       const rruleString = first.rrule.toString();
-      assert.ok(/DTSTART;TZID=/.test(rruleString), 'DTSTART should include TZID parameter');
-      assert.ok(!/RRULE:.*TZID=/.test(rruleString), 'RRULE line should not contain TZID');
+      assert.ok(/DTSTART;TZID=/v.test(rruleString), 'DTSTART should include TZID parameter');
+      assert.ok(!/RRULE:.*TZID=/v.test(rruleString), 'RRULE line should not contain TZID');
     });
   });
 
@@ -557,8 +557,8 @@ END:VCALENDAR`;
       if (zone) {
         const startLocalYMD = event.start.toLocaleDateString('sv-SE', {timeZone: zone});
         const endLocalYMD = event.end.toLocaleDateString('sv-SE', {timeZone: zone});
-        assert.ok(/\d{4}-\d{2}-\d{2}/.test(startLocalYMD));
-        assert.ok(/\d{4}-\d{2}-\d{2}/.test(endLocalYMD));
+        assert.ok(/\d{4}-\d{2}-\d{2}/v.test(startLocalYMD));
+        assert.ok(/\d{4}-\d{2}-\d{2}/v.test(endLocalYMD));
         assert.notEqual(startLocalYMD, endLocalYMD);
         // Confirm exactly one day apart by constructing local midnights
         const [sy, sm, sd] = startLocalYMD.split('-').map(Number);
@@ -650,32 +650,38 @@ END:VCALENDAR`;
 
       // Stub console.warn to keep test output clean
       const originalWarn = console.warn;
-      console.warn = () => {};
+      try {
+        console.warn = () => {
+          // No-op
+        };
 
-      const data = ical.parseICS(ics);
-      const event = Object.values(data).find(x => x.type === 'VEVENT');
+        const data = ical.parseICS(ics);
+        const event = Object.values(data).find(x => x.type === 'VEVENT');
 
-      assert.ok(event, 'Event should be parsed despite invalid DURATION:P');
-      assert.equal(event.summary, 'Travels');
-      assert.ok(event.start instanceof Date, 'Start should be a Date');
-      assert.ok(event.end instanceof Date, 'End should be a Date');
+        assert.ok(event, 'Event should be parsed despite invalid DURATION:P');
+        assert.equal(event.summary, 'Travels');
+        assert.ok(event.start instanceof Date, 'Start should be a Date');
+        assert.ok(event.end instanceof Date, 'End should be a Date');
 
-      // Invalid/empty duration should be treated as zero duration
-      assert.equal(
-        event.end.toISOString(),
-        event.start.toISOString(),
-        'End should equal start for invalid DURATION:P (zero duration)',
-      );
-
-      // Restore console.warn
-      console.warn = originalWarn;
+        // Invalid/empty duration should be treated as zero duration
+        assert.equal(
+          event.end.toISOString(),
+          event.start.toISOString(),
+          'End should equal start for invalid DURATION:P (zero duration)',
+        );
+      } finally {
+        // Restore console.warn
+        console.warn = originalWarn;
+      }
     });
 
     // Additional test: Multiple invalid duration formats should be handled
     it('handles various malformed DURATION values gracefully', () => {
       // Stub console.warn to keep test output clean
       const originalWarn = console.warn;
-      console.warn = () => {};
+      console.warn = () => {
+        // No-op
+      };
 
       const testCases = [
         // Malformed / invalid durations → should be treated as zero duration
@@ -692,8 +698,9 @@ END:VCALENDAR`;
         {duration: 'P1DT2H', summary: 'One day two hours', expected: '1d2h'}, // Day + hours
       ];
 
-      for (const [i, testCase] of testCases.entries()) {
-        const ics = `BEGIN:VCALENDAR
+      try {
+        for (const [i, testCase] of testCases.entries()) {
+          const ics = `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
 UID:malformed-${i}
@@ -703,77 +710,78 @@ SUMMARY:${testCase.summary}
 END:VEVENT
 END:VCALENDAR`;
 
-        // All durations should parse without throwing
-        const data = ical.parseICS(ics);
-        const event = Object.values(data).find(x => x.type === 'VEVENT');
+          // All durations should parse without throwing
+          const data = ical.parseICS(ics);
+          const event = Object.values(data).find(x => x.type === 'VEVENT');
 
-        assert.ok(event, `Event should be parsed for DURATION:${testCase.duration}`);
-        assert.ok(event.start instanceof Date, 'Start should be a Date');
-        assert.ok(event.end instanceof Date, 'End should be a Date');
+          assert.ok(event, `Event should be parsed for DURATION:${testCase.duration}`);
+          assert.ok(event.start instanceof Date, 'Start should be a Date');
+          assert.ok(event.end instanceof Date, 'End should be a Date');
 
-        switch (testCase.expected) {
-          case 'zero': {
-            // Invalid or zero durations: end should equal start
-            assert.equal(
-              event.end.toISOString(),
-              event.start.toISOString(),
-              `DURATION:${testCase.duration} should result in zero duration (end = start)`,
-            );
-            break;
-          }
+          switch (testCase.expected) {
+            case 'zero': {
+              // Invalid or zero durations: end should equal start
+              assert.equal(
+                event.end.toISOString(),
+                event.start.toISOString(),
+                `DURATION:${testCase.duration} should result in zero duration (end = start)`,
+              );
+              break;
+            }
 
-          case 'oneday': {
-            // P1D should add 1 day
-            const expectedEnd = new Date(event.start.getTime() + (24 * 60 * 60 * 1000));
-            assert.equal(
-              event.end.toISOString(),
-              expectedEnd.toISOString(),
-              `DURATION:${testCase.duration} should add 1 day`,
-            );
-            break;
-          }
+            case 'oneday': {
+              // P1D should add 1 day
+              const expectedEnd = new Date(event.start.getTime() + (24 * 60 * 60 * 1000));
+              assert.equal(
+                event.end.toISOString(),
+                expectedEnd.toISOString(),
+                `DURATION:${testCase.duration} should add 1 day`,
+              );
+              break;
+            }
 
-          case 'negoneday': {
-            // -P1D should subtract 1 day
-            const expectedEnd = new Date(event.start.getTime() - (24 * 60 * 60 * 1000));
-            assert.equal(
-              event.end.toISOString(),
-              expectedEnd.toISOString(),
-              `DURATION:${testCase.duration} should subtract 1 day`,
-            );
-            break;
-          }
+            case 'negoneday': {
+              // -P1D should subtract 1 day
+              const expectedEnd = new Date(event.start.getTime() - (24 * 60 * 60 * 1000));
+              assert.equal(
+                event.end.toISOString(),
+                expectedEnd.toISOString(),
+                `DURATION:${testCase.duration} should subtract 1 day`,
+              );
+              break;
+            }
 
-          case '1h30m': {
-            // PT1H30M should add 1 hour 30 minutes
-            const expectedEnd = new Date(event.start.getTime() + (90 * 60 * 1000));
-            assert.equal(
-              event.end.toISOString(),
-              expectedEnd.toISOString(),
-              `DURATION:${testCase.duration} should add 1h30m`,
-            );
-            break;
-          }
+            case '1h30m': {
+              // PT1H30M should add 1 hour 30 minutes
+              const expectedEnd = new Date(event.start.getTime() + (90 * 60 * 1000));
+              assert.equal(
+                event.end.toISOString(),
+                expectedEnd.toISOString(),
+                `DURATION:${testCase.duration} should add 1h30m`,
+              );
+              break;
+            }
 
-          case '1d2h': {
-            // P1DT2H should add 1 day + 2 hours
-            const expectedEnd = new Date(event.start.getTime() + (26 * 60 * 60 * 1000));
-            assert.equal(
-              event.end.toISOString(),
-              expectedEnd.toISOString(),
-              `DURATION:${testCase.duration} should add 1 day + 2 hours`,
-            );
-            break;
-          }
+            case '1d2h': {
+              // P1DT2H should add 1 day + 2 hours
+              const expectedEnd = new Date(event.start.getTime() + (26 * 60 * 60 * 1000));
+              assert.equal(
+                event.end.toISOString(),
+                expectedEnd.toISOString(),
+                `DURATION:${testCase.duration} should add 1 day + 2 hours`,
+              );
+              break;
+            }
 
-          default: {
-            assert.fail(`Unexpected test case: ${testCase.expected}`);
+            default: {
+              assert.fail(`Unexpected test case: ${testCase.expected}`);
+            }
           }
         }
+      } finally {
+        // Restore console.warn
+        console.warn = originalWarn;
       }
-
-      // Restore console.warn
-      console.warn = originalWarn;
     });
   });
 

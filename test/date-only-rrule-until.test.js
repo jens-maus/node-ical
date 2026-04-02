@@ -139,7 +139,7 @@ END:VCALENDAR`;
 
     // The RRULE string should contain DTSTART with the same date as the original
     const rruleString = event.rrule.toString();
-    const dtstartMatch = rruleString.match(/DTSTART[^:]*:(\d{8})/);
+    const dtstartMatch = rruleString.match(/DTSTART[^:]*:(\d{8})/v);
     assert.ok(dtstartMatch, 'RRULE string should contain DTSTART with date');
 
     const dtstartDate = dtstartMatch[1];

@@ -15,7 +15,7 @@ describe('unit: tz-utils', () => {
   });
 
   it('throws on malformed offset strings', () => {
-    assert.throws(() => tz.parseWithOffset('20240101T120000', 'bogus'), /Invalid offset string: bogus/);
+    assert.throws(() => tz.parseWithOffset('20240101T120000', 'bogus'), /Invalid offset string: bogus/v);
   });
 
   it('parses local wall time within a named zone (standard time)', () => {

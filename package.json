@@ -18,7 +18,7 @@
     "url": "git://github.com/jens-maus/node-ical.git"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
     "rrule-temporal": "^1.5.1",
@@ -37,7 +37,7 @@
     "moment-timezone": "^0.6.1",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5.9.3",
-    "xo": "^1.2.3"
+    "xo": "^2.0.2"
   },
   "xo": {
     "space": 2,
@@ -46,11 +46,8 @@
       "@typescript-eslint/member-ordering": "off",
       "@typescript-eslint/naming-convention": "off",
       "n/prefer-promises/fs": "off",
-      "no-useless-catch": "off",
-      "promise/prefer-await-to-then": "off",
       "unicorn/prefer-module": "off",
       "unicorn/prefer-spread": "off",
-      "import-x/no-extraneous-dependencies": "off",
       "max-params": [
         "warn",
         5

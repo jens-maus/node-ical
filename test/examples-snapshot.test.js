@@ -48,7 +48,7 @@ describe('example output snapshots', function () {
   for (const script of exampleScripts) {
     it(`${script} output matches snapshot`, function () {
       const output = normalizeNewlines(runExample(script));
-      const snapshotFile = path.join(snapshotDir, script.replace(/\.m?js$/, '.txt'));
+      const snapshotFile = path.join(snapshotDir, script.replace(/\.m?js$/v, '.txt'));
       if (fs.existsSync(snapshotFile)) {
         const expected = normalizeNewlines(fs.readFileSync(snapshotFile, 'utf8')).trim();
         assert.strictEqual(output, expected, `Output of ${script} does not match snapshot. If this is intentional, update the snapshot.`);
