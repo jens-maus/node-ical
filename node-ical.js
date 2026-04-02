@@ -583,6 +583,26 @@ function isInstanceInRange(instance, from, to, expandOngoing) {
     : (instance.start >= from && instance.start <= to);
 }
 
+function sortedCopy(array, compareFn) {
+  if (typeof array.toSorted === 'function') {
+    return array.toSorted(compareFn);
+  }
+
+  const copy = [...array];
+  for (let i = 1; i < copy.length; i++) {
+    const current = copy[i];
+    let j = i - 1;
+    while (j >= 0 && compareFn(copy[j], current) > 0) {
+      copy[j + 1] = copy[j];
+      j--;
+    }
+
+    copy[j + 1] = current;
+  }
+
+  return copy;
+}
+
 /**
  * Expand a recurring event into individual instances within a date range.
  * Handles RRULE expansion, EXDATE filtering, and RECURRENCE-ID overrides.
@@ -626,7 +646,7 @@ function expandRecurringEvent(event, options) {
     }
   }
 
-  return instances.toSorted((a, b) => a.start - b.start);
+  return sortedCopy(instances, (a, b) => a.start - b.start);
 }
 
 // Export api functions

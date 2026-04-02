@@ -130,9 +130,29 @@ function mergeLegacyOverrides(zoneTable, oldMap) {
   return {zoneTable, unresolved, merged};
 }
 
+function sortedCopy(array, compareFn) {
+  if (typeof array.toSorted === 'function') {
+    return array.toSorted(compareFn);
+  }
+
+  const copy = [...array];
+  for (let i = 1; i < copy.length; i++) {
+    const current = copy[i];
+    let j = i - 1;
+    while (j >= 0 && compareFn(copy[j], current) > 0) {
+      copy[j + 1] = copy[j];
+      j--;
+    }
+
+    copy[j + 1] = current;
+  }
+
+  return copy;
+}
+
 function writeOutput(filePath, data) {
   // Deterministic, diff-friendly: one top-level key per line, minified values, sorted keys
-  const keys = Object.keys(data).toSorted();
+  const keys = sortedCopy(Object.keys(data), (a, b) => (a < b ? -1 : (a > b ? 1 : 0)));
   const lines = ['{'];
   for (const [idx, key] of keys.entries()) {
     const comma = idx < keys.length - 1 ? ',' : '';
