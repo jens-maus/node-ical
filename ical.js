@@ -213,9 +213,9 @@ const text = function (t = '') {
   return t
     .replaceAll(String.raw`\,`, ',') // Unescape escaped commas
     .replaceAll(String.raw`\;`, ';') // Unescape escaped semicolons
-    .replaceAll(/\\[nN]/gu, '\n') // Replace escaped newlines with actual newlines
+    .replaceAll(/\\[nN]/gv, '\n') // Replace escaped newlines with actual newlines
     .replaceAll('\\\\', '\\') // Unescape backslashes
-    .replace(/^"(.*)"$/u, '$1'); // Remove surrounding double quotes, if present
+    .replace(/^"(.*)"$/v, '$1'); // Remove surrounding double quotes, if present
 };
 
 const parseValue = function (value) {
@@ -233,7 +233,7 @@ const parseValue = function (value) {
   }
 
   // Remove quotes if found
-  value = value.replace(/^"(.*)"$/u, '$1');
+  value = value.replace(/^"(.*)"$/v, '$1');
 
   return value;
 };
@@ -287,7 +287,7 @@ const addTZ = function (dt, parameters) {
     let tzid = p.TZID.toString();
     // Remove surrounding quotes if found at the beginning and at the end of the string
     // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
-    tzid = tzid.replace(/^"(.*)"$/u, '$1');
+    tzid = tzid.replace(/^"(.*)"$/v, '$1');
     return tzUtil.attachTz(dt, tzid);
   }
 
@@ -299,7 +299,7 @@ const addTZ = function (dt, parameters) {
 };
 
 function isDateOnly(value, parameters) {
-  const dateOnly = ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/u.test(value) === true);
+  const dateOnly = ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/v.test(value) === true);
   return dateOnly;
 }
 
@@ -326,7 +326,7 @@ function findVtimezoneInStack(stack, tzid) {
       }
 
       const ids = Array.isArray(v.tzid) ? v.tzid : [v.tzid];
-      if (ids.some(id => String(id).replace(/^"(.*)"$/u, '$1') === tzid)) {
+      if (ids.some(id => String(id).replace(/^"(.*)"$/v, '$1') === tzid)) {
         return v;
       }
     }
@@ -350,7 +350,7 @@ const dateParameter = function (name) {
     if (isDateOnly(value, parameters)) {
       // Just Date
 
-      const comps = /^(\d{4})(\d{2})(\d{2}).*$/u.exec(value);
+      const comps = /^(\d{4})(\d{2})(\d{2}).*$/v.exec(value);
       if (comps !== null) {
         // No TZ info - assume same timezone as this computer
         newDate = new Date(comps[1], Number.parseInt(comps[2], 10) - 1, comps[3]);
@@ -363,7 +363,7 @@ const dateParameter = function (name) {
     }
 
     // Typical RFC date-time format
-    const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/u.exec(value);
+    const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/v.exec(value);
     if (comps !== null) {
       const year = Number.parseInt(comps[1], 10);
       const monthIndex = Number.parseInt(comps[2], 10) - 1;
@@ -389,7 +389,7 @@ const dateParameter = function (name) {
             return new Date(year, monthIndex, day, hour, minute, second);
           }
 
-          let resolvedTzId = String(normalizedTzId).replace(/^"(.*)"$/u, '$1');
+          let resolvedTzId = String(normalizedTzId).replace(/^"(.*)"$/v, '$1');
 
           // When a VTIMEZONE block is present, prefer its STANDARD/DAYLIGHT offset data over
           // a pure string-based TZID lookup.  This handles both well-known IANA names (where
@@ -447,7 +447,7 @@ const dateParameter = function (name) {
           };
 
           if (tz) {
-            tz = tz.toString().replace(/^"(.*)"$/u, '$1');
+            tz = tz.toString().replace(/^"(.*)"$/v, '$1');
 
             if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
               // Outlook and Exchange often emit custom TZID values (e.g. "Customized Time Zone")
@@ -672,7 +672,7 @@ module.exports = {
               : cloneDateWithMeta(curr.start, tzUtil.utcAdd(curr.start, 1, 'days'));
           } else {
             const durationString = getDurationString(curr.duration);
-            const durationParts = durationString.match(/-?\d{1,10}[WDHMS]/gu);
+            const durationParts = durationString.match(/-?\d{1,10}[WDHMS]/gv);
 
             if (durationParts && durationParts.length > 0) {
               // Valid DURATION: apply each component (W/D/H/M/S)
@@ -874,13 +874,13 @@ module.exports = {
                   rule += `;DTSTART=${localStamp}`;
                 } else {
                   // Ultimate fallback: emit a UTC value (legacy behaviour) rather than crashing.
-                  rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/gu, '')}`;
+                  rule += `;DTSTART=${curr.start.toISOString().replaceAll('-', '').replaceAll(':', '')}`;
                 }
               } else {
-                rule += `;DTSTART=${curr.start.toISOString().replaceAll(/[-:]/gu, '')}`;
+                rule += `;DTSTART=${curr.start.toISOString().replaceAll('-', '').replaceAll(':', '')}`;
               }
 
-              rule = rule.replace(/\.\d{3}/u, '');
+              rule = rule.replace(/\.\d{3}/v, '');
             } catch (error) { // This should not happen, issue #56
               throw new Error('ERROR when trying to convert to ISOString ' + error, {cause: error});
             }
@@ -905,14 +905,14 @@ module.exports = {
           // - DATE-only DTSTART: UNTIL must also be DATE-only (strip time)
           // - DATE-TIME DTSTART: UNTIL must be UTC with Z suffix
           if (rruleOnly.includes('UNTIL=')) {
-            const untilMatch = rruleOnly.match(/UNTIL=(\d{8})(T\d{6})?(Z)?/u);
+            const untilMatch = rruleOnly.match(/UNTIL=(\d{8})(T\d{6})?(Z)?/v);
             if (untilMatch) {
               const [, datePart, timePart, zSuffix] = untilMatch;
 
               if (curr.start.dateOnly) {
                 // DATE-only: strip time from UNTIL
                 if (timePart) {
-                  rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}Z?/u, `UNTIL=${datePart}`);
+                  rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}Z?/v, `UNTIL=${datePart}`);
                 }
               } else if (timePart && !zSuffix) {
                 // DATE-TIME without Z: convert to UTC if we have a timezone, otherwise just append Z
@@ -930,8 +930,8 @@ module.exports = {
                     }
 
                     if (untilDateObject) {
-                      const untilUtc = untilDateObject.toISOString().replaceAll(/[-:]/gu, '').replace(/\.\d{3}/u, '');
-                      rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}/u, `UNTIL=${untilUtc}`);
+                      const untilUtc = untilDateObject.toISOString().replaceAll('-', '').replaceAll(':', '').replace(/\.\d{3}/v, '');
+                      rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}/v, `UNTIL=${untilUtc}`);
                       converted = true;
                     }
                   } catch {
@@ -940,7 +940,7 @@ module.exports = {
                 }
 
                 if (!converted) {
-                  rruleOnly = rruleOnly.replace(/UNTIL=(\d{8}T\d{6})(?!Z)/u, 'UNTIL=$1Z');
+                  rruleOnly = rruleOnly.replace(/UNTIL=(\d{8}T\d{6})(?!Z)/v, 'UNTIL=$1Z');
                 }
               }
             }
@@ -1054,7 +1054,7 @@ module.exports = {
     }
 
     // Handling custom properties
-    if (/X-[\w-]+/u.test(name) && stack.length > 0) {
+    if (/X-(?:-|[0-9A-Za-z_])+/v.test(name) && stack.length > 0) {
       // Trimming the leading and perform storeParam
       name = name.slice(2);
       return storeParameter(name)(value, parameters, ctx, stack, line);
@@ -1096,7 +1096,7 @@ module.exports = {
       for (let i = startIndex; i < endIndex; i++) {
         let l = lines[i];
         // Unfold : RFC#3.1
-        while (lines[i + 1] && /[ \t]/u.test(lines[i + 1][0])) {
+        while (lines[i + 1] && /[ \t]/v.test(lines[i + 1][0])) {
           l += lines[i + 1].slice(1);
           i++;
         }
@@ -1106,7 +1106,7 @@ module.exports = {
           l = l.replaceAll('"', '');
         }
 
-        const exp = /^([\w\d-]+)((?:;[\w\d-]+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/u;
+        const exp = /^((?:-|[0-9A-Za-z_])+)((?:;(?:-|[0-9A-Za-z_])+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/v;
         let kv = l.match(exp);
 
         if (kv === null) {
@@ -1177,7 +1177,7 @@ module.exports = {
    * makes the function behavior unpredictable and harder to type correctly in TypeScript.
    */
   parseICS(string, cb) {
-    const lines = string.split(/\r?\n/u);
+    const lines = string.split(/\r?\n/v);
 
     if (cb) {
       // Async mode: use batching to prevent event loop blocking

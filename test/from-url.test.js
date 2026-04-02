@@ -132,7 +132,7 @@ describe('integration: fromURL', () => {
         await new Promise(resolve => {
           ical.fromURL(`${urlBase}/missing.ics`, {}, (error, data) => {
             assert.ok(error);
-            assert.match(error.message, /404/u);
+            assert.match(error.message, /404/v);
             assert.equal(data, null);
             resolve();
           });
@@ -204,7 +204,7 @@ describe('integration: fromURL', () => {
         await new Promise(resolve => {
           ical.fromURL(`${urlBase}/missing.ics`, (error, data) => {
             assert.ok(error);
-            assert.match(error.message, /404/u);
+            assert.match(error.message, /404/v);
             assert.equal(data, null);
             resolve();
           });

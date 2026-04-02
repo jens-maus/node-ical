@@ -408,8 +408,8 @@ END:VCALENDAR`;
 
       // String representation should follow RFC5545 format
       const rruleString = first.rrule.toString();
-      assert.ok(/DTSTART;TZID=/u.test(rruleString), 'DTSTART should include TZID parameter');
-      assert.ok(!/RRULE:.*TZID=/u.test(rruleString), 'RRULE line should not contain TZID');
+      assert.ok(/DTSTART;TZID=/v.test(rruleString), 'DTSTART should include TZID parameter');
+      assert.ok(!/RRULE:.*TZID=/v.test(rruleString), 'RRULE line should not contain TZID');
     });
   });
 
@@ -557,8 +557,8 @@ END:VCALENDAR`;
       if (zone) {
         const startLocalYMD = event.start.toLocaleDateString('sv-SE', {timeZone: zone});
         const endLocalYMD = event.end.toLocaleDateString('sv-SE', {timeZone: zone});
-        assert.ok(/\d{4}-\d{2}-\d{2}/u.test(startLocalYMD));
-        assert.ok(/\d{4}-\d{2}-\d{2}/u.test(endLocalYMD));
+        assert.ok(/\d{4}-\d{2}-\d{2}/v.test(startLocalYMD));
+        assert.ok(/\d{4}-\d{2}-\d{2}/v.test(endLocalYMD));
         assert.notEqual(startLocalYMD, endLocalYMD);
         // Confirm exactly one day apart by constructing local midnights
         const [sy, sm, sd] = startLocalYMD.split('-').map(Number);

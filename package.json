@@ -45,18 +45,9 @@
       "@stylistic/max-len": "off",
       "@typescript-eslint/member-ordering": "off",
       "@typescript-eslint/naming-convention": "off",
-      "require-unicode-regexp": [
-        "error",
-        {
-          "requireFlag": "u"
-        }
-      ],
       "n/prefer-promises/fs": "off",
-      "no-useless-catch": "off",
-      "promise/prefer-await-to-then": "off",
       "unicorn/prefer-module": "off",
       "unicorn/prefer-spread": "off",
-      "import-x/no-extraneous-dependencies": "off",
       "max-params": [
         "warn",
         5
