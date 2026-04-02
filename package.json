@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "rrule-temporal": "^1.4.7",
-    "temporal-polyfill": "^0.3.0"
+    "temporal-polyfill": "^0.3.2"
   },
   "overrides": {
     "@js-temporal/polyfill": "npm:temporal-polyfill@^0.3.0"
