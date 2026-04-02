@@ -193,7 +193,7 @@ ical.fromURL(url, options, function(err, data) {
 });
 ```
 
-Fetch the specified URL using the native fetch API (```options``` are passed to the underlying `fetch()` call) and call the function with the result (either an error or the data). Requires Node.js 18+ (or any environment that provides a global `fetch`).
+Fetch the specified URL using the native fetch API (```options``` are passed to the underlying `fetch()` call) and call the function with the result (either an error or the data). Requires Node.js 20+ (or any environment that provides a global `fetch`).
 
 #### Example: Print list of upcoming node conferences
 
