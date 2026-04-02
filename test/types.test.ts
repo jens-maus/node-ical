@@ -9,6 +9,10 @@
 
 import type * as ical from 'node-ical';
 
+type VEventRRule = NonNullable<ical.VEvent['rrule']>;
+
+declare const stubRRule: VEventRRule;
+
 // ============================================================================
 // VEvent Type Tests
 // ============================================================================
@@ -60,7 +64,7 @@ const fullEvent: ical.VEvent = {
   url: 'https://example.com/event',
   created: new Date(),
   lastmodified: new Date(),
-  rrule: ({} as unknown) as ical.RRule,
+  rrule: stubRRule,
   status: 'CONFIRMED',
   transparency: 'OPAQUE',
   attendee: [],

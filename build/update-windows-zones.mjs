@@ -132,7 +132,7 @@ function mergeLegacyOverrides(zoneTable, oldMap) {
 
 function writeOutput(filePath, data) {
   // Deterministic, diff-friendly: one top-level key per line, minified values, sorted keys
-  const keys = Object.keys(data).sort();
+  const keys = Object.keys(data).toSorted();
   const lines = ['{'];
   for (const [idx, key] of keys.entries()) {
     const comma = idx < keys.length - 1 ? ',' : '';

@@ -92,7 +92,7 @@ describe('parser: basic cases', () => {
       const tzEvent = findItem(values(data), item => item.uid === 'EC9439B1-FF65-11D6-9973-003065F99D04');
       assert_.ok(tz.isValidIana(tzEvent.start.tz));
       const ref = '2002-10-28T22:00:00Z';
-      const isoNoMs = tzEvent.start.toISOString().replace(/\.\d{3}Z$/, 'Z');
+      const isoNoMs = tzEvent.start.toISOString().replace(/\.\d{3}Z$/u, 'Z');
       assert_.equal(isoNoMs, ref);
     });
   });

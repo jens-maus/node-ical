@@ -77,7 +77,9 @@ async function withServer(routeHandlers) {
           if (!socket.destroyed) {
             socket.end();
           }
-        } catch {}
+        } catch {
+          // Ignore socket close errors during test teardown
+        }
       }
 
       await new Promise(resolve => {
@@ -130,7 +132,7 @@ describe('integration: fromURL', () => {
         await new Promise(resolve => {
           ical.fromURL(`${urlBase}/missing.ics`, {}, (error, data) => {
             assert.ok(error);
-            assert.match(error.message, /404/);
+            assert.match(error.message, /404/u);
             assert.equal(data, null);
             resolve();
           });
@@ -202,7 +204,7 @@ describe('integration: fromURL', () => {
         await new Promise(resolve => {
           ical.fromURL(`${urlBase}/missing.ics`, (error, data) => {
             assert.ok(error);
-            assert.match(error.message, /404/);
+            assert.match(error.message, /404/u);
             assert.equal(data, null);
             resolve();
           });

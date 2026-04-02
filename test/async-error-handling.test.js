@@ -235,7 +235,7 @@ describe('parseICS sync vs async parity', function () {
   it('sync mode should throw on malformed data', function () {
     assert.throws(() => {
       ical.parseICS(malformedDtstartICS);
-    }, /toISOString/);
+    }, /toISOString/u);
   });
 
   it('async mode should report same error via callback', function (done) {
@@ -302,7 +302,7 @@ describe('parseICS sync vs async parity', function () {
 
         if (error) {
           // Expected behavior: error should be caught and passed to callback
-          assert.match(error.message, /duplicate DTSTART/);
+          assert.match(error.message, /duplicate DTSTART/u);
           done();
         } else {
           // Current buggy behavior: parsing might appear to succeed

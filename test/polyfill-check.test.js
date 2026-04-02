@@ -22,7 +22,7 @@ describe('Temporal Polyfill Configuration', () => {
     const resolved = data.dependencies['rrule-temporal'].dependencies['@js-temporal/polyfill'];
 
     assert.ok(resolved, '@js-temporal/polyfill should be resolved');
-    assert.match(resolved.resolved, /temporal-polyfill/);
+    assert.match(resolved.resolved, /temporal-polyfill/u);
   });
 
   it('should load temporal-polyfill when requiring @js-temporal/polyfill', () => {

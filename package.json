@@ -45,7 +45,12 @@
       "@stylistic/max-len": "off",
       "@typescript-eslint/member-ordering": "off",
       "@typescript-eslint/naming-convention": "off",
-      "@typescript-eslint/no-unsafe-type-assertion": "off",
+      "require-unicode-regexp": [
+        "error",
+        {
+          "requireFlag": "u"
+        }
+      ],
       "n/prefer-promises/fs": "off",
       "no-useless-catch": "off",
       "promise/prefer-await-to-then": "off",

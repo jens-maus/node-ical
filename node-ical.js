@@ -626,7 +626,7 @@ function expandRecurringEvent(event, options) {
     }
   }
 
-  return instances.sort((a, b) => a.start - b.start);
+  return instances.toSorted((a, b) => a.start - b.start);
 }
 
 // Export api functions
