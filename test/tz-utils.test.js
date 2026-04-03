@@ -173,5 +173,38 @@ describe('unit: tz-utils', () => {
       assert.deepEqual(tz.resolveVTimezoneToIana(undefined, 2020), {iana: undefined, offset: undefined});
       assert.deepEqual(tz.resolveVTimezoneToIana({type: 'VTIMEZONE'}, 2020), {iana: undefined, offset: undefined});
     });
+
+    it('does not crash when year is < 1000 (e.g. DTSTART:00010325T020000)', () => {
+      // Regression test for https://github.com/jens-maus/node-ical/issues/495
+      // VTIMEZONE blocks like "W. Europe Standard Time" from emClient use DTSTART year 0001.
+      // Temporal.Instant.from() requires a 4-digit ISO year; "1-01-15T12:00:00Z" is invalid.
+      //
+      // Note: The parser calls `new Date(1, ...)` for year 0001 which JS interprets as 1901,
+      // but the `year` argument to resolveVTimezoneToIana comes from parseInt('0001') = 1.
+      const cetVTimezone = {
+        type: 'VTIMEZONE',
+        tzid: 'W. Europe Standard Time',
+        daylight: {
+          type: 'DAYLIGHT',
+          start: new Date(1, 2, 25, 2, 0, 0), // JS interprets as 1901 (matches real parser behavior)
+          tzoffsetfrom: '+0100',
+          tzoffsetto: '+0200',
+        },
+        standard: {
+          type: 'STANDARD',
+          start: new Date(1, 9, 28, 3, 0, 0), // JS interprets as 1901 (matches real parser behavior)
+          tzoffsetfrom: '+0200',
+          tzoffsetto: '+0100',
+        },
+      };
+      // Must not throw; should resolve to a valid CET/CEST IANA zone.
+      // The key scenario: year=1 would produce "1-01-15T12:00:00Z" without the fix.
+      let result;
+      assert.doesNotThrow(() => {
+        result = tz.resolveVTimezoneToIana(cetVTimezone, 1);
+      });
+      assert.ok(result.iana, 'should resolve to an IANA zone despite year 0001 DTSTART');
+      assert.equal(result.offset, '+01:00');
+    });
   });
 });

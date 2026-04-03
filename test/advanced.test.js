@@ -825,5 +825,18 @@ END:VCALENDAR`;
         assert.equal(diffDays, 1);
       }
     });
+    // Regression test for https://github.com/jens-maus/node-ical/issues/495
+    // VTIMEZONE with DTSTART year 0001 (e.g. emClient "W. Europe Standard Time") caused a
+    // RangeError: "Cannot parse: 1-01-15T12:00:00Z" in Temporal.Instant.from() because the
+    // template literal produced a non-4-digit ISO year string.
+    it('does not crash on VTIMEZONE with DTSTART year 0001 (issue #495)', () => {
+      const data = ical.parseFile('./test/fixtures/vtimezone-year-0001-dtstart.ics');
+      const event = Object.values(data).find(x => x.type === 'VEVENT');
+      assert.ok(event, 'event should be parsed without throwing');
+      assert.equal(event.summary, 'Test event with year-0001 VTIMEZONE');
+      assert.ok(event.start instanceof Date, 'start should be a Date');
+      // 10:00 MESZ (UTC+2) on 2024-06-01 = 08:00 UTC
+      assert.strictEqual(event.start.toISOString(), '2024-06-01T08:00:00.000Z');
+    });
   });
 });
