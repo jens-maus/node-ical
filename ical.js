@@ -382,6 +382,7 @@ const dateParameter = function (name) {
         // NOT trigger timezone resolution (which would look up the *enclosing*
         // VTIMEZONE and could crash on exotic years like 0001).
         newDate = new Date(year, monthIndex, day, hour, minute, second);
+        newDate.setFullYear(year);
       } else {
         const fallbackWithStackTimezone = () => {
           const vTimezone = findVtimezoneInStack(stack);
