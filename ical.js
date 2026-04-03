@@ -376,6 +376,12 @@ const dateParameter = function (name) {
         // GMT
         newDate = new Date(Date.UTC(year, monthIndex, day, hour, minute, second));
         tzUtil.attachTz(newDate, 'Etc/UTC');
+      } else if (curr.type === 'STANDARD' || curr.type === 'DAYLIGHT') {
+        // Inside a VTIMEZONE observance block the DTSTART is a plain local
+        // wall-clock time that defines when the rule takes effect — it must
+        // NOT trigger timezone resolution (which would look up the *enclosing*
+        // VTIMEZONE and could crash on exotic years like 0001).
+        newDate = new Date(year, monthIndex, day, hour, minute, second);
       } else {
         const fallbackWithStackTimezone = () => {
           const vTimezone = findVtimezoneInStack(stack);
