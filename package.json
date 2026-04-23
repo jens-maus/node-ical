@@ -30,7 +30,7 @@
   "devDependencies": {
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.20",
-    "fast-xml-parser": "^5.5.9",
+    "fast-xml-parser": "^5.7.0",
     "lint-staged": "^16.4.0",
     "luxon": "^3.7.2",
     "mocha": "^11.7.5",
