@@ -21,7 +21,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "rrule-temporal": "^1.5.1",
+    "rrule-temporal": "^1.5.3",
     "temporal-polyfill": "^0.3.2"
   },
   "overrides": {
@@ -30,13 +30,13 @@
   "devDependencies": {
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.20",
-    "fast-xml-parser": "^5.7.0",
+    "fast-xml-parser": "^5.7.2",
     "lint-staged": "^16.4.0",
     "luxon": "^3.7.2",
     "mocha": "^11.7.5",
-    "moment-timezone": "^0.6.1",
+    "moment-timezone": "^0.6.2",
     "simple-git-hooks": "^2.13.1",
-    "typescript": "^6.0.2",
+    "typescript": "^6.0.3",
     "xo": "^2.0.2"
   },
   "xo": {
