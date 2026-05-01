@@ -34,7 +34,7 @@
     "lint-staged": "^16.4.0",
     "luxon": "^3.7.2",
     "mocha": "^11.7.5",
-    "moment-timezone": "^0.6.1",
+    "moment-timezone": "^0.6.2",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^6.0.2",
     "xo": "^2.0.2"
