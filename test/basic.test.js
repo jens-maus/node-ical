@@ -284,6 +284,39 @@ END:VCALENDAR`;
       assert_.equal(event.rrule.options.count, 4, 'options.count should be preserved');
       assert_.deepEqual(event.rrule.options.byweekday, ['MO', 'FR'], 'BYDAY should be preserved');
     });
+
+    it('supports rrule.before() and rrule.after() compatibility methods', () => {
+      const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:rrule-before-after@test
+DTSTART:20230101T090000Z
+RRULE:FREQ=DAILY;COUNT=5
+SUMMARY:before-after compatibility
+END:VEVENT
+END:VCALENDAR`;
+
+      const data = ical.parseICS(ics);
+      const event = findItem(values(data), item => item.type === 'VEVENT');
+
+      assert_.ok(event && event.rrule, 'Event should have an RRULE');
+
+      const beforeDate = event.rrule.before(new Date('2023-01-03T09:00:00.000Z'), false);
+      const afterDate = event.rrule.after(new Date('2023-01-03T09:00:00.000Z'), false);
+      const beforeInclusive = event.rrule.before(new Date('2023-01-03T09:00:00.000Z'), true);
+      const afterInclusive = event.rrule.after(new Date('2023-01-03T09:00:00.000Z'), true);
+      const beforeBoundary = event.rrule.before(new Date('2023-01-01T09:00:00.000Z'), false);
+      const afterBoundary = event.rrule.after(new Date('2023-01-05T09:00:00.000Z'), false);
+
+      assert_.ok(beforeDate instanceof Date, 'rrule.before() should return a Date');
+      assert_.ok(afterDate instanceof Date, 'rrule.after() should return a Date');
+      assert_.equal(beforeDate.toISOString(), '2023-01-02T09:00:00.000Z');
+      assert_.equal(afterDate.toISOString(), '2023-01-04T09:00:00.000Z');
+      assert_.equal(beforeInclusive?.toISOString(), '2023-01-03T09:00:00.000Z');
+      assert_.equal(afterInclusive?.toISOString(), '2023-01-03T09:00:00.000Z');
+      assert_.equal(beforeBoundary, undefined);
+      assert_.equal(afterBoundary, undefined);
+    });
   });
 
   describe('VTODO', () => {

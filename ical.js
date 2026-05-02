@@ -168,12 +168,12 @@ class RRuleCompatWrapper {
   }
 
   before(date, inclusive = false) {
-    const result = this._rrule.before(date, inclusive);
+    const result = this._rrule.previous(date, inclusive);
     return result ? this.#zdtToDate(result) : undefined;
   }
 
   after(date, inclusive = false) {
-    const result = this._rrule.after(date, inclusive);
+    const result = this._rrule.next(date, inclusive);
     return result ? this.#zdtToDate(result) : undefined;
   }
 
