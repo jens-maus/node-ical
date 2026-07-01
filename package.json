@@ -31,7 +31,7 @@
     "date-fns": "^4.4.0",
     "dayjs": "^1.11.21",
     "fast-xml-parser": "^5.8.0",
-    "lint-staged": "^17.0.7",
+    "lint-staged": "^17.0.8",
     "luxon": "^3.7.2",
     "mocha": "^11.7.6",
     "moment-timezone": "^0.6.2",
