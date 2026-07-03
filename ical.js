@@ -35,7 +35,7 @@ function cloneDateWithMeta(source, newTime = source) {
 /**
  * Extract string value from DURATION (handles {params, val} shape).
  * @param {string|object} duration - Duration value (string or object with val property)
- * @returns {string} Duration string
+ * @returns {string} Extracted duration string
  */
 function getDurationString(duration) {
   if (typeof duration === 'object' && duration?.val) {

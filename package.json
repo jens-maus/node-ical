@@ -52,7 +52,6 @@
       "jsdoc/check-line-alignment": "off",
       "jsdoc/check-param-names": "off",
       "jsdoc/check-types": "off",
-      "jsdoc/informative-docs": "off",
       "jsdoc/multiline-blocks": "off",
       "jsdoc/require-asterisk-prefix": "off",
       "jsdoc/require-param-description": "off",
