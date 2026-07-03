@@ -86,7 +86,6 @@
       "unicorn/prefer-module": "off",
       "unicorn/prefer-number-coercion": "off",
       "unicorn/prefer-number-is-safe-integer": "off",
-      "unicorn/prefer-object-iterable-methods": "off",
       "max-params": [
         "warn",
         5

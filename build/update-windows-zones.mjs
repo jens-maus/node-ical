@@ -117,13 +117,13 @@ function mergeLegacyOverrides(zoneTable, oldMap) {
 
   const unresolved = [];
   let merged = 0;
-  for (const key of Object.keys(oldMap)) {
-    const iana = getFirstIanaFromLookup(zoneTable, oldMap[key]);
+  for (const [key, windowsId] of Object.entries(oldMap)) {
+    const iana = getFirstIanaFromLookup(zoneTable, windowsId);
     if (iana) {
       zoneTable[key] = {iana: [iana]};
       merged++;
     } else {
-      unresolved.push({label: key, windowsId: oldMap[key]});
+      unresolved.push({label: key, windowsId});
     }
   }
 
