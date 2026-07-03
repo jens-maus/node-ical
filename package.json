@@ -85,7 +85,6 @@
       "unicorn/prefer-minimal-ternary": "off",
       "unicorn/prefer-module": "off",
       "unicorn/prefer-number-coercion": "off",
-      "unicorn/prefer-number-is-safe-integer": "off",
       "max-params": [
         "warn",
         5
