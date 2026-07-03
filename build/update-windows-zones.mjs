@@ -132,6 +132,7 @@ function mergeLegacyOverrides(zoneTable, oldMap) {
 
 function writeOutput(filePath, data) {
   // Deterministic, diff-friendly: one top-level key per line, minified values, sorted keys
+  // eslint-disable-next-line unicorn/require-array-sort-compare -- plain string keys; default lexicographic toSorted() is sufficient and clearer here
   const keys = Object.keys(data).toSorted();
   const lines = ['{'];
   for (const [idx, key] of keys.entries()) {

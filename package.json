@@ -92,7 +92,6 @@
       "unicorn/prefer-split-limit": "off",
       "unicorn/prefer-spread": "off",
       "unicorn/prefer-type-literal-last": "off",
-      "unicorn/require-array-sort-compare": "off",
       "max-params": [
         "warn",
         5
