@@ -61,8 +61,8 @@ describe('parser: basic cases', () => {
       assert_.equal(ev.start.getDate(), 11);
       assert_.equal(ev.summary, 'South San Francisco, CA, October 2011;');
       assert_.ok(ev.geo);
-      assert_.equal(ev.geo.lat, 37.654_656);
-      assert_.equal(ev.geo.lon, -122.407_75);
+      assert_.equal(ev.geo.lat, 37.654656);
+      assert_.equal(ev.geo.lon, -122.40775);
       assert_.equal(ev.transparency, 'TRANSPARENT');
     });
 
