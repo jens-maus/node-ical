@@ -1065,7 +1065,7 @@ module.exports = {
     }
 
     // Handling custom properties
-    if (/X-(?:-|[0-9A-Z_a-z])+/v.test(name) && stack.length > 0) {
+    if (/X-(?:\w|-)+/v.test(name) && stack.length > 0) {
       // Trimming the leading and perform storeParam
       name = name.slice(2);
       return storeParameter(name)(value, parameters, ctx, stack, line);
@@ -1119,7 +1119,7 @@ module.exports = {
           l = l.replaceAll('"', '');
         }
 
-        const exp = /^((?:-|[0-9A-Z_a-z])+)((?:;(?:-|[0-9A-Z_a-z])+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/v;
+        const exp = /^((?:\w|-)+)((?:;(?:\w|-)+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/v;
         let kv = l.match(exp);
 
         if (kv === null) {
