@@ -63,7 +63,6 @@
       "jsdoc/require-param-description": "off",
       "jsdoc/require-param-type": "off",
       "jsdoc/require-returns-description": "off",
-      "jsdoc/valid-types": "off",
       "regexp/prefer-named-capture-group": "off",
       "unicorn/prefer-module": "off",
       "max-params": [

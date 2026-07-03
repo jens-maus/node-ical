@@ -43,7 +43,7 @@ const {getDateKey} = require('./lib/date-utils.js');
  *     lat: number, lon: number
  * }} geo                            - Lat/lon location of this event.
  *
- * @property {?Array.<string>}       - Array of event catagories.
+ * @property {string[]} [categories] - Array of event categories.
  */
 /**
  * Object containing iCal events.
