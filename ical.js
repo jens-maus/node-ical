@@ -918,11 +918,13 @@ module.exports = {
             const untilMatch = rruleOnly.match(/UNTIL=(\d{8})(T\d{6})?(Z)?/v);
             if (untilMatch) {
               const [, datePart, timePart, zSuffix] = untilMatch;
+              const untilStart = untilMatch.index;
+              const untilEnd = untilStart + untilMatch[0].length;
 
               if (curr.start.dateOnly) {
                 // DATE-only: strip time from UNTIL
                 if (timePart) {
-                  rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}Z?/v, `UNTIL=${datePart}`);
+                  rruleOnly = rruleOnly.slice(0, untilStart) + `UNTIL=${datePart}` + rruleOnly.slice(untilEnd);
                 }
               } else if (timePart && !zSuffix) {
                 // DATE-TIME without Z: convert to UTC if we have a timezone, otherwise just append Z
@@ -941,7 +943,7 @@ module.exports = {
 
                     if (untilDateObject) {
                       const untilUtc = untilDateObject.toISOString().replaceAll('-', '').replaceAll(':', '').replace(/\.\d{3}/v, '');
-                      rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}/v, `UNTIL=${untilUtc}`);
+                      rruleOnly = rruleOnly.slice(0, untilStart) + `UNTIL=${untilUtc}` + rruleOnly.slice(untilEnd);
                       converted = true;
                     }
                   } catch {

@@ -18,6 +18,7 @@ const ICS_TEMPLATE = [
 ].join('\r\n');
 
 function icsBody(summary) {
+  // eslint-disable-next-line unicorn/no-unsafe-string-replacement -- test helper input is controlled and clearer with direct replace
   return ICS_TEMPLATE.replace('Fetch Test Event', summary);
 }
 
