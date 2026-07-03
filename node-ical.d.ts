@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+
 declare module 'node-ical' {
   /**
    * Compatibility wrapper returned by node-ical (RRULE results are Date-based).
