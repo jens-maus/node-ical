@@ -4,11 +4,22 @@
  * Related to Issue #144: Uncatchable exception in async mode
  * @see https://github.com/jens-maus/node-ical/issues/144
  */
-/* eslint-disable max-nested-callbacks */
 const assert = require('node:assert/strict');
-const process = require('node:process');
 const {describe, it} = require('mocha');
 const ical = require('../node-ical.js');
+
+// Helper to promisify the callback-based async.parseICS API
+function parseICSPromise(data) {
+  return new Promise((resolve, reject) => {
+    ical.async.parseICS(data, (error, result) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
 
 // Valid ICS for baseline tests
 const validICS = `BEGIN:VCALENDAR
@@ -35,34 +46,25 @@ END:VCALENDAR`;
 
 describe('parseICS async mode', () => {
   describe('successful parsing', () => {
-    it('should parse valid ICS via callback', done => {
-      ical.parseICS(validICS, (error, data) => {
-        assert.equal(error, null, 'Error should be null for valid ICS');
-        assert.ok(data, 'Data should be returned');
+    it('should parse valid ICS via callback', async () => {
+      const data = await parseICSPromise(validICS);
+      assert.ok(data, 'Data should be returned');
 
-        const events = Object.values(data).filter(x => x.type === 'VEVENT');
-        assert.equal(events.length, 1);
-        assert.equal(events[0].summary, 'Valid Event');
-        assert.equal(events[0].uid, 'valid-event-123');
-
-        done();
-      });
+      const events = Object.values(data).filter(x => x.type === 'VEVENT');
+      assert.equal(events.length, 1);
+      assert.equal(events[0].summary, 'Valid Event');
+      assert.equal(events[0].uid, 'valid-event-123');
     });
 
-    it('should return same result as sync mode', done => {
-      const syncResult = ical.parseICS(validICS);
+    it('should return same result as sync mode', async () => {
+      const syncResult = ical.sync.parseICS(validICS);
+      const asyncResult = await parseICSPromise(validICS);
 
-      ical.parseICS(validICS, (error, asyncResult) => {
-        assert.equal(error, null);
-
-        const syncEvents = Object.values(syncResult).filter(x => x.type === 'VEVENT');
-        const asyncEvents = Object.values(asyncResult).filter(x => x.type === 'VEVENT');
-        assert.equal(syncEvents.length, asyncEvents.length);
-        assert.equal(syncEvents[0].summary, asyncEvents[0].summary);
-        assert.equal(syncEvents[0].uid, asyncEvents[0].uid);
-
-        done();
-      });
+      const syncEvents = Object.values(syncResult).filter(x => x.type === 'VEVENT');
+      const asyncEvents = Object.values(asyncResult).filter(x => x.type === 'VEVENT');
+      assert.equal(syncEvents.length, asyncEvents.length);
+      assert.equal(syncEvents[0].summary, asyncEvents[0].summary);
+      assert.equal(syncEvents[0].uid, asyncEvents[0].uid);
     });
   });
 
@@ -74,113 +76,39 @@ describe('parseICS async mode', () => {
      * EXPECTED BEHAVIOR (AFTER FIX):
      * Errors should be passed to the callback's first parameter.
      */
-    it('should pass parsing errors to callback (Issue #144)', function (done) {
-      this.timeout(5000);
-
-      let handled = false;
-      let uncaughtError = null;
-
-      // Temporarily capture uncaught exceptions
-      const originalHandlers = process.listeners('uncaughtException');
-      process.removeAllListeners('uncaughtException');
-
-      const uncaughtHandler = error => {
-        uncaughtError = error;
-      };
-
-      process.on('uncaughtException', uncaughtHandler);
-
-      const cleanup = () => {
-        process.removeListener('uncaughtException', uncaughtHandler);
-        for (const handler of originalHandlers) {
-          process.on('uncaughtException', handler);
-        }
-      };
-
-      const checkComplete = () => {
-        if (handled) {
-          return;
-        }
-
-        handled = true;
-        cleanup();
-
-        if (uncaughtError) {
-          return done(new Error(`BUG #144: Error escaped to uncaughtException: ${uncaughtError.message}`));
-        }
-
-        done(new Error('BUG #144: Neither callback nor try-catch received the error'));
-      };
-
-      ical.parseICS(malformedDtstartICS, (error, _data) => {
-        if (handled || !error) {
-          return;
-        }
-
-        // EXPECTED behavior - error passed to callback
-        handled = true;
-        cleanup();
-
-        assert.ok(
-          error.message.includes('toISOString') || error.message.includes('Invalid'),
-          'Error message should indicate parsing failure',
-        );
-        done();
-      });
-
-      // Wait to see if uncaught exception occurs (the bug)
-      setTimeout(checkComplete, 2000);
+    it('should pass parsing errors to callback (Issue #144)', async () => {
+      await assert.rejects(
+        () => parseICSPromise(malformedDtstartICS),
+        /toISOString|Invalid/v,
+        'Error should indicate parsing failure',
+      );
     });
 
-    it('should not require try-catch for async error handling', function (done) {
-      this.timeout(5000);
-
-      let errorCaught = false;
-
-      const handleError = () => {
-        if (!errorCaught) {
-          errorCaught = true;
-          done();
-        }
-      };
-
-      ical.parseICS(malformedDtstartICS, (error, _data) => {
-        if (error) {
-          handleError();
-        }
-      });
-
-      setTimeout(() => {
-        if (!errorCaught) {
-          done(new Error('Error was not caught by callback'));
-        }
-      }, 2000);
+    it('should not require try-catch for async error handling', async () => {
+      await assert.rejects(
+        () => parseICSPromise(malformedDtstartICS),
+        /toISOString|Invalid/v,
+      );
     });
   });
 
   describe('edge cases', () => {
-    it('should handle empty ICS string', done => {
-      ical.parseICS('', (error, data) => {
-        assert.equal(error, null);
-        assert.ok(data);
-        assert.equal(Object.keys(data).length, 0);
-        done();
-      });
+    it('should handle empty ICS string', async () => {
+      const data = await parseICSPromise('');
+      assert.ok(data);
+      assert.equal(Object.keys(data).length, 0);
     });
 
-    it('should handle ICS with only VCALENDAR wrapper', done => {
+    it('should handle ICS with only VCALENDAR wrapper', async () => {
       const minimalICS = `BEGIN:VCALENDAR
 VERSION:2.0
 END:VCALENDAR`;
 
-      ical.parseICS(minimalICS, (error, data) => {
-        assert.equal(error, null);
-        assert.ok(data);
-        done();
-      });
+      const data = await parseICSPromise(minimalICS);
+      assert.ok(data);
     });
 
-    it('should handle multiple events', done => {
+    it('should handle multiple events', async () => {
       const multiEventICS = `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
@@ -195,12 +123,9 @@ UID:event-2
 END:VEVENT
 END:VCALENDAR`;
 
-      ical.parseICS(multiEventICS, (error, data) => {
-        assert.equal(error, null);
-        const events = Object.values(data).filter(x => x.type === 'VEVENT');
-        assert.equal(events.length, 2);
-        done();
-      });
+      const data = await parseICSPromise(multiEventICS);
+      const events = Object.values(data).filter(x => x.type === 'VEVENT');
+      assert.equal(events.length, 2);
     });
 
     it('should call callback only once even if it throws', done => {
@@ -237,52 +162,17 @@ describe('parseICS sync vs async parity', () => {
     }, /toISOString/v);
   });
 
-  it('async mode should report same error via callback', function (done) {
-    this.timeout(5000);
-
-    let syncErrorMessage;
-    try {
-      ical.parseICS(malformedDtstartICS);
-    } catch (error) {
-      syncErrorMessage = error.message;
-    }
-
-    let handled = false;
-
-    try {
-      ical.parseICS(malformedDtstartICS, (error, _data) => {
-        if (error && !handled) {
-          handled = true;
-          assert.ok(
-            error.message.includes('toISOString') || syncErrorMessage.includes(error.message),
-            'Async error should be similar to sync error',
-          );
-          done();
-        }
-      });
-    } catch (error) {
-      if (!handled) {
-        handled = true;
-        assert.equal(error.message, syncErrorMessage);
-        done();
-      }
-    }
-
-    setTimeout(() => {
-      if (!handled) {
-        done(new Error('Neither callback nor try-catch received the error'));
-      }
-    }, 2000);
+  it('async mode should report error consistent with sync mode', async () => {
+    // Both sync and async modes should report the same error for malformed data
+    await assert.rejects(() => parseICSPromise(malformedDtstartICS), /toISOString|Invalid/v);
   });
 
   describe('Bug #144 reproduction - error after first setImmediate batch', () => {
-    it('should catch errors occurring after 2000+ lines (Issue #144)', function (done) {
+    it('should catch errors occurring after 2000+ lines (Issue #144)', async () => {
       // This test uses a large ICS file (2410+ lines) with a duplicate DTSTART at the end
       // The error occurs AFTER the first setImmediate batch (limit=2000)
       // This demonstrates the actual bug: exceptions thrown in setImmediate callbacks
       // escape to the global uncaughtException handler instead of being passed to the callback
-
-      this.timeout(5000); // Allow more time for large file processing
 
       const fs = require('node:fs');
       const path = require('node:path');
@@ -291,24 +181,8 @@ describe('parseICS sync vs async parity', () => {
         'utf8',
       );
 
-      let handled = false;
-      ical.parseICS(largeICS, (error, _data) => {
-        if (handled) {
-          return;
-        }
-
-        handled = true;
-
-        if (error) {
-          // Expected behavior: error should be caught and passed to callback
-          assert.match(error.message, /duplicate DTSTART/v);
-          done();
-        } else {
-          // Current buggy behavior: parsing might appear to succeed
-          // because the error escapes to uncaughtException
-          done(new Error('Expected error but parsing succeeded - bug #144 not fixed'));
-        }
-      });
+      // Expected behavior: error should be caught and rejected in promise
+      await assert.rejects(() => parseICSPromise(largeICS), /duplicate DTSTART/v);
     });
   });
 });

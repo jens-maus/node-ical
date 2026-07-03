@@ -55,7 +55,6 @@
       "jsdoc/informative-docs": "off",
       "jsdoc/multiline-blocks": "off",
       "unicorn/numeric-separators-style": "off",
-      "unicorn/prefer-early-return": "off",
       "jsdoc/require-asterisk-prefix": "off",
       "jsdoc/require-param-description": "off",
       "regexp/prefer-named-capture-group": "off",
