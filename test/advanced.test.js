@@ -366,7 +366,13 @@ describe('parser: advanced cases', () => {
       const data = ical.parseFile('./test/fixtures/mixed-timezone-handling.ics');
       const events = Object.values(data).filter(x => x.type === 'VEVENT');
       assert.equal(events.length, 5);
-      const uids = ['1C9439B1-FF65-11D6-9973-003065F99D04', '2C9439B1-FF65-11D6-9973-003065F99D04', '3C9439B1-FF65-11D6-9973-003065F99D04', '4C9439B1-FF65-11D6-9973-003065F99D04', '5C9439B1-FF65-11D6-9973-003065F99D04'];
+      const uids = [
+        '1C9439B1-FF65-11D6-9973-003065F99D04',
+        '2C9439B1-FF65-11D6-9973-003065F99D04',
+        '3C9439B1-FF65-11D6-9973-003065F99D04',
+        '4C9439B1-FF65-11D6-9973-003065F99D04',
+        '5C9439B1-FF65-11D6-9973-003065F99D04',
+      ];
       const map = Object.fromEntries(events.map(event => [event.uid, event]));
       assert.equal(map[uids[0]].datetype, 'date-time');
       assert.equal(map[uids[0]].start.tz, undefined);

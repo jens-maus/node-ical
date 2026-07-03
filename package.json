@@ -43,10 +43,6 @@
     "space": 2,
     "rules": {
       "@eslint-community/eslint-comments/require-description": "off",
-      "@stylistic/max-len": "off",
-      "@stylistic/no-trailing-spaces": "off",
-      "@stylistic/padding-line-between-statements": "off",
-      "@typescript-eslint/member-ordering": "off",
       "jsdoc/check-indentation": "off",
       "jsdoc/check-line-alignment": "off",
       "jsdoc/require-asterisk-prefix": "off",
