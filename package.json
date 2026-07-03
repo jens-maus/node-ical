@@ -89,7 +89,6 @@
       "unicorn/prefer-object-iterable-methods": "off",
       "unicorn/prefer-https": "off",
       "unicorn/prefer-smaller-scope": "off",
-      "unicorn/prefer-split-limit": "off",
       "max-params": [
         "warn",
         5

@@ -335,13 +335,17 @@ function findVtimezoneInStack(stack, tzid) {
 
 const dateParameter = function (name) {
   return function (value, parameters, curr, stack) {
-    // The regex from main gets confused by extra :
+    // A schemed TZID like "tzone://Microsoft/Utc" gets split at its "://" colon
+    // by the line parser, so the scheme tail leaks into `value`. Repair both by
+    // re-splitting `value` at the date's colon.
     const pi = parameters.indexOf('TZID=tzone');
     if (pi !== -1) {
-      // Correct the parameters with the part on the value
-      parameters[pi] = parameters[pi] + ':' + value.split(':')[0];
-      // Get the date from the field, other code uses the value parameter
-      value = value.split(':')[1];
+      const firstColon = value.indexOf(':');
+      const tzidRemainder = value.slice(0, firstColon);
+      const dateValue = value.slice(firstColon + 1);
+
+      parameters[pi] = `TZID=tzone:${tzidRemainder}`;
+      value = dateValue;
     }
 
     let newDate = text(value);
