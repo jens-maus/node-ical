@@ -90,7 +90,6 @@
       "unicorn/prefer-https": "off",
       "unicorn/prefer-smaller-scope": "off",
       "unicorn/prefer-split-limit": "off",
-      "unicorn/prefer-spread": "off",
       "max-params": [
         "warn",
         5

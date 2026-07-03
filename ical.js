@@ -522,7 +522,7 @@ const categoriesParameter = function (name) {
     if (curr[name] === undefined) {
       curr[name] = value ? value.split(',').map(s => s.trim()) : [];
     } else if (value) {
-      curr[name] = curr[name].concat(value.split(',').map(s => s.trim()));
+      curr[name] = [...curr[name], ...value.split(',').map(s => s.trim())];
     }
 
     return curr;
