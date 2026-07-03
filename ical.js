@@ -318,17 +318,15 @@ const typeParameter = function (name) {
 function findVtimezoneInStack(stack, tzid) {
   for (const item of (stack || [])) {
     for (const v of Object.values(item)) {
-      if (!v || v.type !== 'VTIMEZONE') {
-        continue;
-      }
+      if (v && v.type === 'VTIMEZONE') {
+        if (!tzid) {
+          return v;
+        }
 
-      if (!tzid) {
-        return v;
-      }
-
-      const ids = Array.isArray(v.tzid) ? v.tzid : [v.tzid];
-      if (ids.some(id => String(id).replace(/^"(.*)"$/v, '$1') === tzid)) {
-        return v;
+        const ids = Array.isArray(v.tzid) ? v.tzid : [v.tzid];
+        if (ids.some(id => String(id).replace(/^"(.*)"$/v, '$1') === tzid)) {
+          return v;
+        }
       }
     }
   }

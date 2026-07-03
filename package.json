@@ -76,7 +76,6 @@
       "regexp/use-ignore-case": "off",
       "unicorn/consistent-class-member-order": "off",
       "unicorn/consistent-optional-chaining": "off",
-      "unicorn/no-break-in-nested-loop": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
         "warn",
