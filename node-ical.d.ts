@@ -161,11 +161,11 @@ declare module 'node-ical' {
 
   export type VTimeZone = TimeZoneProps & TimeZoneDictionary;
 
-  type TimeZoneProps = {
+  type TimeZoneProps = BaseComponent & {
     type: 'VTIMEZONE';
     tzid: string;
     tzurl?: string;
-  } & BaseComponent;
+  };
 
   type TimeZoneDictionary = Record<string, TimeZoneDef | undefined>;
 
@@ -180,7 +180,7 @@ declare module 'node-ical' {
   /**
    * https://www.kanzaki.com/docs/ical/valarm.html
    */
-  export type VAlarm = {
+  export type VAlarm = BaseComponent & {
     type: 'VALARM';
     action: 'AUDIO' | 'DISPLAY' | 'EMAIL' | 'PROCEDURE';
     trigger: Trigger;
@@ -209,7 +209,7 @@ declare module 'node-ical' {
      */
     attendee?: Attendee;
 
-  } & BaseComponent;
+  };
 
   /**
    * Common properties shared by calendar components (VEVENT, VTODO, VJOURNAL)
@@ -235,7 +235,7 @@ declare module 'node-ical' {
     exdate?: Record<string, DateWithTimeZone>;
   };
 
-  export type VEvent = CalendarComponentCommon & {
+  export type VEvent = CalendarComponentCommon & BaseComponent & {
     type: 'VEVENT';
     // RFC 5545 required fields (override optional from CalendarComponentCommon)
     uid: string;
@@ -267,7 +267,7 @@ declare module 'node-ical' {
      */
     recurrences?: Record<string, Omit<VEvent, 'recurrences'>>;
     alarms?: VAlarm[];
-  } & BaseComponent;
+  };
 
   /**
    * Todo status values as defined in RFC 5545
@@ -291,7 +291,7 @@ declare module 'node-ical' {
    *   console.log(`Completed: ${todo.completion}%`);
    * });
    */
-  export type VTodo = CalendarComponentCommon & {
+  export type VTodo = CalendarComponentCommon & BaseComponent & {
     type: 'VTODO';
     // RFC 5545 required fields (override optional from CalendarComponentCommon)
     uid: string;
@@ -315,7 +315,7 @@ declare module 'node-ical' {
      */
     recurrences?: Record<string, Omit<VTodo, 'recurrences'>>;
     alarms?: VAlarm[];
-  } & BaseComponent;
+  };
 
   /**
    * VJOURNAL component representing a journal entry or note.
@@ -328,7 +328,7 @@ declare module 'node-ical' {
    *   console.log(`Description: ${journal.description}`);
    * });
    */
-  export type VJournal = CalendarComponentCommon & {
+  export type VJournal = CalendarComponentCommon & BaseComponent & {
     type: 'VJOURNAL';
     // RFC 5545 required fields (override optional from CalendarComponentCommon)
     uid: string;
@@ -341,7 +341,7 @@ declare module 'node-ical' {
      * Uses dual-key approach (date and ISO timestamp).
      */
     recurrences?: Record<string, Omit<VJournal, 'recurrences'>>;
-  } & BaseComponent;
+  };
 
   /**
    * Free/busy time type as defined in RFC 5545
@@ -374,7 +374,7 @@ declare module 'node-ical' {
    *   });
    * }
    */
-  export type VFreebusy = {
+  export type VFreebusy = BaseComponent & {
     type: 'VFREEBUSY';
     method?: Method;
     uid?: string;
@@ -391,7 +391,7 @@ declare module 'node-ical' {
     freebusy?: FreebusyPeriod[];
     /** Attendee information */
     attendee?: Attendee[] | Attendee;
-  } & BaseComponent;
+  };
 
   /**
    * VCALENDAR component containing calendar-level metadata.

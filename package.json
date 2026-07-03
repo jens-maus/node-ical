@@ -91,7 +91,6 @@
       "unicorn/prefer-smaller-scope": "off",
       "unicorn/prefer-split-limit": "off",
       "unicorn/prefer-spread": "off",
-      "unicorn/prefer-type-literal-last": "off",
       "max-params": [
         "warn",
         5
