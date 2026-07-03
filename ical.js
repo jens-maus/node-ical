@@ -94,14 +94,6 @@ function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
  * This maintains backward compatibility while using rrule-temporal internally
  */
 class RRuleCompatWrapper {
-  constructor(rruleTemporal, dateOnly = false) {
-    this._rrule = rruleTemporal;
-    // VALUE=DATE events are anchored to UTC midnight in rrule-temporal.
-    // Converting via epochMilliseconds shifts the date backwards in timezones
-    // west of UTC; instead we use the ZonedDateTime calendar components directly.
-    this._dateOnly = dateOnly;
-  }
-
   static #temporalToDate(value) {
     if (value === undefined || value === null) {
       return value;
@@ -117,6 +109,14 @@ class RRuleCompatWrapper {
     }
 
     return value;
+  }
+
+  constructor(rruleTemporal, dateOnly = false) {
+    this._rrule = rruleTemporal;
+    // VALUE=DATE events are anchored to UTC midnight in rrule-temporal.
+    // Converting via epochMilliseconds shifts the date backwards in timezones
+    // west of UTC; instead we use the ZonedDateTime calendar components directly.
+    this._dateOnly = dateOnly;
   }
 
   #serializeOptions() {
