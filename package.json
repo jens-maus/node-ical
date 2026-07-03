@@ -82,7 +82,6 @@
       "unicorn/no-global-object-property-assignment": "off",
       "unicorn/no-unsafe-string-replacement": "off",
       "unicorn/prefer-includes-over-repeated-comparisons": "off",
-      "unicorn/prefer-minimal-ternary": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
         "warn",

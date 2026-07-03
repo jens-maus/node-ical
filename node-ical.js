@@ -550,7 +550,7 @@ function buildRecurringInstance(date, event, isFullDay, baseDurationMs, options)
     event: instanceEvent,
   };
 
-  copyDateMeta(instance.start, isOverride ? instanceEvent.start : event.start);
+  copyDateMeta(instance.start, (isOverride ? instanceEvent : event).start);
   copyDateMeta(instance.end, instanceEvent.end || event.end);
 
   return instance;
