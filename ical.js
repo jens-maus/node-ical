@@ -202,12 +202,12 @@ class RRuleCompatWrapper {
   }
 }
 
-/** **************
+/**
  *  A tolerant, minimal icalendar parser
  *  (https://tools.ietf.org/html/rfc5545)
  *
  *  <peterbraden@peterbraden.co.uk>
- * ************* */
+ */
 
 // Unescape Text re RFC 4.3.11
 const text = function (t = '') {
