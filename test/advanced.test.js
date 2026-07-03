@@ -1,3 +1,4 @@
+/* eslint-disable max-nested-callbacks */
 const assert = require('node:assert/strict');
 const {describe, it, before} = require('mocha');
 const tz = require('../lib/tz-utils.js');
