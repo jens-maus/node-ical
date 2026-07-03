@@ -49,9 +49,9 @@ function getDurationString(duration) {
  * Store a recurrence override with dual-key strategy.
  * Uses both date-only (YYYY-MM-DD) and full ISO keys for DATE-TIME entries.
  * Implements RFC 5545 SEQUENCE logic: newer versions (higher SEQUENCE) replace older ones.
- * @param {Object} recurrences - Recurrences object to store in
+ * @param {object} recurrences - Recurrences object to store in
  * @param {Date} recurrenceId - RECURRENCE-ID date value
- * @param {Object} recurrenceObject - Recurrence override data
+ * @param {object} recurrenceObject - Recurrence override data
  */
 function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
   if (typeof recurrenceId.toISOString !== 'function') {
@@ -1080,11 +1080,11 @@ module.exports = {
    *
    * @param {string[]} lines - Array of iCalendar lines
    * @param {number} [batchSize=0] - Lines per batch (0=sync mode, >0=async batching)
-   * @param {Object} [ctx] - Context object (internal, created if not provided)
+   * @param {object} [ctx] - Context object (internal, created if not provided)
    * @param {Array} [stack] - Parser stack for nested components (internal)
    * @param {number} [startIndex=0] - Current position in lines array (internal)
    * @param {icsCallback} [cb] - Callback for async mode: cb(error, data)
-   * @returns {Object|undefined} Parsed calendar data (sync mode), undefined (async mode with callback)
+   * @returns {object | undefined} Parsed calendar data (sync mode), undefined (async mode with callback)
    *
    * @example
    * // Sync mode (no batching)
@@ -1172,7 +1172,7 @@ module.exports = {
    *
    * @param {string} string - Raw iCalendar data (ICS format)
    * @param {icsCallback} [cb] - Optional callback for async mode: cb(error, data)
-   * @returns {Object|undefined} Parsed calendar data (sync) or undefined (async)
+   * @returns {object | undefined} Parsed calendar data (sync) or undefined (async)
    *
    * @example
    * // Synchronous parsing

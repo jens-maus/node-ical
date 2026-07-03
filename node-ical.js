@@ -47,7 +47,7 @@ const {getDateKey} = require('./lib/date-utils.js');
  */
 /**
  * Object containing iCal events.
- * @typedef {Object.<string, iCalEvent>} iCalData
+ * @typedef {{ [eventId: string]: iCalEvent }} iCalData
  */
 /**
  * Callback for iCal parsing functions with error and iCal data as a JavaScript object.
@@ -101,7 +101,7 @@ const autodetect = {};
  * Download an iCal file from the web and parse it.
  *
  * @param {string} url                - URL of file to request.
- * @param {Object|icsCallback} [options] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
+ * @param {object | icsCallback} [options] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
  *                                      Alternatively you can pass the callback function directly.
  *                                      If no callback is provided a promise will be returned.
  * @param {icsCallback} [cb]          - Callback function.
@@ -155,7 +155,7 @@ async function parseFileAsync(filename) {
  * Fetch an iCal file over HTTP and parse its contents.
  *
  * @param {string} url       - URL of file to request.
- * @param {Object} [options] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
+ * @param {object} [options] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
  *
  * @returns {Promise<iCalData>} Promise resolving to the parsed iCal data.
  */
