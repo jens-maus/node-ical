@@ -53,12 +53,12 @@ for (const event of events) {
     const title = instance.summary;
     const startDate = dayjs(instance.start);
     const endDate = dayjs(instance.end);
-    const duration = dayjs.duration(endDate.diff(startDate));
+    const eventDuration = dayjs.duration(endDate.diff(startDate));
 
     console.log(`title:${title}`);
     console.log(`startDate:${startDate.format('LLLL')}`);
     console.log(`endDate:${endDate.format('LLLL')}`);
-    console.log(`duration:${Math.floor(duration.asHours())}:${String(duration.minutes()).padStart(2, '0')} hours`);
+    console.log(`duration:${Math.floor(eventDuration.asHours())}:${String(eventDuration.minutes()).padStart(2, '0')} hours`);
     console.log();
   }
 }

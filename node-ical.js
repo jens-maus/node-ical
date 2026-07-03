@@ -156,15 +156,15 @@ async.fromURL = function (url, options, cb) {
  */
 async.parseFile = function (filename, cb) {
   return promiseCallback((resolve, reject) => {
-    fs.readFile(filename, 'utf8', (error, data) => {
-      if (error) {
-        reject(error);
+    fs.readFile(filename, 'utf8', (readError, data) => {
+      if (readError) {
+        reject(readError);
         return;
       }
 
-      ical.parseICS(data, (error, ics) => {
-        if (error) {
-          reject(error);
+      ical.parseICS(data, (parseError, ics) => {
+        if (parseError) {
+          reject(parseError);
           return;
         }
 

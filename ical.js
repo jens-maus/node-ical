@@ -621,8 +621,8 @@ const freebusyParameter = function (name) {
 
     const parts = value.split('/');
 
-    for (const [index, name] of ['start', 'end'].entries()) {
-      dateParameter(name)(parts[index], parameters, fb);
+    for (const [index, partName] of ['start', 'end'].entries()) {
+      dateParameter(partName)(parts[index], parameters, fb);
     }
 
     return curr;
@@ -641,7 +641,7 @@ module.exports = {
     },
     END(value, parameters, curr, stack) {
       // Original end function
-      const originalEnd = function (component, parameters_, curr, stack) {
+      const originalEnd = function (component, parameters_, current, parentStack) {
         // Prevents the need to search the root of the tree for the VCALENDAR object
         if (component === 'VCALENDAR') {
           // Preserve VCALENDAR string properties in a separate 'vcalendar' object
@@ -650,37 +650,37 @@ module.exports = {
           let key;
           const vcalendarProps = {};
 
-          for (key in curr) {
-            if (!Object.hasOwn(curr, key)) {
+          for (key in current) {
+            if (!Object.hasOwn(current, key)) {
               continue;
             }
 
-            const object = curr[key];
+            const object = current[key];
             if (typeof object === 'string') {
               vcalendarProps[key] = object;
-              delete curr[key];
+              delete current[key];
             }
           }
 
           // Store VCALENDAR properties in a dedicated object for easy access
           if (Object.keys(vcalendarProps).length > 0) {
-            curr.vcalendar = vcalendarProps;
+            current.vcalendar = vcalendarProps;
           }
 
-          return curr;
+          return current;
         }
 
-        const par = stack.pop();
+        const par = parentStack.pop();
 
-        if (!curr.end) { // RFC5545, 3.6.1
+        if (!current.end) { // RFC5545, 3.6.1
           // Calculate end date based on DURATION or default rules
-          if (curr.duration === undefined) {
+          if (current.duration === undefined) {
             // No DURATION: default end is same time (date-time) or +1 day (date-only)
-            curr.end = curr.datetype === 'date-time'
-              ? cloneDateWithMeta(curr.start)
-              : cloneDateWithMeta(curr.start, tzUtil.utcAdd(curr.start, 1, 'days'));
+            current.end = current.datetype === 'date-time'
+              ? cloneDateWithMeta(current.start)
+              : cloneDateWithMeta(current.start, tzUtil.utcAdd(current.start, 1, 'days'));
           } else {
-            const durationString = getDurationString(curr.duration);
+            const durationString = getDurationString(current.duration);
             const durationParts = durationString.match(/-?\d{1,10}[DHMSW]/gv);
 
             if (durationParts && durationParts.length > 0) {
@@ -694,24 +694,24 @@ module.exports = {
               };
               const sign = durationString.startsWith('-') ? -1 : 1;
 
-              let endTime = curr.start;
+              let endTime = current.start;
               for (const part of durationParts) {
-                const value = Number(part.slice(0, -1)) * sign;
+                const durationValue = Number(part.slice(0, -1)) * sign;
                 const unit = units[part.slice(-1)];
-                endTime = tzUtil.utcAdd(endTime, value, unit);
+                endTime = tzUtil.utcAdd(endTime, durationValue, unit);
               }
 
-              curr.end = cloneDateWithMeta(curr.start, endTime);
+              current.end = cloneDateWithMeta(current.start, endTime);
             } else {
               // Malformed DURATION (e.g., "P", "PT", "") → treat as zero duration
               // Follows Postel's Law: be liberal in what you accept
               console.warn(`[node-ical] Ignoring malformed DURATION value: "${durationString}" – treating as zero duration`);
-              curr.end = cloneDateWithMeta(curr.start);
+              current.end = cloneDateWithMeta(current.start);
             }
           }
         }
 
-        if (curr.uid) {
+        if (current.uid) {
           // If this is the first time we run into this UID, just save it.
           if (par[curr.uid] === undefined) {
             par[curr.uid] = curr;
