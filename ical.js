@@ -5,6 +5,7 @@ const {randomUUID} = require('node:crypto');
 // TODO: Drop the polyfill branch once our minimum Node version ships Temporal
 const Temporal = globalThis.Temporal || require('temporal-polyfill').Temporal;
 // Ensure Temporal exists before loading rrule-temporal
+// eslint-disable-next-line unicorn/no-global-object-property-assignment -- simple polyfill bootstrap for CJS entrypoint
 globalThis.Temporal ??= Temporal;
 const {RRuleTemporal} = require('rrule-temporal');
 const {toText: toTextFunction} = require('rrule-temporal/totext');
