@@ -101,7 +101,7 @@ const autodetect = {};
  * Download an iCal file from the web and parse it.
  *
  * @param {string} url                - URL of file to request.
- * @param {Object|icsCallback} [opts] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
+ * @param {Object|icsCallback} [options] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
  *                                      Alternatively you can pass the callback function directly.
  *                                      If no callback is provided a promise will be returned.
  * @param {icsCallback} [cb]          - Callback function.

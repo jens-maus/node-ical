@@ -59,9 +59,7 @@
       "jsdoc/no-multi-asterisks": "off",
       "jsdoc/reject-function-type": "off",
       "jsdoc/require-asterisk-prefix": "off",
-      "jsdoc/require-param": "off",
       "jsdoc/require-param-description": "off",
-      "jsdoc/require-param-type": "off",
       "regexp/prefer-named-capture-group": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
