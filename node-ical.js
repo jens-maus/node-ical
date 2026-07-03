@@ -61,8 +61,7 @@ const {getDateKey} = require('./lib/date-utils.js');
  */
 
 // utility to allow callbacks to be used for promises
-function promiseCallback(fn, cb) {
-  const promise = new Promise(fn);
+function promiseCallback(promise, cb) {
   if (!cb) {
     return promise;
   }
@@ -117,33 +116,60 @@ async.fromURL = function (url, options, cb) {
     options = undefined;
   }
 
-  return promiseCallback((resolve, reject) => {
-    const fetchOptions = (options && typeof options === 'object') ? {...options} : {};
-
-    fetch(url, fetchOptions)
-      .then(response => {
-        if (!response.ok) {
-          // Mimic previous error style
-          throw new Error(`${response.status} ${response.statusText}`);
-        }
-
-        return response.text();
-      })
-      .then(data => {
-        ical.parseICS(data, (error, ics) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-
-          resolve(ics);
-        });
-      })
-      .catch(error => {
-        reject(error);
-      });
-  }, cb);
+  return promiseCallback(fromURLAsync(url, options), cb);
 };
+
+/**
+ * Parse iCal data from a string and resolve with the result.
+ *
+ * @param {string} data - String containing iCal data.
+ *
+ * @returns {Promise<iCalData>} Promise resolving to the parsed iCal data.
+ */
+function parseICSAsync(data) {
+  return new Promise((resolve, reject) => {
+    ical.parseICS(data, (error, ics) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve(ics);
+    });
+  });
+}
+
+/**
+ * Read a file from disk and parse its iCal data.
+ *
+ * @param {string} filename - File path to load.
+ *
+ * @returns {Promise<iCalData>} Promise resolving to the parsed iCal data.
+ */
+async function parseFileAsync(filename) {
+  const data = await fs.promises.readFile(filename, 'utf8');
+  return parseICSAsync(data);
+}
+
+/**
+ * Fetch an iCal file over HTTP and parse its contents.
+ *
+ * @param {string} url       - URL of file to request.
+ * @param {Object} [options] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
+ *
+ * @returns {Promise<iCalData>} Promise resolving to the parsed iCal data.
+ */
+async function fromURLAsync(url, options) {
+  const fetchOptions = (options && typeof options === 'object') ? {...options} : {};
+  const response = await fetch(url, fetchOptions);
+  if (!response.ok) {
+    // Mimic previous error style
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.text();
+  return parseICSAsync(data);
+}
 
 /**
  * Load iCal data from a file and parse it.
@@ -155,23 +181,7 @@ async.fromURL = function (url, options, cb) {
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
 async.parseFile = function (filename, cb) {
-  return promiseCallback((resolve, reject) => {
-    fs.readFile(filename, 'utf8', (readError, data) => {
-      if (readError) {
-        reject(readError);
-        return;
-      }
-
-      ical.parseICS(data, (parseError, ics) => {
-        if (parseError) {
-          reject(parseError);
-          return;
-        }
-
-        resolve(ics);
-      });
-    });
-  }, cb);
+  return promiseCallback(parseFileAsync(filename), cb);
 };
 
 /**
@@ -184,16 +194,7 @@ async.parseFile = function (filename, cb) {
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
 async.parseICS = function (data, cb) {
-  return promiseCallback((resolve, reject) => {
-    ical.parseICS(data, (error, ics) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      resolve(ics);
-    });
-  }, cb);
+  return promiseCallback(parseICSAsync(data), cb);
 };
 
 /**

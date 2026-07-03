@@ -65,7 +65,6 @@
       "jsdoc/require-returns-description": "off",
       "jsdoc/valid-types": "off",
       "max-nested-callbacks": "off",
-      "n/prefer-promises/fs": "off",
       "regexp/prefer-named-capture-group": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
