@@ -328,7 +328,7 @@ function createLocalDateFromUTC(utcDate) {
  * @returns {number} Duration in milliseconds
  */
 function getEventDurationMs(eventData, isFullDay) {
-  if (eventData?.start && eventData?.end) {
+  if (eventData?.start && eventData.end) {
     return new Date(eventData.end).getTime() - new Date(eventData.start).getTime();
   }
 
@@ -348,7 +348,7 @@ function getEventDurationMs(eventData, isFullDay) {
  * @returns {Date} End time for this instance
  */
 function calculateEndTime(start, eventData, isFullDay, baseDurationMs) {
-  const durationMs = (eventData?.start && eventData?.end)
+  const durationMs = (eventData?.start && eventData.end)
     ? getEventDurationMs(eventData, isFullDay)
     : (baseDurationMs ?? (isFullDay ? 24 * 60 * 60 * 1000 : 0));
 

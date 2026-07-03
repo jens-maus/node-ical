@@ -75,7 +75,6 @@
       "regexp/sort-character-class-elements": "off",
       "regexp/use-ignore-case": "off",
       "unicorn/consistent-class-member-order": "off",
-      "unicorn/consistent-optional-chaining": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
         "warn",
