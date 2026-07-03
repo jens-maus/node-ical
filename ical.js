@@ -1062,7 +1062,7 @@ module.exports = {
   },
 
   handleObject(name, value, parameters, ctx, stack, line) {
-    if (this.objectHandlers[name]) {
+    if (Object.hasOwn(this.objectHandlers, name)) {
       return this.objectHandlers[name](value, parameters, ctx, stack, line);
     }
 
@@ -1109,9 +1109,11 @@ module.exports = {
       for (let i = startIndex; i < endIndex; i++) {
         let l = lines[i];
         // Unfold : RFC#3.1
-        while (lines[i + 1] && /[ \t]/v.test(lines[i + 1][0])) {
-          l += lines[i + 1].slice(1);
+        let nextLine = lines[i + 1];
+        while (typeof nextLine === 'string' && /[ \t]/v.test(nextLine[0])) {
+          l += nextLine.slice(1);
           i++;
+          nextLine = lines[i + 1];
         }
 
         // Remove any double quotes in any tzid statement // except around (utc+hh:mm

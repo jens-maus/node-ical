@@ -77,8 +77,6 @@
       "unicorn/consistent-class-member-order": "off",
       "unicorn/consistent-optional-chaining": "off",
       "unicorn/no-break-in-nested-loop": "off",
-      "unicorn/no-computed-property-existence-check": "off",
-      "unicorn/no-declarations-before-early-exit": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
         "warn",

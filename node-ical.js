@@ -437,7 +437,10 @@ function isExcludedByExdate(date, event, dateKey, isFullDay) {
   //   2. Fall back to dateKey only when the EXDATE itself is DATE-only (dateOnly
   //      is true), which by RFC 5545 intentionally excludes every instance on
   //      that calendar day regardless of time.
-  return Boolean(event.exdate[date.toISOString()] || event.exdate[dateKey]?.dateOnly);
+  const isoKey = date.toISOString();
+  const hasIsoExdate = Object.hasOwn(event.exdate, isoKey);
+  const dateKeyExdate = event.exdate[dateKey];
+  return hasIsoExdate || Boolean(dateKeyExdate?.dateOnly);
 }
 
 /**
