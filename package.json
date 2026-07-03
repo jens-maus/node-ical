@@ -70,7 +70,6 @@
       "regexp/prefer-named-capture-group": "off",
       "regexp/no-useless-non-capturing-group": "off",
       "regexp/prefer-character-class": "off",
-      "regexp/prefer-regexp-exec": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
         "warn",
