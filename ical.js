@@ -214,7 +214,7 @@ const text = function (t = '') {
   return t
     .replaceAll(String.raw`\,`, ',') // Unescape escaped commas
     .replaceAll(String.raw`\;`, ';') // Unescape escaped semicolons
-    .replaceAll(/\\[nN]/gv, '\n') // Replace escaped newlines with actual newlines
+    .replaceAll(/\\n/giv, '\n') // Replace escaped newlines with actual newlines
     .replaceAll('\\\\', '\\') // Unescape backslashes
     .replace(/^"(.*)"$/v, '$1'); // Remove surrounding double quotes, if present
 };

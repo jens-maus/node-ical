@@ -73,7 +73,6 @@
       "regexp/prefer-regexp-exec": "off",
       "regexp/prefer-w": "off",
       "regexp/sort-character-class-elements": "off",
-      "regexp/use-ignore-case": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
         "warn",
