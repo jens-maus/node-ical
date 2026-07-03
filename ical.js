@@ -649,7 +649,6 @@ module.exports = {
           // for easy access to calendar metadata
           // (X-WR-CALNAME, X-WR-CALDESC, X-WR-TIMEZONE, METHOD, etc.)
           let key;
-          let object;
           const vcalendarProps = {};
 
           for (key in curr) {
@@ -657,7 +656,7 @@ module.exports = {
               continue;
             }
 
-            object = curr[key];
+            const object = curr[key];
             if (typeof object === 'string') {
               vcalendarProps[key] = object;
               delete curr[key];
