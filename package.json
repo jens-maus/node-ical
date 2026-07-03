@@ -57,7 +57,6 @@
       "unicorn/numeric-separators-style": "off",
       "unicorn/prefer-early-return": "off",
       "jsdoc/no-multi-asterisks": "off",
-      "jsdoc/reject-function-type": "off",
       "jsdoc/require-asterisk-prefix": "off",
       "jsdoc/require-param-description": "off",
       "regexp/prefer-named-capture-group": "off",

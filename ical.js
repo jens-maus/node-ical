@@ -1083,7 +1083,7 @@ module.exports = {
    * @param {Object} [ctx] - Context object (internal, created if not provided)
    * @param {Array} [stack] - Parser stack for nested components (internal)
    * @param {number} [startIndex=0] - Current position in lines array (internal)
-   * @param {Function} [cb] - Callback for async mode: cb(error, data)
+   * @param {icsCallback} [cb] - Callback for async mode: cb(error, data)
    * @returns {Object|undefined} Parsed calendar data (sync mode), undefined (async mode with callback)
    *
    * @example
@@ -1171,7 +1171,7 @@ module.exports = {
    * Parse an iCalendar string.
    *
    * @param {string} string - Raw iCalendar data (ICS format)
-   * @param {Function} [cb] - Optional callback for async mode: cb(error, data)
+   * @param {icsCallback} [cb] - Optional callback for async mode: cb(error, data)
    * @returns {Object|undefined} Parsed calendar data (sync) or undefined (async)
    *
    * @example
