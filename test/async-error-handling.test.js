@@ -4,7 +4,7 @@
  * Related to Issue #144: Uncatchable exception in async mode
  * @see https://github.com/jens-maus/node-ical/issues/144
  */
-/* eslint-disable prefer-arrow-callback, max-nested-callbacks */
+/* eslint-disable prefer-arrow-callback */
 
 const assert = require('node:assert/strict');
 const process = require('node:process');
