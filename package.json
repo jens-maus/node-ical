@@ -84,7 +84,6 @@
       "unicorn/prefer-includes-over-repeated-comparisons": "off",
       "unicorn/prefer-minimal-ternary": "off",
       "unicorn/prefer-module": "off",
-      "unicorn/prefer-number-coercion": "off",
       "max-params": [
         "warn",
         5

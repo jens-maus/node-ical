@@ -357,7 +357,7 @@ const dateParameter = function (name) {
       const comps = /^(\d{4})(\d{2})(\d{2}).*$/v.exec(value);
       if (comps !== null) {
         // No TZ info - assume same timezone as this computer
-        newDate = new Date(comps[1], Number.parseInt(comps[2], 10) - 1, comps[3]);
+        newDate = new Date(comps[1], Number(comps[2]) - 1, comps[3]);
 
         newDate.dateOnly = true;
 
@@ -369,12 +369,12 @@ const dateParameter = function (name) {
     // Typical RFC date-time format
     const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/v.exec(value);
     if (comps !== null) {
-      const year = Number.parseInt(comps[1], 10);
-      const monthIndex = Number.parseInt(comps[2], 10) - 1;
-      const day = Number.parseInt(comps[3], 10);
-      const hour = Number.parseInt(comps[4], 10);
-      const minute = Number.parseInt(comps[5], 10);
-      const second = Number.parseInt(comps[6], 10);
+      const year = Number(comps[1]);
+      const monthIndex = Number(comps[2]) - 1;
+      const day = Number(comps[3]);
+      const hour = Number(comps[4]);
+      const minute = Number(comps[5]);
+      const second = Number(comps[6]);
 
       if (comps[7] === 'Z') {
         // GMT
@@ -697,7 +697,7 @@ module.exports = {
 
               let endTime = curr.start;
               for (const part of durationParts) {
-                const value = Number.parseInt(part, 10) * sign;
+                const value = Number(part.slice(0, -1)) * sign;
                 const unit = units[part.slice(-1)];
                 endTime = tzUtil.utcAdd(endTime, value, unit);
               }
