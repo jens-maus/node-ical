@@ -825,7 +825,7 @@ module.exports = {
       // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
       // due to the subtypes.
 
-      if ((value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') && curr.rrule) {
+      if (['VEVENT', 'VTODO', 'VJOURNAL'].includes(value) && curr.rrule) {
         let rule = curr.rrule.replace('RRULE:', '');
         // Make sure the rrule starts with FREQ=
         rule = rule.slice(rule.lastIndexOf('FREQ='));
