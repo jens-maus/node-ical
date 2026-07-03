@@ -473,7 +473,7 @@ function validateDateRange(from, to) {
  * @param {boolean} isFullDay
  * @param {boolean} expandOngoing
  * @param {number} baseDurationMs
- * @returns {{searchFrom: Date, searchTo: Date}}
+ * @returns {{searchFrom: Date, searchTo: Date}} Adjusted search range bounds
  */
 function adjustSearchRange(from, to, isFullDay, expandOngoing, baseDurationMs) {
   let searchFrom;
