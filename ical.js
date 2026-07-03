@@ -203,7 +203,7 @@ class RRuleCompatWrapper {
 
 /** **************
  *  A tolerant, minimal icalendar parser
- *  (http://tools.ietf.org/html/rfc5545)
+ *  (https://tools.ietf.org/html/rfc5545)
  *
  *  <peterbraden@peterbraden.co.uk>
  * ************* */

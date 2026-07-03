@@ -82,7 +82,7 @@ describe('parser: basic cases', () => {
       assert_.equal(todo.type, 'VTODO');
 
       const vfb = findItem(values(data), item => item.type === 'VFREEBUSY');
-      assert_.equal(vfb.url, 'http://www.host.com/calendar/busytime/jsmith.ifb');
+      assert_.equal(vfb.url, 'https://www.host.com/calendar/busytime/jsmith.ifb');
       const first = vfb.freebusy[0];
       assert_.equal(first.type, 'BUSY');
       assert_.equal(first.start.getUTCFullYear(), 1998);
@@ -358,7 +358,7 @@ END:VCALENDAR`;
     it('parses Zimbra freebusy (vfreebusy-zimbra.ics)', () => {
       const data = ical.parseFile('./test/fixtures/vfreebusy-zimbra.ics');
       const fb = values(data)[0];
-      assert_.equal(fb.url, 'http://mail.example.com/yvr-2a@example.com/20140416');
+      assert_.equal(fb.url, 'https://mail.example.com/yvr-2a@example.com/20140416');
       assert_.equal(fb.organizer, 'mailto:yvr-2a@example.com');
       assert_.equal(fb.start.getUTCFullYear(), 2014);
       assert_.equal(fb.start.getUTCMonth(), 3);

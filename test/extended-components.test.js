@@ -81,7 +81,7 @@ describe('parser: extended component types', () => {
 
       assert_.equal(vfb.type, 'VFREEBUSY');
       assert_.ok(vfb.organizer);
-      assert_.equal(vfb.url, 'http://www.host.com/calendar/busytime/jsmith.ifb');
+      assert_.equal(vfb.url, 'https://www.host.com/calendar/busytime/jsmith.ifb');
       assert_.ok(vfb.start);
       assert_.ok(vfb.end);
       assert_.ok(Array.isArray(vfb.freebusy));
