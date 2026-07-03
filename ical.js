@@ -681,7 +681,7 @@ module.exports = {
               : cloneDateWithMeta(curr.start, tzUtil.utcAdd(curr.start, 1, 'days'));
           } else {
             const durationString = getDurationString(curr.duration);
-            const durationParts = durationString.match(/-?\d{1,10}[WDHMS]/gv);
+            const durationParts = durationString.match(/-?\d{1,10}[DHMSW]/gv);
 
             if (durationParts && durationParts.length > 0) {
               // Valid DURATION: apply each component (W/D/H/M/S)
@@ -1065,7 +1065,7 @@ module.exports = {
     }
 
     // Handling custom properties
-    if (/X-(?:-|[0-9A-Za-z_])+/v.test(name) && stack.length > 0) {
+    if (/X-(?:-|[0-9A-Z_a-z])+/v.test(name) && stack.length > 0) {
       // Trimming the leading and perform storeParam
       name = name.slice(2);
       return storeParameter(name)(value, parameters, ctx, stack, line);
@@ -1108,7 +1108,7 @@ module.exports = {
         let l = lines[i];
         // Unfold : RFC#3.1
         let nextLine = lines[i + 1];
-        while (typeof nextLine === 'string' && /[ \t]/v.test(nextLine[0])) {
+        while (typeof nextLine === 'string' && /[\t ]/v.test(nextLine[0])) {
           l += nextLine.slice(1);
           i++;
           nextLine = lines[i + 1];
@@ -1119,7 +1119,7 @@ module.exports = {
           l = l.replaceAll('"', '');
         }
 
-        const exp = /^((?:-|[0-9A-Za-z_])+)((?:;(?:-|[0-9A-Za-z_])+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/v;
+        const exp = /^((?:-|[0-9A-Z_a-z])+)((?:;(?:-|[0-9A-Z_a-z])+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/v;
         let kv = l.match(exp);
 
         if (kv === null) {
