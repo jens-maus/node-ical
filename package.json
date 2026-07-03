@@ -68,8 +68,6 @@
       "n/prefer-promises/fs": "off",
       "no-shadow": "off",
       "regexp/prefer-named-capture-group": "off",
-      "regexp/no-useless-non-capturing-group": "off",
-      "regexp/prefer-character-class": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
         "warn",
