@@ -4,7 +4,7 @@
  * This file is compiled with `tsc --noEmit` but never executed.
  */
 
-/* eslint-disable @typescript-eslint/triple-slash-reference */
+/* eslint-disable @typescript-eslint/triple-slash-reference, @typescript-eslint/naming-convention */
 /// <reference path="../node-ical.d.ts" />
 
 import type * as ical from 'node-ical';
@@ -172,39 +172,43 @@ const calendarData: ical.CalendarResponse = {
   'journal-123': validJournal,
 };
 
+function assertComponentRequiredFields(component: ical.CalendarComponent) {
+  switch (component.type) {
+    case 'VEVENT': {
+      // Required fields must be accessible without null checks
+      const eventId: string = component.uid;
+      const eventTimestamp: Date = component.dtstamp;
+      const eventStartTime: Date = component.start;
+      break;
+    }
+
+    case 'VTODO': {
+      // Required fields must be accessible without null checks
+      const todoId: string = component.uid;
+      const todoTimestamp: Date = component.dtstamp;
+      break;
+    }
+
+    case 'VJOURNAL': {
+      // Required fields must be accessible without null checks
+      const journalId: string = component.uid;
+      const journalTimestamp: Date = component.dtstamp;
+      break;
+    }
+
+    case 'VCALENDAR':
+    case 'VTIMEZONE':
+    case 'VFREEBUSY': {
+      // These component types don't have our required field constraints
+      break;
+    }
+  }
+}
+
 // Test: Type guards work correctly
 for (const component of Object.values(calendarData)) {
   if (component && typeof component === 'object' && 'type' in component) {
-    switch (component.type) {
-      case 'VEVENT': {
-        // Required fields must be accessible without null checks
-        const eventId: string = component.uid;
-        const eventTimestamp: Date = component.dtstamp;
-        const eventStartTime: Date = component.start;
-        break;
-      }
-
-      case 'VTODO': {
-        // Required fields must be accessible without null checks
-        const todoId: string = component.uid;
-        const todoTimestamp: Date = component.dtstamp;
-        break;
-      }
-
-      case 'VJOURNAL': {
-        // Required fields must be accessible without null checks
-        const journalId: string = component.uid;
-        const journalTimestamp: Date = component.dtstamp;
-        break;
-      }
-
-      case 'VCALENDAR':
-      case 'VTIMEZONE':
-      case 'VFREEBUSY': {
-        // These component types don't have our required field constraints
-        break;
-      }
-    }
+    assertComponentRequiredFields(component);
   }
 }
 

@@ -5,6 +5,7 @@ const {randomUUID} = require('node:crypto');
 // TODO: Drop the polyfill branch once our minimum Node version ships Temporal
 const Temporal = globalThis.Temporal || require('temporal-polyfill').Temporal;
 // Ensure Temporal exists before loading rrule-temporal
+// eslint-disable-next-line unicorn/no-global-object-property-assignment -- simple polyfill bootstrap for CJS entrypoint
 globalThis.Temporal ??= Temporal;
 const {RRuleTemporal} = require('rrule-temporal');
 const {toText: toTextFunction} = require('rrule-temporal/totext');
@@ -34,7 +35,7 @@ function cloneDateWithMeta(source, newTime = source) {
 /**
  * Extract string value from DURATION (handles {params, val} shape).
  * @param {string|object} duration - Duration value (string or object with val property)
- * @returns {string} Duration string
+ * @returns {string} Extracted duration string
  */
 function getDurationString(duration) {
   if (typeof duration === 'object' && duration?.val) {
@@ -48,9 +49,9 @@ function getDurationString(duration) {
  * Store a recurrence override with dual-key strategy.
  * Uses both date-only (YYYY-MM-DD) and full ISO keys for DATE-TIME entries.
  * Implements RFC 5545 SEQUENCE logic: newer versions (higher SEQUENCE) replace older ones.
- * @param {Object} recurrences - Recurrences object to store in
+ * @param {object} recurrences - Recurrences object to store in
  * @param {Date} recurrenceId - RECURRENCE-ID date value
- * @param {Object} recurrenceObject - Recurrence override data
+ * @param {object} recurrenceObject - Recurrence override data
  */
 function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
   if (typeof recurrenceId.toISOString !== 'function') {
@@ -93,14 +94,6 @@ function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
  * This maintains backward compatibility while using rrule-temporal internally
  */
 class RRuleCompatWrapper {
-  constructor(rruleTemporal, dateOnly = false) {
-    this._rrule = rruleTemporal;
-    // VALUE=DATE events are anchored to UTC midnight in rrule-temporal.
-    // Converting via epochMilliseconds shifts the date backwards in timezones
-    // west of UTC; instead we use the ZonedDateTime calendar components directly.
-    this._dateOnly = dateOnly;
-  }
-
   static #temporalToDate(value) {
     if (value === undefined || value === null) {
       return value;
@@ -116,6 +109,14 @@ class RRuleCompatWrapper {
     }
 
     return value;
+  }
+
+  constructor(rruleTemporal, dateOnly = false) {
+    this._rrule = rruleTemporal;
+    // VALUE=DATE events are anchored to UTC midnight in rrule-temporal.
+    // Converting via epochMilliseconds shifts the date backwards in timezones
+    // west of UTC; instead we use the ZonedDateTime calendar components directly.
+    this._dateOnly = dateOnly;
   }
 
   #serializeOptions() {
@@ -201,19 +202,19 @@ class RRuleCompatWrapper {
   }
 }
 
-/** **************
+/**
  *  A tolerant, minimal icalendar parser
- *  (http://tools.ietf.org/html/rfc5545)
+ *  (https://tools.ietf.org/html/rfc5545)
  *
  *  <peterbraden@peterbraden.co.uk>
- * ************* */
+ */
 
 // Unescape Text re RFC 4.3.11
 const text = function (t = '') {
   return t
     .replaceAll(String.raw`\,`, ',') // Unescape escaped commas
     .replaceAll(String.raw`\;`, ';') // Unescape escaped semicolons
-    .replaceAll(/\\[nN]/gv, '\n') // Replace escaped newlines with actual newlines
+    .replaceAll(/\\n/giv, '\n') // Replace escaped newlines with actual newlines
     .replaceAll('\\\\', '\\') // Unescape backslashes
     .replace(/^"(.*)"$/v, '$1'); // Remove surrounding double quotes, if present
 };
@@ -271,7 +272,10 @@ const storeValueParameter = function (name) {
 
 const storeParameter = function (name) {
   return function (value, parameters, curr) {
-    const data = parameters && parameters.length > 0 && !(parameters.length === 1 && (parameters[0] === 'CHARSET=utf-8' || parameters[0] === 'VALUE=TEXT')) ? {params: parseParameters(parameters), val: text(value)} : text(value);
+    const data = parameters && parameters.length > 0
+      && !(parameters.length === 1 && (parameters[0] === 'CHARSET=utf-8' || parameters[0] === 'VALUE=TEXT'))
+      ? {params: parseParameters(parameters), val: text(value)}
+      : text(value);
 
     return storeValueParameter(name)(data, curr);
   };
@@ -317,17 +321,15 @@ const typeParameter = function (name) {
 function findVtimezoneInStack(stack, tzid) {
   for (const item of (stack || [])) {
     for (const v of Object.values(item)) {
-      if (!v || v.type !== 'VTIMEZONE') {
-        continue;
-      }
+      if (v && v.type === 'VTIMEZONE') {
+        if (!tzid) {
+          return v;
+        }
 
-      if (!tzid) {
-        return v;
-      }
-
-      const ids = Array.isArray(v.tzid) ? v.tzid : [v.tzid];
-      if (ids.some(id => String(id).replace(/^"(.*)"$/v, '$1') === tzid)) {
-        return v;
+        const ids = Array.isArray(v.tzid) ? v.tzid : [v.tzid];
+        if (ids.some(id => String(id).replace(/^"(.*)"$/v, '$1') === tzid)) {
+          return v;
+        }
       }
     }
   }
@@ -335,13 +337,17 @@ function findVtimezoneInStack(stack, tzid) {
 
 const dateParameter = function (name) {
   return function (value, parameters, curr, stack) {
-    // The regex from main gets confused by extra :
+    // A schemed TZID like "tzone://Microsoft/Utc" gets split at its "://" colon
+    // by the line parser, so the scheme tail leaks into `value`. Repair both by
+    // re-splitting `value` at the date's colon.
     const pi = parameters.indexOf('TZID=tzone');
     if (pi !== -1) {
-      // Correct the parameters with the part on the value
-      parameters[pi] = parameters[pi] + ':' + value.split(':')[0];
-      // Get the date from the field, other code uses the value parameter
-      value = value.split(':')[1];
+      const firstColon = value.indexOf(':');
+      const tzidRemainder = value.slice(0, firstColon);
+      const dateValue = value.slice(firstColon + 1);
+
+      parameters[pi] = `TZID=tzone:${tzidRemainder}`;
+      value = dateValue;
     }
 
     let newDate = text(value);
@@ -353,7 +359,7 @@ const dateParameter = function (name) {
       const comps = /^(\d{4})(\d{2})(\d{2}).*$/v.exec(value);
       if (comps !== null) {
         // No TZ info - assume same timezone as this computer
-        newDate = new Date(comps[1], Number.parseInt(comps[2], 10) - 1, comps[3]);
+        newDate = new Date(comps[1], Number(comps[2]) - 1, comps[3]);
 
         newDate.dateOnly = true;
 
@@ -365,12 +371,12 @@ const dateParameter = function (name) {
     // Typical RFC date-time format
     const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/v.exec(value);
     if (comps !== null) {
-      const year = Number.parseInt(comps[1], 10);
-      const monthIndex = Number.parseInt(comps[2], 10) - 1;
-      const day = Number.parseInt(comps[3], 10);
-      const hour = Number.parseInt(comps[4], 10);
-      const minute = Number.parseInt(comps[5], 10);
-      const second = Number.parseInt(comps[6], 10);
+      const year = Number(comps[1]);
+      const monthIndex = Number(comps[2]) - 1;
+      const day = Number(comps[3]);
+      const hour = Number(comps[4]);
+      const minute = Number(comps[5]);
+      const second = Number(comps[6]);
 
       if (comps[7] === 'Z') {
         // GMT
@@ -522,7 +528,7 @@ const categoriesParameter = function (name) {
     if (curr[name] === undefined) {
       curr[name] = value ? value.split(',').map(s => s.trim()) : [];
     } else if (value) {
-      curr[name] = curr[name].concat(value.split(',').map(s => s.trim()));
+      curr[name] = [...curr[name], ...value.split(',').map(s => s.trim())];
     }
 
     return curr;
@@ -618,8 +624,8 @@ const freebusyParameter = function (name) {
 
     const parts = value.split('/');
 
-    for (const [index, name] of ['start', 'end'].entries()) {
-      dateParameter(name)(parts[index], parameters, fb);
+    for (const [index, partName] of ['start', 'end'].entries()) {
+      dateParameter(partName)(parts[index], parameters, fb);
     }
 
     return curr;
@@ -638,48 +644,47 @@ module.exports = {
     },
     END(value, parameters, curr, stack) {
       // Original end function
-      const originalEnd = function (component, parameters_, curr, stack) {
+      const originalEnd = function (component, parameters_, current, parentStack) {
         // Prevents the need to search the root of the tree for the VCALENDAR object
         if (component === 'VCALENDAR') {
           // Preserve VCALENDAR string properties in a separate 'vcalendar' object
           // for easy access to calendar metadata
           // (X-WR-CALNAME, X-WR-CALDESC, X-WR-TIMEZONE, METHOD, etc.)
           let key;
-          let object;
           const vcalendarProps = {};
 
-          for (key in curr) {
-            if (!Object.hasOwn(curr, key)) {
+          for (key in current) {
+            if (!Object.hasOwn(current, key)) {
               continue;
             }
 
-            object = curr[key];
+            const object = current[key];
             if (typeof object === 'string') {
               vcalendarProps[key] = object;
-              delete curr[key];
+              delete current[key];
             }
           }
 
           // Store VCALENDAR properties in a dedicated object for easy access
           if (Object.keys(vcalendarProps).length > 0) {
-            curr.vcalendar = vcalendarProps;
+            current.vcalendar = vcalendarProps;
           }
 
-          return curr;
+          return current;
         }
 
-        const par = stack.pop();
+        const par = parentStack.pop();
 
-        if (!curr.end) { // RFC5545, 3.6.1
+        if (!current.end) { // RFC5545, 3.6.1
           // Calculate end date based on DURATION or default rules
-          if (curr.duration === undefined) {
+          if (current.duration === undefined) {
             // No DURATION: default end is same time (date-time) or +1 day (date-only)
-            curr.end = curr.datetype === 'date-time'
-              ? cloneDateWithMeta(curr.start)
-              : cloneDateWithMeta(curr.start, tzUtil.utcAdd(curr.start, 1, 'days'));
+            current.end = current.datetype === 'date-time'
+              ? cloneDateWithMeta(current.start)
+              : cloneDateWithMeta(current.start, tzUtil.utcAdd(current.start, 1, 'days'));
           } else {
-            const durationString = getDurationString(curr.duration);
-            const durationParts = durationString.match(/-?\d{1,10}[WDHMS]/gv);
+            const durationString = getDurationString(current.duration);
+            const durationParts = durationString.match(/-?\d{1,10}[DHMSW]/gv);
 
             if (durationParts && durationParts.length > 0) {
               // Valid DURATION: apply each component (W/D/H/M/S)
@@ -692,24 +697,24 @@ module.exports = {
               };
               const sign = durationString.startsWith('-') ? -1 : 1;
 
-              let endTime = curr.start;
+              let endTime = current.start;
               for (const part of durationParts) {
-                const value = Number.parseInt(part, 10) * sign;
+                const durationValue = Number(part.slice(0, -1)) * sign;
                 const unit = units[part.slice(-1)];
-                endTime = tzUtil.utcAdd(endTime, value, unit);
+                endTime = tzUtil.utcAdd(endTime, durationValue, unit);
               }
 
-              curr.end = cloneDateWithMeta(curr.start, endTime);
+              current.end = cloneDateWithMeta(current.start, endTime);
             } else {
               // Malformed DURATION (e.g., "P", "PT", "") → treat as zero duration
               // Follows Postel's Law: be liberal in what you accept
               console.warn(`[node-ical] Ignoring malformed DURATION value: "${durationString}" – treating as zero duration`);
-              curr.end = cloneDateWithMeta(curr.start);
+              current.end = cloneDateWithMeta(current.start);
             }
           }
         }
 
-        if (curr.uid) {
+        if (current.uid) {
           // If this is the first time we run into this UID, just save it.
           if (par[curr.uid] === undefined) {
             par[curr.uid] = curr;
@@ -822,7 +827,7 @@ module.exports = {
       // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
       // due to the subtypes.
 
-      if ((value === 'VEVENT' || value === 'VTODO' || value === 'VJOURNAL') && curr.rrule) {
+      if (['VEVENT', 'VTODO', 'VJOURNAL'].includes(value) && curr.rrule) {
         let rule = curr.rrule.replace('RRULE:', '');
         // Make sure the rrule starts with FREQ=
         rule = rule.slice(rule.lastIndexOf('FREQ='));
@@ -915,11 +920,13 @@ module.exports = {
             const untilMatch = rruleOnly.match(/UNTIL=(\d{8})(T\d{6})?(Z)?/v);
             if (untilMatch) {
               const [, datePart, timePart, zSuffix] = untilMatch;
+              const untilStart = untilMatch.index;
+              const untilEnd = untilStart + untilMatch[0].length;
 
               if (curr.start.dateOnly) {
                 // DATE-only: strip time from UNTIL
                 if (timePart) {
-                  rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}Z?/v, `UNTIL=${datePart}`);
+                  rruleOnly = rruleOnly.slice(0, untilStart) + `UNTIL=${datePart}` + rruleOnly.slice(untilEnd);
                 }
               } else if (timePart && !zSuffix) {
                 // DATE-TIME without Z: convert to UTC if we have a timezone, otherwise just append Z
@@ -938,7 +945,7 @@ module.exports = {
 
                     if (untilDateObject) {
                       const untilUtc = untilDateObject.toISOString().replaceAll('-', '').replaceAll(':', '').replace(/\.\d{3}/v, '');
-                      rruleOnly = rruleOnly.replace(/UNTIL=\d{8}T\d{6}/v, `UNTIL=${untilUtc}`);
+                      rruleOnly = rruleOnly.slice(0, untilStart) + `UNTIL=${untilUtc}` + rruleOnly.slice(untilEnd);
                       converted = true;
                     }
                   } catch {
@@ -1056,12 +1063,12 @@ module.exports = {
   },
 
   handleObject(name, value, parameters, ctx, stack, line) {
-    if (this.objectHandlers[name]) {
+    if (Object.hasOwn(this.objectHandlers, name)) {
       return this.objectHandlers[name](value, parameters, ctx, stack, line);
     }
 
     // Handling custom properties
-    if (/X-(?:-|[0-9A-Za-z_])+/v.test(name) && stack.length > 0) {
+    if (/X-(?:\w|-)+/v.test(name) && stack.length > 0) {
       // Trimming the leading and perform storeParam
       name = name.slice(2);
       return storeParameter(name)(value, parameters, ctx, stack, line);
@@ -1076,11 +1083,11 @@ module.exports = {
    *
    * @param {string[]} lines - Array of iCalendar lines
    * @param {number} [batchSize=0] - Lines per batch (0=sync mode, >0=async batching)
-   * @param {Object} [ctx] - Context object (internal, created if not provided)
+   * @param {object} [ctx] - Context object (internal, created if not provided)
    * @param {Array} [stack] - Parser stack for nested components (internal)
    * @param {number} [startIndex=0] - Current position in lines array (internal)
-   * @param {Function} [cb] - Callback for async mode: cb(error, data)
-   * @returns {Object|undefined} Parsed calendar data (sync mode), undefined (async mode with callback)
+   * @param {icsCallback} [cb] - Callback for async mode: cb(error, data)
+   * @returns {object | undefined} Parsed calendar data (sync mode), undefined (async mode with callback)
    *
    * @example
    * // Sync mode (no batching)
@@ -1103,9 +1110,11 @@ module.exports = {
       for (let i = startIndex; i < endIndex; i++) {
         let l = lines[i];
         // Unfold : RFC#3.1
-        while (lines[i + 1] && /[ \t]/v.test(lines[i + 1][0])) {
-          l += lines[i + 1].slice(1);
+        let nextLine = lines[i + 1];
+        while (typeof nextLine === 'string' && /[\t ]/v.test(nextLine[0])) {
+          l += nextLine.slice(1);
           i++;
+          nextLine = lines[i + 1];
         }
 
         // Remove any double quotes in any tzid statement // except around (utc+hh:mm
@@ -1113,7 +1122,7 @@ module.exports = {
           l = l.replaceAll('"', '');
         }
 
-        const exp = /^((?:-|[0-9A-Za-z_])+)((?:;(?:-|[0-9A-Za-z_])+=(?:(?:"[^"]*")|[^":;]+))*):(.*)$/v;
+        const exp = /^((?:\w|-)+)((?:;(?:\w|-)+=(?:"[^"]*"|[^":;]+))*):(.*)$/v;
         let kv = l.match(exp);
 
         if (kv === null) {
@@ -1165,8 +1174,8 @@ module.exports = {
    * Parse an iCalendar string.
    *
    * @param {string} string - Raw iCalendar data (ICS format)
-   * @param {Function} [cb] - Optional callback for async mode: cb(error, data)
-   * @returns {Object|undefined} Parsed calendar data (sync) or undefined (async)
+   * @param {icsCallback} [cb] - Optional callback for async mode: cb(error, data)
+   * @returns {object | undefined} Parsed calendar data (sync) or undefined (async)
    *
    * @example
    * // Synchronous parsing

@@ -1,7 +1,75 @@
+/* eslint-disable max-nested-callbacks */
 const assert = require('node:assert/strict');
 const {describe, it, before} = require('mocha');
 const tz = require('../lib/tz-utils.js');
 const ical = require('../node-ical.js');
+
+function assertDurationCase(event, testCase) {
+  switch (testCase.expected) {
+    case 'zero': {
+      // Invalid or zero durations: end should equal start
+      assert.equal(
+        event.end.toISOString(),
+        event.start.toISOString(),
+        `DURATION:${testCase.duration} should result in zero duration (end = start)`,
+      );
+
+      break;
+    }
+
+    case 'oneday': {
+      // P1D should add 1 day
+      const expectedEnd = new Date(event.start.getTime() + (24 * 60 * 60 * 1000));
+      assert.equal(
+        event.end.toISOString(),
+        expectedEnd.toISOString(),
+        `DURATION:${testCase.duration} should add 1 day`,
+      );
+
+      break;
+    }
+
+    case 'negoneday': {
+      // -P1D should subtract 1 day
+      const expectedEnd = new Date(event.start.getTime() - (24 * 60 * 60 * 1000));
+      assert.equal(
+        event.end.toISOString(),
+        expectedEnd.toISOString(),
+        `DURATION:${testCase.duration} should subtract 1 day`,
+      );
+
+      break;
+    }
+
+    case '1h30m': {
+      // PT1H30M should add 1 hour 30 minutes
+      const expectedEnd = new Date(event.start.getTime() + (90 * 60 * 1000));
+      assert.equal(
+        event.end.toISOString(),
+        expectedEnd.toISOString(),
+        `DURATION:${testCase.duration} should add 1h30m`,
+      );
+
+      break;
+    }
+
+    case '1d2h': {
+      // P1DT2H should add 1 day + 2 hours
+      const expectedEnd = new Date(event.start.getTime() + (26 * 60 * 60 * 1000));
+      assert.equal(
+        event.end.toISOString(),
+        expectedEnd.toISOString(),
+        `DURATION:${testCase.duration} should add 1 day + 2 hours`,
+      );
+
+      break;
+    }
+
+    default: {
+      assert.fail(`Unexpected test case: ${testCase.expected}`);
+    }
+  }
+}
 
 // Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
 tz.linkAlias('Etc/Unknown', 'Etc/GMT');
@@ -298,7 +366,13 @@ describe('parser: advanced cases', () => {
       const data = ical.parseFile('./test/fixtures/mixed-timezone-handling.ics');
       const events = Object.values(data).filter(x => x.type === 'VEVENT');
       assert.equal(events.length, 5);
-      const uids = ['1C9439B1-FF65-11D6-9973-003065F99D04', '2C9439B1-FF65-11D6-9973-003065F99D04', '3C9439B1-FF65-11D6-9973-003065F99D04', '4C9439B1-FF65-11D6-9973-003065F99D04', '5C9439B1-FF65-11D6-9973-003065F99D04'];
+      const uids = [
+        '1C9439B1-FF65-11D6-9973-003065F99D04',
+        '2C9439B1-FF65-11D6-9973-003065F99D04',
+        '3C9439B1-FF65-11D6-9973-003065F99D04',
+        '4C9439B1-FF65-11D6-9973-003065F99D04',
+        '5C9439B1-FF65-11D6-9973-003065F99D04',
+      ];
       const map = Object.fromEntries(events.map(event => [event.uid, event]));
       assert.equal(map[uids[0]].datetype, 'date-time');
       assert.equal(map[uids[0]].start.tz, undefined);
@@ -718,65 +792,7 @@ END:VCALENDAR`;
           assert.ok(event.start instanceof Date, 'Start should be a Date');
           assert.ok(event.end instanceof Date, 'End should be a Date');
 
-          switch (testCase.expected) {
-            case 'zero': {
-              // Invalid or zero durations: end should equal start
-              assert.equal(
-                event.end.toISOString(),
-                event.start.toISOString(),
-                `DURATION:${testCase.duration} should result in zero duration (end = start)`,
-              );
-              break;
-            }
-
-            case 'oneday': {
-              // P1D should add 1 day
-              const expectedEnd = new Date(event.start.getTime() + (24 * 60 * 60 * 1000));
-              assert.equal(
-                event.end.toISOString(),
-                expectedEnd.toISOString(),
-                `DURATION:${testCase.duration} should add 1 day`,
-              );
-              break;
-            }
-
-            case 'negoneday': {
-              // -P1D should subtract 1 day
-              const expectedEnd = new Date(event.start.getTime() - (24 * 60 * 60 * 1000));
-              assert.equal(
-                event.end.toISOString(),
-                expectedEnd.toISOString(),
-                `DURATION:${testCase.duration} should subtract 1 day`,
-              );
-              break;
-            }
-
-            case '1h30m': {
-              // PT1H30M should add 1 hour 30 minutes
-              const expectedEnd = new Date(event.start.getTime() + (90 * 60 * 1000));
-              assert.equal(
-                event.end.toISOString(),
-                expectedEnd.toISOString(),
-                `DURATION:${testCase.duration} should add 1h30m`,
-              );
-              break;
-            }
-
-            case '1d2h': {
-              // P1DT2H should add 1 day + 2 hours
-              const expectedEnd = new Date(event.start.getTime() + (26 * 60 * 60 * 1000));
-              assert.equal(
-                event.end.toISOString(),
-                expectedEnd.toISOString(),
-                `DURATION:${testCase.duration} should add 1 day + 2 hours`,
-              );
-              break;
-            }
-
-            default: {
-              assert.fail(`Unexpected test case: ${testCase.expected}`);
-            }
-          }
+          assertDurationCase(event, testCase);
         }
       } finally {
         // Restore console.warn

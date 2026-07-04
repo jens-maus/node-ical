@@ -37,17 +37,18 @@
     "moment-timezone": "^0.6.2",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^6.0.3",
-    "xo": "^2.0.2"
+    "xo": "^3.0.2"
   },
   "xo": {
     "space": 2,
     "rules": {
-      "@stylistic/max-len": "off",
-      "@typescript-eslint/member-ordering": "off",
-      "@typescript-eslint/naming-convention": "off",
-      "n/prefer-promises/fs": "off",
+      "@eslint-community/eslint-comments/require-description": "off",
+      "jsdoc/check-indentation": "off",
+      "jsdoc/check-line-alignment": "off",
+      "jsdoc/require-asterisk-prefix": "off",
+      "jsdoc/require-param-description": "off",
+      "regexp/prefer-named-capture-group": "off",
       "unicorn/prefer-module": "off",
-      "unicorn/prefer-spread": "off",
       "max-params": [
         "warn",
         5

@@ -43,11 +43,11 @@ const {getDateKey} = require('./lib/date-utils.js');
  *     lat: number, lon: number
  * }} geo                            - Lat/lon location of this event.
  *
- * @property {?Array.<string>}       - Array of event catagories.
+ * @property {string[]} [categories] - Array of event categories.
  */
 /**
  * Object containing iCal events.
- * @typedef {Object.<string, iCalEvent>} iCalData
+ * @typedef {{ [eventId: string]: iCalEvent }} iCalData
  */
 /**
  * Callback for iCal parsing functions with error and iCal data as a JavaScript object.
@@ -61,34 +61,36 @@ const {getDateKey} = require('./lib/date-utils.js');
  */
 
 // utility to allow callbacks to be used for promises
-function promiseCallback(fn, cb) {
-  const promise = new Promise(fn);
+function promiseCallback(promise, cb) {
   if (!cb) {
     return promise;
   }
 
-  // Store result/error outside .then/.catch to avoid double-callback
-  // if the user's callback throws (the thrown error would be caught by
-  // the promise chain and trigger .catch, calling cb a second time)
-  let callbackError = null;
-  let callbackResult = null;
-  let hasResult = false;
+  // Using the two-argument form of then() (instead of then().catch()) is what
+  // guarantees the callback runs at most once: an exception thrown by cb inside
+  // the onFulfilled handler rejects the returned promise, it is NOT routed to
+  // the onRejected handler, so cb can never be invoked a second time.
+  const callCb = (error, result) => {
+    try {
+      cb(error, result);
+    } catch (callbackError) {
+      // The consumer uses a callback API and should not have to know a promise
+      // is used internally. Surface their error as a normal uncaught exception
+      // rather than leaking it as an unhandled promise rejection.
+      queueMicrotask(() => {
+        throw callbackError;
+      });
+    }
+  };
 
-  promise
-    .then(returnValue => {
-      callbackResult = returnValue;
-      hasResult = true;
-    })
-    .catch(error => {
-      callbackError = error;
-    })
-    .finally(() => {
-      if (callbackError) {
-        cb(callbackError, null);
-      } else if (hasResult) {
-        cb(null, callbackResult);
-      }
-    });
+  promise.then(
+    returnValue => {
+      callCb(null, returnValue);
+    },
+    error => {
+      callCb(error, null);
+    },
+  );
 }
 
 // Sync functions
@@ -102,7 +104,7 @@ const autodetect = {};
  * Download an iCal file from the web and parse it.
  *
  * @param {string} url                - URL of file to request.
- * @param {Object|icsCallback} [opts] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
+ * @param {object | icsCallback} [options] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
  *                                      Alternatively you can pass the callback function directly.
  *                                      If no callback is provided a promise will be returned.
  * @param {icsCallback} [cb]          - Callback function.
@@ -117,33 +119,60 @@ async.fromURL = function (url, options, cb) {
     options = undefined;
   }
 
-  return promiseCallback((resolve, reject) => {
-    const fetchOptions = (options && typeof options === 'object') ? {...options} : {};
-
-    fetch(url, fetchOptions)
-      .then(response => {
-        if (!response.ok) {
-          // Mimic previous error style
-          throw new Error(`${response.status} ${response.statusText}`);
-        }
-
-        return response.text();
-      })
-      .then(data => {
-        ical.parseICS(data, (error, ics) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-
-          resolve(ics);
-        });
-      })
-      .catch(error => {
-        reject(error);
-      });
-  }, cb);
+  return promiseCallback(fromURLAsync(url, options), cb);
 };
+
+/**
+ * Parse iCal data from a string and resolve with the result.
+ *
+ * @param {string} data - String containing iCal data.
+ *
+ * @returns {Promise<iCalData>} Promise resolving to the parsed iCal data.
+ */
+function parseICSAsync(data) {
+  return new Promise((resolve, reject) => {
+    ical.parseICS(data, (error, ics) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve(ics);
+    });
+  });
+}
+
+/**
+ * Read a file from disk and parse its iCal data.
+ *
+ * @param {string} filename - File path to load.
+ *
+ * @returns {Promise<iCalData>} Promise resolving to the parsed iCal data.
+ */
+async function parseFileAsync(filename) {
+  const data = await fs.promises.readFile(filename, 'utf8');
+  return parseICSAsync(data);
+}
+
+/**
+ * Fetch an iCal file over HTTP and parse its contents.
+ *
+ * @param {string} url       - URL of file to request.
+ * @param {object} [options] - Options to pass to fetch(). Supports headers and any standard RequestInit fields.
+ *
+ * @returns {Promise<iCalData>} Promise resolving to the parsed iCal data.
+ */
+async function fromURLAsync(url, options) {
+  const fetchOptions = (options && typeof options === 'object') ? {...options} : {};
+  const response = await fetch(url, fetchOptions);
+  if (!response.ok) {
+    // Mimic previous error style
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.text();
+  return parseICSAsync(data);
+}
 
 /**
  * Load iCal data from a file and parse it.
@@ -155,23 +184,7 @@ async.fromURL = function (url, options, cb) {
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
 async.parseFile = function (filename, cb) {
-  return promiseCallback((resolve, reject) => {
-    fs.readFile(filename, 'utf8', (error, data) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      ical.parseICS(data, (error, ics) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve(ics);
-      });
-    });
-  }, cb);
+  return promiseCallback(parseFileAsync(filename), cb);
 };
 
 /**
@@ -184,16 +197,7 @@ async.parseFile = function (filename, cb) {
  * @returns {optionalPromise} Promise is returned if no callback is passed.
  */
 async.parseICS = function (data, cb) {
-  return promiseCallback((resolve, reject) => {
-    ical.parseICS(data, (error, ics) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      resolve(ics);
-    });
-  }, cb);
+  return promiseCallback(parseICSAsync(data), cb);
 };
 
 /**
@@ -328,7 +332,7 @@ function createLocalDateFromUTC(utcDate) {
  * @returns {number} Duration in milliseconds
  */
 function getEventDurationMs(eventData, isFullDay) {
-  if (eventData?.start && eventData?.end) {
+  if (eventData?.start && eventData.end) {
     return new Date(eventData.end).getTime() - new Date(eventData.start).getTime();
   }
 
@@ -348,7 +352,7 @@ function getEventDurationMs(eventData, isFullDay) {
  * @returns {Date} End time for this instance
  */
 function calculateEndTime(start, eventData, isFullDay, baseDurationMs) {
-  const durationMs = (eventData?.start && eventData?.end)
+  const durationMs = (eventData?.start && eventData.end)
     ? getEventDurationMs(eventData, isFullDay)
     : (baseDurationMs ?? (isFullDay ? 24 * 60 * 60 * 1000 : 0));
 
@@ -437,7 +441,10 @@ function isExcludedByExdate(date, event, dateKey, isFullDay) {
   //   2. Fall back to dateKey only when the EXDATE itself is DATE-only (dateOnly
   //      is true), which by RFC 5545 intentionally excludes every instance on
   //      that calendar day regardless of time.
-  return Boolean(event.exdate[date.toISOString()] || event.exdate[dateKey]?.dateOnly);
+  const isoKey = date.toISOString();
+  const hasIsoExdate = Object.hasOwn(event.exdate, isoKey);
+  const dateKeyExdate = event.exdate[dateKey];
+  return hasIsoExdate || Boolean(dateKeyExdate?.dateOnly);
 }
 
 /**
@@ -469,7 +476,7 @@ function validateDateRange(from, to) {
  * @param {boolean} isFullDay
  * @param {boolean} expandOngoing
  * @param {number} baseDurationMs
- * @returns {{searchFrom: Date, searchTo: Date}}
+ * @returns {{searchFrom: Date, searchTo: Date}} Adjusted search range bounds
  */
 function adjustSearchRange(from, to, isFullDay, expandOngoing, baseDurationMs) {
   let searchFrom;
@@ -550,7 +557,7 @@ function buildRecurringInstance(date, event, isFullDay, baseDurationMs, options)
     event: instanceEvent,
   };
 
-  copyDateMeta(instance.start, isOverride ? instanceEvent.start : event.start);
+  copyDateMeta(instance.start, (isOverride ? instanceEvent : event).start);
   copyDateMeta(instance.end, instanceEvent.end || event.end);
 
   return instance;
