@@ -5,6 +5,7 @@
  * @see https://github.com/jens-maus/node-ical/issues/144
  */
 const assert = require('node:assert/strict');
+const process = require('node:process');
 const {describe, it} = require('mocha');
 const ical = require('../node-ical.js');
 
@@ -128,29 +129,40 @@ END:VCALENDAR`;
       assert.equal(events.length, 2);
     });
 
-    it('should call callback only once even if it throws', done => {
-      // Regression test: if callback is inside try-catch, an error thrown by
-      // the callback would be caught and cause a double callback
+    it('invokes the callback exactly once and surfaces a throwing callback', done => {
+      // The two-argument form of promise.then() guarantees cb runs at most once:
+      // an error thrown by cb is not re-routed into the rejection handler.
+      // A throwing callback should surface as an uncaught exception (standard
+      // callback-API behavior), not be silently swallowed nor cause a 2nd call.
       let callbackCount = 0;
+
+      const originalListeners = process.listeners('uncaughtException');
+      process.removeAllListeners('uncaughtException');
+
+      const restore = () => {
+        process.removeListener('uncaughtException', onUncaught);
+        for (const listener of originalListeners) {
+          process.on('uncaughtException', listener);
+        }
+      };
+
+      function onUncaught(error) {
+        restore();
+        try {
+          assert.equal(callbackCount, 1, 'callback must be invoked exactly once');
+          assert.equal(error.message, 'User callback error');
+          done();
+        } catch (assertionError) {
+          done(assertionError);
+        }
+      }
+
+      process.on('uncaughtException', onUncaught);
 
       ical.parseICS(validICS, () => {
         callbackCount++;
-
-        if (callbackCount > 1) {
-          done(new Error('Callback was called more than once'));
-          return;
-        }
-
-        // Throw after incrementing counter - this tests that parseICS
-        // doesn't catch this error and call the callback again
         throw new Error('User callback error');
       });
-
-      // Give it time for potential double callback
-      setTimeout(() => {
-        assert.equal(callbackCount, 1);
-        done();
-      }, 50);
     });
   });
 });

@@ -66,28 +66,31 @@ function promiseCallback(promise, cb) {
     return promise;
   }
 
-  // Store result/error outside .then/.catch to avoid double-callback
-  // if the user's callback throws (the thrown error would be caught by
-  // the promise chain and trigger .catch, calling cb a second time)
-  let callbackError = null;
-  let callbackResult = null;
-  let hasResult = false;
+  // Using the two-argument form of then() (instead of then().catch()) is what
+  // guarantees the callback runs at most once: an exception thrown by cb inside
+  // the onFulfilled handler rejects the returned promise, it is NOT routed to
+  // the onRejected handler, so cb can never be invoked a second time.
+  const callCb = (error, result) => {
+    try {
+      cb(error, result);
+    } catch (callbackError) {
+      // The consumer uses a callback API and should not have to know a promise
+      // is used internally. Surface their error as a normal uncaught exception
+      // rather than leaking it as an unhandled promise rejection.
+      queueMicrotask(() => {
+        throw callbackError;
+      });
+    }
+  };
 
-  promise
-    .then(returnValue => {
-      callbackResult = returnValue;
-      hasResult = true;
-    })
-    .catch(error => {
-      callbackError = error;
-    })
-    .finally(() => {
-      if (callbackError) {
-        cb(callbackError, null);
-      } else if (hasResult) {
-        cb(null, callbackResult);
-      }
-    });
+  promise.then(
+    returnValue => {
+      callCb(null, returnValue);
+    },
+    error => {
+      callCb(error, null);
+    },
+  );
 }
 
 // Sync functions
