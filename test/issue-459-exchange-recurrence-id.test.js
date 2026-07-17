@@ -10,10 +10,13 @@
  * The RECURRENCE-ID midnight in CET (UTC+1) becomes 2026-02-25T23:00:00Z in UTC,
  * causing getDateKey() to return "2026-02-25" instead of the correct "2026-02-26".
  */
-const assert = require('node:assert');
-const path = require('node:path');
-const {describe, it, before} = require('mocha');
-const ical = require('../node-ical.js');
+import assert from 'node:assert';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {before, describe, it} from 'mocha';
+import ical from 'node-ical';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('Issue #459 - Exchange DATE-TIME RECURRENCE-ID on DATE-only event', () => {
   let events;

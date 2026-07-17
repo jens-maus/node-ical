@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "commonjs",
+    "target": "es2025",
+    "module": "nodenext",
     "allowJs": true,
     "checkJs": false,
     "declaration": false,
@@ -10,7 +10,7 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "resolveJsonModule": true,
     "noEmit": true
   },

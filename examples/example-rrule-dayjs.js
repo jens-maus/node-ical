@@ -17,12 +17,15 @@
  * fixed window (here: calendar year 2017) keeps expansion finite and practical.
  */
 
-const path = require('node:path');
-const dayjs = require('dayjs');
-const utc = require('dayjs/plugin/utc');
-const duration = require('dayjs/plugin/duration');
-const localizedFormat = require('dayjs/plugin/localizedFormat');
-const ical = require('../node-ical.js');
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import dayjs from 'dayjs';
+import duration from 'dayjs/plugin/duration.js';
+import localizedFormat from 'dayjs/plugin/localizedFormat.js';
+import utc from 'dayjs/plugin/utc.js';
+import ical from 'node-ical';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Extend Day.js with plugins for timezone and duration support
 dayjs.extend(utc);

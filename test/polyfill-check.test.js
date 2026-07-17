@@ -1,7 +1,10 @@
-const assert = require('node:assert/strict');
-const {execSync} = require('node:child_process');
-const path = require('node:path');
-const {describe, it} = require('mocha');
+import assert from 'node:assert/strict';
+import {execSync} from 'node:child_process';
+import {createRequire} from 'node:module';
+import path from 'node:path';
+import {describe, it} from 'mocha';
+
+const require = createRequire(import.meta.url);
 
 describe('Temporal Polyfill Configuration', () => {
   it('should NOT have JSBI dependency installed', () => {

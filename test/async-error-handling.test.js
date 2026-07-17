@@ -4,10 +4,15 @@
  * Related to Issue #144: Uncatchable exception in async mode
  * @see https://github.com/jens-maus/node-ical/issues/144
  */
-const assert = require('node:assert/strict');
-const process = require('node:process');
-const {describe, it} = require('mocha');
-const ical = require('../node-ical.js');
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import {fileURLToPath} from 'node:url';
+import {describe, it} from 'mocha';
+import ical from 'node-ical';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Helper to promisify the callback-based async.parseICS API
 function parseICSPromise(data) {
@@ -197,9 +202,7 @@ describe('parseICS sync vs async parity', () => {
       // This demonstrates the actual bug: exceptions thrown in setImmediate callbacks
       // escape to the global uncaughtException handler instead of being passed to the callback
 
-      const fs = require('node:fs');
-      const path = require('node:path');
-      const largeICS = fs.readFileSync(
+      const largeICS = readFileSync(
         path.join(__dirname, 'fixtures', 'large-file-with-late-error.ics'),
         'utf8',
       );

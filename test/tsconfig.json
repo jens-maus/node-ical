@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "Node16",
-    "lib": ["ES2020", "DOM"],
+    "target": "es2025",
+    "module": "nodenext",
+    "lib": ["ES2025", "DOM"],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "moduleResolution": "node16"
+    "moduleResolution": "nodenext"
   },
   "include": ["types.test.ts", "../node-ical.d.ts"]
 }

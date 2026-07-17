@@ -1,8 +1,8 @@
 /* eslint-disable max-nested-callbacks */
-const assert = require('node:assert/strict');
-const {describe, it, before} = require('mocha');
-const tz = require('../lib/tz-utils.js');
-const ical = require('../node-ical.js');
+import assert from 'node:assert/strict';
+import {before, describe, it} from 'mocha';
+import tz from '../lib/tz-utils.js';
+import ical from 'node-ical';
 
 function assertDurationCase(event, testCase) {
   switch (testCase.expected) {
@@ -574,7 +574,7 @@ END:VCALENDAR`;
 
       // Floating DTSTART (no TZID param) should still resolve via the VTIMEZONE
       // on the parser stack when the VTIMEZONE carries a custom TZID that
-      // resolveTZID alone cannot map.  This exercises the resolveVTimezoneToIana
+      // resolveTZID alone cannot map. This exercises the resolveVTimezoneToIana
       // fallback inside fallbackWithStackTimezone().
       it('resolves floating DTSTART via VTIMEZONE STANDARD/DAYLIGHT rules', () => {
         const data = ical.parseFile('./test/fixtures/floating-dtstart-custom-vtimezone.ics');
@@ -654,6 +654,7 @@ END:VCALENDAR`;
     });
 
     // Test_with_multiple_tzids_in_vtimezone.ics – select correct tz across multiple components
+    // (node-ical issue #305 / PR #307 - washougal.k12.wa.us school calendar).
     it('chooses correct tz across components (test_with_multiple_tzids_in_vtimezone.ics)', () => {
       const data = ical.parseFile('./test/fixtures/test_with_multiple_tzids_in_vtimezone.ics');
       const event = Object.values(data).find(x => x.uid === '1891-1709856000-1709942399@www.washougal.k12.wa.us');

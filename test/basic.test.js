@@ -1,7 +1,7 @@
-const assert_ = require('node:assert/strict');
-const {describe, it} = require('mocha');
-const tz = require('../lib/tz-utils.js');
-const ical = require('../node-ical.js');
+import assert_ from 'node:assert/strict';
+import {describe, it} from 'mocha';
+import tz from '../lib/tz-utils.js';
+import ical from 'node-ical';
 
 // Map 'Etc/Unknown' TZID used in fixtures to a concrete zone
 tz.linkAlias('Etc/Unknown', 'Etc/GMT');

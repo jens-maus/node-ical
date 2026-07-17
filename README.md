@@ -15,6 +15,19 @@ node-ical is available on npm:
 npm install node-ical
 ```
 
+## Module formats
+node-ical provides an ESM-first entry point while keeping CommonJS compatibility.
+
+```javascript
+// ESM
+import ical from 'node-ical';
+```
+
+```javascript
+// CommonJS
+const ical = require('node-ical');
+```
+
 ## API
 The API has now been broken into three sections:
  - [sync](#sync)
@@ -29,8 +42,8 @@ All functions will either return a promise for `async/await` or use a callback i
 
 `autodetect` provides a mix of both for backwards compatibility with older node-ical applications.
 
-All API functions are documented using JSDoc in the [node-ical.js](node-ical.js) file.
-This allows for IDE hinting!
+All API functions are documented in the runtime entry files and exposed through the bundled typings in [node-ical.d.ts](node-ical.d.ts).
+This allows for IDE hinting in both CommonJS and ESM projects.
 
 ### sync
 ```javascript
@@ -197,9 +210,9 @@ Fetch the specified URL using the native fetch API (```options``` are passed to 
 
 #### Example: Print list of upcoming node conferences
 
-See [`examples/example.mjs`](./examples/example.mjs) for a full example script.
+See [`examples/example.js`](./examples/example.js) for a full example script.
 
-> **Note:** This snippet uses `import` and top-level `await` (ESM). Save it as a `.mjs` file, or add `"type": "module"` to your `package.json`.
+> **Note:** This snippet uses `import` and top-level `await` (ESM). Save it as a `.mjs` file, or add `"type": "module"` to your `package.json`. If you prefer CommonJS in your own project, keep using `require('node-ical')` from a `.cjs` file.
 
 ```javascript
 import ical from 'node-ical';

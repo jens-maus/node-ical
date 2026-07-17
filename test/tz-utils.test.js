@@ -1,7 +1,7 @@
-const assert = require('node:assert/strict');
-const process = require('node:process');
-const {describe, it} = require('mocha');
-const tz = require('../lib/tz-utils.js');
+import assert from 'node:assert/strict';
+import process from 'node:process';
+import {describe, it} from 'mocha';
+import tz from '../lib/tz-utils.js';
 
 describe('unit: tz-utils', () => {
   it('validates IANA zone names', () => {

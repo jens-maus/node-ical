@@ -1,7 +1,7 @@
-const assert = require('node:assert/strict');
-const http = require('node:http');
-const {describe, it} = require('mocha');
-const ical = require('../node-ical.js');
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import {describe, it} from 'mocha';
+import ical from 'node-ical';
 
 const ICS_TEMPLATE = [
   'BEGIN:VCALENDAR',

@@ -5,7 +5,7 @@
  * resulting VEVENT entries using the Promise-based API.
  */
 
-import ical from '../node-ical.js';
+import ical from 'node-ical';
 
 const url = 'https://raw.githubusercontent.com/jens-maus/node-ical/master/test/fixtures/festival-multiday-rrule.ics';
 

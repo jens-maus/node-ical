@@ -1,9 +1,27 @@
 {
   "name": "node-ical",
   "version": "0.26.1",
-  "main": "node-ical.js",
+  "type": "module",
+  "main": "node-ical.cjs",
+  "exports": {
+    ".": {
+      "types": "./node-ical.d.ts",
+      "import": "./node-ical.js",
+      "require": "./node-ical.cjs",
+      "default": "./node-ical.js"
+    },
+    "./package.json": "./package.json"
+  },
   "types": "node-ical.d.ts",
   "description": "NodeJS class for parsing iCalendar/ICS files",
+  "files": [
+    "node-ical.cjs",
+    "node-ical.js",
+    "node-ical.d.ts",
+    "ical.js",
+    "lib/**/*.js",
+    "windowsZones.json"
+  ],
   "keywords": [
     "ical",
     "ics",
@@ -30,6 +48,7 @@
   "devDependencies": {
     "date-fns": "^4.4.0",
     "dayjs": "^1.11.21",
+    "esbuild": "^0.28.1",
     "fast-xml-parser": "^5.9.3",
     "lint-staged": "^17.0.8",
     "luxon": "^3.7.2",
@@ -56,14 +75,17 @@
     }
   },
   "scripts": {
-    "examples": "node examples/example-rrule-basic.js && node examples/example-rrule-moment.js && node examples/example-rrule-luxon.js && node examples/example-rrule-dayjs.js && node examples/example-rrule-datefns.js && node examples/example-rrule-vanilla.js && node examples/example.mjs",
-    "test": "npm run test:types && xo && mocha --timeout 8000",
+    "examples": "node examples/example-rrule-basic.js && node examples/example-rrule-moment.js && node examples/example-rrule-luxon.js && node examples/example-rrule-dayjs.js && node examples/example-rrule-datefns.js && node examples/example-rrule-vanilla.js && node examples/example.js",
+    "build:cjs": "node build/build-cjs.js",
+    "pretest": "npm run build:cjs",
+    "test": "npm run test:types && xo && mocha --extension js --timeout 8000",
     "test:types": "tsc --project test/tsconfig.json",
     "lint": "xo",
     "lintfix": "xo --fix",
-    "prepare": "simple-git-hooks",
-    "build": "node build/update-windows-zones.mjs",
-    "build:strict": "node build/update-windows-zones.mjs --strict"
+    "prepare": "simple-git-hooks && npm run build:cjs",
+    "prepack": "npm run build:cjs",
+    "build": "node build/update-windows-zones.js",
+    "build:strict": "node build/update-windows-zones.js --strict"
   },
   "simple-git-hooks": {
     "pre-commit": "npx --no lint-staged",

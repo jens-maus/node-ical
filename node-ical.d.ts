@@ -109,6 +109,23 @@ declare module 'node-ical' {
     options: ExpandRecurringEventOptions,
   ): EventInstance[];
 
+  declare const _default: {
+    fromURL: typeof fromURL;
+    parseFile: typeof parseFile;
+    parseICS: typeof parseICS;
+    sync: typeof sync;
+    async: typeof async;
+    expandRecurringEvent: typeof expandRecurringEvent;
+    /** Internal compatibility hooks; intentionally left loose to avoid encouraging direct use. */
+    objectHandlers: unknown;
+    /** Internal compatibility hooks; intentionally left loose to avoid encouraging direct use. */
+    handleObject: unknown;
+    /** Internal compatibility hooks; intentionally left loose to avoid encouraging direct use. */
+    parseLines: unknown;
+  };
+
+  export default _default;
+
   /**
    * Options for expanding recurring events
    */

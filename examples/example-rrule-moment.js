@@ -13,9 +13,12 @@
  * fixed window (here: calendar year 2017) keeps expansion finite and practical.
  */
 
-const path = require('node:path');
-const moment = require('moment-timezone');
-const ical = require('../node-ical.js');
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import moment from 'moment-timezone';
+import ical from 'node-ical';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load an example iCal file with various recurring events.
 const data = ical.parseFile(path.join(__dirname, 'example-rrule.ics'));

@@ -18,8 +18,11 @@
  * fixed window (here: calendar year 2017) keeps expansion finite and practical.
  */
 
-const path = require('node:path');
-const ical = require('../node-ical.js');
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import ical from 'node-ical';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Helper function to format duration from milliseconds to hours:minutes
 function formatDuration(ms) {
