@@ -1,8 +1,8 @@
 /* eslint-disable prefer-arrow-callback */
 
-const assert = require('node:assert/strict');
-const {describe, it} = require('mocha');
-const ical = require('../node-ical.js');
+import assert from 'node:assert/strict';
+import {describe, it} from 'mocha';
+import ical from 'node-ical';
 
 describe('DATE-only RRULE with UNTIL (regression test for Google Calendar birthday events)', function () {
   it('should parse DATE-only events with yearly RRULE and UNTIL in the past', function () {

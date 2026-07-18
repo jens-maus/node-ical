@@ -1,8 +1,8 @@
 /* eslint-disable prefer-arrow-callback */
 
-const assert = require('node:assert/strict');
-const {describe, it} = require('mocha');
-const ical = require('../node-ical.js');
+import assert from 'node:assert/strict';
+import {describe, it} from 'mocha';
+import ical from 'node-ical';
 
 /**
  * Regression tests for Google Calendar's UNTIL format bug (#435, rrule-temporal#104).

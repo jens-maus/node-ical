@@ -1,3 +1,6 @@
 node_modules
 .idea
 .DS_Store
+
+# Generated CommonJS entry (built from node-ical.js via `npm run build:cjs`)
+node-ical.cjs

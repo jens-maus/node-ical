@@ -1,10 +1,13 @@
 /* eslint-disable prefer-arrow-callback */
 
-const assert = require('node:assert/strict');
-const {readFileSync} = require('node:fs');
-const path = require('node:path');
-const {describe, it} = require('mocha');
-const ical = require('../node-ical.js');
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {describe, it} from 'mocha';
+import ical from 'node-ical';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('Non-UTC UNTIL in RRULE', function () {
   describe('when DTSTART has TZID=Europe/Berlin', function () {

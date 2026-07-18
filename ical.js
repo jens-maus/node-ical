@@ -1,49 +1,24 @@
-/* eslint-disable max-depth, max-params, no-warning-comments, complexity */
+/* eslint-disable max-params */
 
-const {randomUUID} = require('node:crypto');
-// Load Temporal polyfill if not natively available
-// TODO: Drop the polyfill branch once our minimum Node version ships Temporal
-const Temporal = globalThis.Temporal || require('temporal-polyfill').Temporal;
-// Ensure Temporal exists before loading rrule-temporal
-// eslint-disable-next-line unicorn/no-global-object-property-assignment -- simple polyfill bootstrap for CJS entrypoint
-globalThis.Temporal ??= Temporal;
-const {RRuleTemporal} = require('rrule-temporal');
-const {toText: toTextFunction} = require('rrule-temporal/totext');
-const tzUtil = require('./lib/tz-utils.js');
-const {getDateKey} = require('./lib/date-utils.js');
-
-/**
- * Clone a Date object and preserve custom metadata (tz, dateOnly).
- * @param {Date} source - Source Date object with optional tz and dateOnly properties
- * @param {Date|number} newTime - New time value (defaults to source)
- * @returns {Date} Cloned Date with preserved metadata
- */
-function cloneDateWithMeta(source, newTime = source) {
-  const cloned = new Date(newTime);
-
-  if (source?.tz) {
-    cloned.tz = source.tz;
-  }
-
-  if (source?.dateOnly) {
-    cloned.dateOnly = source.dateOnly;
-  }
-
-  return cloned;
-}
-
-/**
- * Extract string value from DURATION (handles {params, val} shape).
- * @param {string|object} duration - Duration value (string or object with val property)
- * @returns {string} Extracted duration string
- */
-function getDurationString(duration) {
-  if (typeof duration === 'object' && duration?.val) {
-    return String(duration.val);
-  }
-
-  return duration ? String(duration) : '';
-}
+import {randomUUID} from 'node:crypto';
+import {RRuleTemporal} from 'rrule-temporal';
+import {toText as toTextFunction} from 'rrule-temporal/totext';
+import {getDateKey} from './lib/date-utils.js';
+import {
+  parseValue,
+  finalizeEndedComponent,
+  ensureRruleHasDtstart,
+  buildRruleStringForTemporal,
+  buildRruleCompatWrapper,
+  storeParameter,
+  typeParameter,
+  addTZFactory,
+  createDateParameterFactory,
+  createComponentParameterHandlers,
+  createExdateParameterFactory,
+} from './lib/ical-parser-utils.js';
+import {Temporal} from './lib/temporal.js';
+import tzUtil from './lib/tz-utils.js';
 
 /**
  * Store a recurrence override with dual-key strategy.
@@ -209,331 +184,26 @@ class RRuleCompatWrapper {
  *  <peterbraden@peterbraden.co.uk>
  */
 
-// Unescape Text re RFC 4.3.11
-const text = function (t = '') {
-  return t
-    .replaceAll(String.raw`\,`, ',') // Unescape escaped commas
-    .replaceAll(String.raw`\;`, ';') // Unescape escaped semicolons
-    .replaceAll(/\\n/giv, '\n') // Replace escaped newlines with actual newlines
-    .replaceAll('\\\\', '\\') // Unescape backslashes
-    .replace(/^"(.*)"$/v, '$1'); // Remove surrounding double quotes, if present
-};
+const addTZ = addTZFactory(tzUtil.attachTz);
+const dateParameter = createDateParameterFactory({
+  addTZ,
+  tzUtil,
+});
 
-const parseValue = function (value) {
-  if (value === 'TRUE') {
-    return true;
-  }
+const {
+  geoParameter,
+  categoriesParameter,
+  recurrenceParameter,
+  freebusyParameter,
+} = createComponentParameterHandlers({
+  dateParameter,
+  utcAdd: tzUtil.utcAdd,
+});
 
-  if (value === 'FALSE') {
-    return false;
-  }
-
-  const number = Number(value);
-  if (!Number.isNaN(number)) {
-    return number;
-  }
-
-  // Remove quotes if found
-  value = value.replace(/^"(.*)"$/v, '$1');
-
-  return value;
-};
-
-const parseParameters = function (p) {
-  const out = {};
-  for (const element of p) {
-    if (element.includes('=')) {
-      const segs = element.split('=');
-
-      out[segs[0]] = parseValue(segs.slice(1).join('='));
-    }
-  }
-
-  // Sp is not defined in this scope, typo?
-  // original code from peterbraden
-  // return out || sp;
-  return out;
-};
-
-const storeValueParameter = function (name) {
-  return function (value, curr) {
-    const current = curr[name];
-
-    if (Array.isArray(current)) {
-      current.push(value);
-      return curr;
-    }
-
-    curr[name] = current === undefined ? value : [current, value];
-
-    return curr;
-  };
-};
-
-const storeParameter = function (name) {
-  return function (value, parameters, curr) {
-    const data = parameters && parameters.length > 0
-      && !(parameters.length === 1 && (parameters[0] === 'CHARSET=utf-8' || parameters[0] === 'VALUE=TEXT'))
-      ? {params: parseParameters(parameters), val: text(value)}
-      : text(value);
-
-    return storeValueParameter(name)(data, curr);
-  };
-};
-
-const addTZ = function (dt, parameters) {
-  if (!dt) {
-    return dt;
-  }
-
-  const p = parseParameters(parameters);
-  if (parameters && p && p.TZID !== undefined) {
-    let tzid = p.TZID.toString();
-    // Remove surrounding quotes if found at the beginning and at the end of the string
-    // (Occurs when parsing Microsoft Exchange events containing TZID with Windows standard format instead IANA)
-    tzid = tzid.replace(/^"(.*)"$/v, '$1');
-    return tzUtil.attachTz(dt, tzid);
-  }
-
-  if (dt.tz) {
-    return tzUtil.attachTz(dt, dt.tz);
-  }
-
-  return dt;
-};
-
-function isDateOnly(value, parameters) {
-  const dateOnly = ((parameters && parameters.includes('VALUE=DATE') && !parameters.includes('VALUE=DATE-TIME')) || /^\d{8}$/v.test(value) === true);
-  return dateOnly;
-}
-
-const typeParameter = function (name) {
-  // Typename is not used in this function?
-  return function (value, parameters, curr) {
-    const returnValue = isDateOnly(value, parameters) ? 'date' : 'date-time';
-    return storeValueParameter(name)(returnValue, curr);
-  };
-};
-
-// Find a VTIMEZONE block in the parser stack.  When tzid is given, only
-// the block whose (quote-stripped) tzid matches is returned; without tzid
-// the first VTIMEZONE found is returned (floating-DTSTART branch).
-function findVtimezoneInStack(stack, tzid) {
-  for (const item of (stack || [])) {
-    for (const v of Object.values(item)) {
-      if (v && v.type === 'VTIMEZONE') {
-        if (!tzid) {
-          return v;
-        }
-
-        const ids = Array.isArray(v.tzid) ? v.tzid : [v.tzid];
-        if (ids.some(id => String(id).replace(/^"(.*)"$/v, '$1') === tzid)) {
-          return v;
-        }
-      }
-    }
-  }
-}
-
-const dateParameter = function (name) {
-  return function (value, parameters, curr, stack) {
-    // A schemed TZID like "tzone://Microsoft/Utc" gets split at its "://" colon
-    // by the line parser, so the scheme tail leaks into `value`. Repair both by
-    // re-splitting `value` at the date's colon.
-    const pi = parameters.indexOf('TZID=tzone');
-    if (pi !== -1) {
-      const firstColon = value.indexOf(':');
-      const tzidRemainder = value.slice(0, firstColon);
-      const dateValue = value.slice(firstColon + 1);
-
-      parameters[pi] = `TZID=tzone:${tzidRemainder}`;
-      value = dateValue;
-    }
-
-    let newDate = text(value);
-
-    // Process 'VALUE=DATE' and EXDATE
-    if (isDateOnly(value, parameters)) {
-      // Just Date
-
-      const comps = /^(\d{4})(\d{2})(\d{2}).*$/v.exec(value);
-      if (comps !== null) {
-        // No TZ info - assume same timezone as this computer
-        newDate = new Date(comps[1], Number(comps[2]) - 1, comps[3]);
-
-        newDate.dateOnly = true;
-
-        // Store as string - worst case scenario
-        return storeValueParameter(name)(newDate, curr);
-      }
-    }
-
-    // Typical RFC date-time format
-    const comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/v.exec(value);
-    if (comps !== null) {
-      const year = Number(comps[1]);
-      const monthIndex = Number(comps[2]) - 1;
-      const day = Number(comps[3]);
-      const hour = Number(comps[4]);
-      const minute = Number(comps[5]);
-      const second = Number(comps[6]);
-
-      if (comps[7] === 'Z') {
-        // GMT
-        newDate = new Date(Date.UTC(year, monthIndex, day, hour, minute, second));
-        tzUtil.attachTz(newDate, 'Etc/UTC');
-      } else if (curr.type === 'STANDARD' || curr.type === 'DAYLIGHT') {
-        // Inside a VTIMEZONE observance block the DTSTART is a plain local
-        // wall-clock time that defines when the rule takes effect — it must
-        // NOT trigger timezone resolution (which would look up the *enclosing*
-        // VTIMEZONE and could crash on exotic years like 0001).
-        newDate = new Date(year, monthIndex, day, hour, minute, second);
-        newDate.setFullYear(year);
-      } else {
-        const fallbackWithStackTimezone = () => {
-          const vTimezone = findVtimezoneInStack(stack);
-
-          // If the VTIMEZONE contains multiple TZIDs (against RFC), use last one
-          const normalizedTzId = vTimezone
-            ? (Array.isArray(vTimezone.tzid) ? vTimezone.tzid.at(-1) : vTimezone.tzid)
-            : null;
-
-          if (!normalizedTzId) {
-            return new Date(year, monthIndex, day, hour, minute, second);
-          }
-
-          let resolvedTzId = String(normalizedTzId).replace(/^"(.*)"$/v, '$1');
-
-          // When a VTIMEZONE block is present, prefer its STANDARD/DAYLIGHT offset data over
-          // a pure string-based TZID lookup.  This handles both well-known IANA names (where
-          // the embedded rules may be more historically precise) and completely custom TZIDs
-          // (e.g. Microsoft's "Customized Time Zone", "tzone://Microsoft/Custom") that
-          // resolveTZID cannot look up at all.
-          // Only replace resolvedTzId when resolution actually succeeds; otherwise keep the
-          // original value so resolveTZID can make a best effort — never substitute the host
-          // zone via guessLocalZone().
-          if (vTimezone) {
-            const resolved = tzUtil.resolveVTimezoneToIana(vTimezone, year);
-            if (resolved.iana || resolved.offset) {
-              resolvedTzId = resolved.iana || resolved.offset;
-            }
-          }
-
-          const tzInfo = tzUtil.resolveTZID(resolvedTzId);
-          const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
-          if (offsetString) {
-            return tzUtil.parseWithOffset(value, offsetString);
-          }
-
-          if (tzInfo.iana) {
-            return tzUtil.parseDateTimeInZone(value, tzInfo.iana);
-          }
-
-          return new Date(year, monthIndex, day, hour, minute, second);
-        };
-
-        if (parameters) {
-          const parameterMap = parseParameters(parameters);
-          let tz = parameterMap.TZID;
-
-          const findTZIDIndex = () => {
-            if (!Array.isArray(parameters)) {
-              return -1;
-            }
-
-            return parameters.findIndex(parameter => typeof parameter === 'string' && parameter.toUpperCase().startsWith('TZID='));
-          };
-
-          let tzParameterIndex = findTZIDIndex();
-          const setTZIDParameter = newTZID => {
-            if (!Array.isArray(parameters)) {
-              return;
-            }
-
-            const normalized = 'TZID=' + newTZID;
-            if (tzParameterIndex >= 0) {
-              parameters[tzParameterIndex] = normalized;
-            } else {
-              parameters.push(normalized);
-              tzParameterIndex = parameters.length - 1;
-            }
-          };
-
-          if (tz) {
-            tz = tz.toString().replace(/^"(.*)"$/v, '$1');
-
-            if (tz === 'tzone://Microsoft/Custom' || tz === '(no TZ description)' || tz.startsWith('Customized Time Zone') || tz.startsWith('tzone://Microsoft/')) {
-              // Outlook and Exchange often emit custom TZID values (e.g. "Customized Time Zone")
-              // together with a VTIMEZONE section that contains the real STANDARD/DAYLIGHT rules.
-              // Try to match those rules to a known IANA zone so that recurring events that span
-              // DST boundaries are handled correctly.  Falls back to guessLocalZone() when no
-              // VTIMEZONE is present or its offsets cannot be resolved.
-              const originalTz = tz;
-              const stackVTimezone = findVtimezoneInStack(stack, originalTz);
-
-              if (stackVTimezone) {
-                const resolved = tzUtil.resolveVTimezoneToIana(stackVTimezone, year);
-                // Only override when resolution succeeds; keep the original tz otherwise
-                // so resolveTZID can make a best effort — never substitute guessLocalZone()
-                if (resolved.iana || resolved.offset) {
-                  tz = resolved.iana || resolved.offset;
-                }
-              } else {
-                tz = tzUtil.guessLocalZone();
-              }
-            }
-
-            const tzInfo = tzUtil.resolveTZID(tz);
-            const resolvedTZID = tzInfo.iana || tzInfo.original || tz;
-            setTZIDParameter(resolvedTZID);
-
-            // Prefer an explicit numeric offset because it keeps DTSTART wall-time semantics accurate across DST transitions.
-            const offsetString = typeof tzInfo.offset === 'string' ? tzInfo.offset : undefined;
-            if (offsetString) {
-              newDate = tzUtil.parseWithOffset(value, offsetString);
-            } else if (tzInfo.iana) {
-              newDate = tzUtil.parseDateTimeInZone(value, tzInfo.iana);
-            } else {
-              newDate = new Date(year, monthIndex, day, hour, minute, second);
-            }
-
-            // Make sure to correct the parameters if the TZID= is changed
-            newDate = addTZ(newDate, parameters);
-          } else {
-            newDate = fallbackWithStackTimezone();
-          }
-        } else {
-          newDate = fallbackWithStackTimezone();
-        }
-      }
-    }
-
-    // Store as string - worst case scenario
-    return storeValueParameter(name)(newDate, curr);
-  };
-};
-
-const geoParameter = function (name) {
-  return function (value, parameters, curr) {
-    storeParameter(value, parameters, curr);
-    const parts = value.split(';');
-    curr[name] = {lat: Number(parts[0]), lon: Number(parts[1])};
-    return curr;
-  };
-};
-
-const categoriesParameter = function (name) {
-  return function (value, parameters, curr) {
-    storeParameter(value, parameters, curr);
-    if (curr[name] === undefined) {
-      curr[name] = value ? value.split(',').map(s => s.trim()) : [];
-    } else if (value) {
-      curr[name] = [...curr[name], ...value.split(',').map(s => s.trim())];
-    }
-
-    return curr;
-  };
-};
+const exdateParameter = createExdateParameterFactory({
+  dateParameter,
+  getDateKey,
+});
 
 // EXDATE is an entry that represents exceptions to a recurrence rule (ex: "repeat every day except on 7/4").
 // The EXDATE entry itself can also contain a comma-separated list, so we parse each date separately.
@@ -557,85 +227,10 @@ const categoriesParameter = function (name) {
 //   1. Floating times (without timezone) would create inconsistent ISO strings
 //   2. DST transitions can affect exact time matching
 //   3. Real-world calendar data often has mismatched times between RRULE and EXDATE
-const exdateParameter = function (name) {
-  return function (value, parameters, curr) {
-    curr[name] ||= {};
-    const dates = value ? value.split(',').map(s => s.trim()) : [];
-
-    for (const entry of dates) {
-      // Temporary container for dateParameter() to write to
-      const temporaryContainer = {};
-      dateParameter(name)(entry, parameters, temporaryContainer);
-
-      const dateValue = temporaryContainer[name];
-      if (!dateValue) {
-        continue;
-      }
-
-      if (typeof dateValue.toISOString !== 'function') {
-        console.warn(`[node-ical] Invalid exdate value (no toISOString): ${dateValue}`);
-        continue;
-      }
-
-      const isoString = dateValue.toISOString();
-
-      // For date-only events, use local date components to avoid UTC timezone shift
-      // (e.g., 2024-07-15 midnight in UTC+2 would be 2024-07-14T22:00Z, giving wrong dateKey)
-      const dateKey = getDateKey(dateValue);
-
-      // Always store with date-only key for backward compatibility and simple lookups
-      curr[name][dateKey] = dateValue;
-
-      // For DATE-TIME entries, also store with full ISO string for precise matching
-      // This enables excluding specific instances when events recur multiple times per day
-      // Note: dateOnly is already set by dateParameter() which checks the raw value and parameters
-      if (!dateValue.dateOnly) {
-        curr[name][isoString] = dateValue;
-      }
-    }
-
-    return curr;
-  };
-};
-
-// RECURRENCE-ID is the ID of a specific recurrence within a recurrence rule.
-// TODO:  It's also possible for it to have a range, like "THISANDPRIOR", "THISANDFUTURE".  This isn't currently handled.
-const recurrenceParameter = function (name) {
-  return dateParameter(name);
-};
-
-const addFBType = function (fb, parameters) {
-  const p = parseParameters(parameters);
-
-  if (parameters && p) {
-    fb.type = p.FBTYPE || 'BUSY';
-  }
-
-  return fb;
-};
-
-const freebusyParameter = function (name) {
-  return function (value, parameters, curr) {
-    const fb = addFBType({}, parameters);
-    curr[name] ||= [];
-    curr[name].push(fb);
-
-    storeParameter(value, parameters, fb);
-
-    const parts = value.split('/');
-
-    for (const [index, partName] of ['start', 'end'].entries()) {
-      dateParameter(partName)(parts[index], parameters, fb);
-    }
-
-    return curr;
-  };
-};
-
 // Default batch size for async parsing to prevent event loop blocking
 const PARSE_BATCH_SIZE = 2000;
 
-module.exports = {
+const ical = {
   objectHandlers: {
     BEGIN(component, parameters, curr, stack) {
       stack.push(curr);
@@ -643,186 +238,6 @@ module.exports = {
       return {type: component};
     },
     END(value, parameters, curr, stack) {
-      // Original end function
-      const originalEnd = function (component, parameters_, current, parentStack) {
-        // Prevents the need to search the root of the tree for the VCALENDAR object
-        if (component === 'VCALENDAR') {
-          // Preserve VCALENDAR string properties in a separate 'vcalendar' object
-          // for easy access to calendar metadata
-          // (X-WR-CALNAME, X-WR-CALDESC, X-WR-TIMEZONE, METHOD, etc.)
-          let key;
-          const vcalendarProps = {};
-
-          for (key in current) {
-            if (!Object.hasOwn(current, key)) {
-              continue;
-            }
-
-            const object = current[key];
-            if (typeof object === 'string') {
-              vcalendarProps[key] = object;
-              delete current[key];
-            }
-          }
-
-          // Store VCALENDAR properties in a dedicated object for easy access
-          if (Object.keys(vcalendarProps).length > 0) {
-            current.vcalendar = vcalendarProps;
-          }
-
-          return current;
-        }
-
-        const par = parentStack.pop();
-
-        if (!current.end) { // RFC5545, 3.6.1
-          // Calculate end date based on DURATION or default rules
-          if (current.duration === undefined) {
-            // No DURATION: default end is same time (date-time) or +1 day (date-only)
-            current.end = current.datetype === 'date-time'
-              ? cloneDateWithMeta(current.start)
-              : cloneDateWithMeta(current.start, tzUtil.utcAdd(current.start, 1, 'days'));
-          } else {
-            const durationString = getDurationString(current.duration);
-            const durationParts = durationString.match(/-?\d{1,10}[DHMSW]/gv);
-
-            if (durationParts && durationParts.length > 0) {
-              // Valid DURATION: apply each component (W/D/H/M/S)
-              const units = {
-                W: 'weeks',
-                D: 'days',
-                H: 'hours',
-                M: 'minutes',
-                S: 'seconds',
-              };
-              const sign = durationString.startsWith('-') ? -1 : 1;
-
-              let endTime = current.start;
-              for (const part of durationParts) {
-                const durationValue = Number(part.slice(0, -1)) * sign;
-                const unit = units[part.slice(-1)];
-                endTime = tzUtil.utcAdd(endTime, durationValue, unit);
-              }
-
-              current.end = cloneDateWithMeta(current.start, endTime);
-            } else {
-              // Malformed DURATION (e.g., "P", "PT", "") → treat as zero duration
-              // Follows Postel's Law: be liberal in what you accept
-              console.warn(`[node-ical] Ignoring malformed DURATION value: "${durationString}" – treating as zero duration`);
-              current.end = cloneDateWithMeta(current.start);
-            }
-          }
-        }
-
-        if (current.uid) {
-          // If this is the first time we run into this UID, just save it.
-          if (par[curr.uid] === undefined) {
-            par[curr.uid] = curr;
-
-            if (par.method) { // RFC5545, 3.2
-              par[curr.uid].method = par.method;
-            }
-          } else if (curr.recurrenceid === undefined) {
-            // If we have multiple ical entries with the same UID, it's either going to be a
-            // modification to a recurrence (RECURRENCE-ID), and/or a significant modification
-            // to the entry (SEQUENCE).
-
-            // Special case: If existing entry is a RECURRENCE-ID override but current entry is the base series (has RRULE),
-            // we should always accept the base series regardless of SEQUENCE, as they serve different purposes.
-            // The RECURRENCE-ID will be stored separately in the recurrences array later.
-            const existingIsRecurrence = par[curr.uid].recurrenceid !== undefined;
-            // Note: This only detects RRULE-based series. RDATE-based recurring series
-            // (without RRULE) will fall through to SEQUENCE comparison.
-            const currentIsBaseSeries = curr.rrule !== undefined;
-
-            if (existingIsRecurrence && currentIsBaseSeries) {
-              // Existing is a recurrence override, current is the base series - always accept the base series
-              // Note: The stale recurrenceid on par[curr.uid] will be cleaned up by the
-              // existing recurrenceid-cleanup block below (after the recurrence-id handling section).
-              for (const key in curr) {
-                if (key !== null) {
-                  par[curr.uid][key] = curr[key];
-                }
-              }
-            } else {
-              // Both are base series entries (no RECURRENCE-ID) - apply SEQUENCE logic
-              // Check SEQUENCE to determine which version to keep (RFC 5545)
-              // Normalize SEQUENCE to number, default to 0 if invalid/missing
-              const existingSeq = Number.isFinite(par[curr.uid].sequence) ? par[curr.uid].sequence : 0;
-              const newSeq = Number.isFinite(curr.sequence) ? curr.sequence : 0;
-
-              if (newSeq < existingSeq) {
-                // Older version - ignore it entirely
-                console.warn(`[node-ical] Ignoring older event version (SEQUENCE ${newSeq} < ${existingSeq}) for UID ${curr.uid}`);
-              } else {
-                // Newer or same version - merge fields from the new record into the existing one
-                for (const key in curr) {
-                  if (key !== null) {
-                    par[curr.uid][key] = curr[key];
-                  }
-                }
-              }
-            }
-          }
-
-          // If we have recurrence-id entries, list them as an array of recurrences keyed off of recurrence-id.
-          // To use - as you're running through the dates of an rrule, you can try looking it up in the recurrences
-          // array.  If it exists, then use the data from the calendar object in the recurrence instead of the parent
-          // for that day.
-
-          // NOTE:  Sometimes the RECURRENCE-ID record will show up *before* the record with the RRULE entry.  In that
-          // case, what happens is that the RECURRENCE-ID record ends up becoming both the parent record and an entry
-          // in the recurrences array, and then when we process the RRULE entry later it overwrites the appropriate
-          // fields in the parent record.
-
-          if (curr.recurrenceid !== undefined) {
-            // Create a copy of the current object to save in our recurrences array.  (We *could* just do par = curr,
-            // except for the case that we get the RECURRENCE-ID record before the RRULE record.  In that case, we
-            // would end up with a shared reference that would cause us to overwrite *both* records at the point
-            // that we try and fix up the parent record.)
-            const recurrenceObject = {};
-            let key;
-            for (key in curr) {
-              if (key !== null) {
-                recurrenceObject[key] = curr[key];
-              }
-            }
-
-            if (recurrenceObject.recurrences !== undefined) {
-              delete recurrenceObject.recurrences;
-            }
-
-            // If we don't have an array to store recurrences in yet, create it.
-            if (par[curr.uid].recurrences === undefined) {
-              par[curr.uid].recurrences = {};
-            }
-
-            // Store the recurrence override with dual-key strategy (same as EXDATE)
-            storeRecurrenceOverride(par[curr.uid].recurrences, curr.recurrenceid, recurrenceObject);
-          }
-
-          // One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
-          // let's make sure to clear the recurrenceid off the parent field.
-          if (curr.uid !== '__proto__'
-            && par[curr.uid].rrule !== undefined
-            && par[curr.uid].recurrenceid !== undefined) {
-            delete par[curr.uid].recurrenceid;
-          }
-        } else if (component === 'VALARM' && (par.type === 'VEVENT' || par.type === 'VTODO')) {
-          par.alarms ??= [];
-          par.alarms.push(curr);
-        } else {
-          const id = randomUUID();
-          par[id] = curr;
-
-          if (par.method) { // RFC5545, 3.2
-            par[id].method = par.method;
-          }
-        }
-
-        return par;
-      };
-
       // Recurrence rules are only valid for VEVENT, VTODO, and VJOURNAL.
       // More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
       // due to the subtypes.
@@ -831,184 +246,25 @@ module.exports = {
         let rule = curr.rrule.replace('RRULE:', '');
         // Make sure the rrule starts with FREQ=
         rule = rule.slice(rule.lastIndexOf('FREQ='));
-        // If no rule start date
-        if (rule.includes('DTSTART') === false) {
-          // This a whole day event
-          if (curr.datetype === 'date') {
-            const originalStart = curr.start;
-
-            // Date-only: pass the wall-clock date from the local components directly,
-            // no system-timezone offset compensation needed.
-            const y = originalStart.getFullYear();
-            const m = originalStart.getMonth();
-            const d = originalStart.getDate();
-
-            // Rebuild as local midnight so downstream RRULE string formatting is unaffected
-            curr.start = new Date(y, m, d, 0, 0, 0, 0);
-
-            // Preserve any metadata that was attached to the original Date instance.
-            if (originalStart && originalStart.tz) {
-              tzUtil.attachTz(curr.start, originalStart?.tz);
-            }
-
-            if (originalStart && originalStart.dateOnly === true) {
-              curr.start.dateOnly = true;
-            }
-          }
-
-          // If the date has an toISOString function
-          if (curr.start && typeof curr.start.toISOString === 'function') {
-            try {
-              // If the original date has a TZID, add it
-              // BUT: UTC (Etc/UTC, UTC, Etc/GMT) should use ISO format with Z, not TZID
-              const isUtc = tzUtil.isUtcTimezone(curr.start.tz);
-
-              // For date-only events (VALUE=DATE), we need to preserve that information
-              // so rrule-temporal can properly validate UNTIL values.
-              // Use local date components since dateOnly dates are created with local timezone
-              // (see dateParameter where new Date(year, month, day) is used without UTC)
-              if (curr.start.dateOnly) {
-                // Format: YYYYMMDD using local date components
-                const year = curr.start.getFullYear();
-                const month = String(curr.start.getMonth() + 1).padStart(2, '0');
-                const day = String(curr.start.getDate()).padStart(2, '0');
-                rule += `;DTSTART;VALUE=DATE:${year}${month}${day}`;
-              } else if (curr.start.tz && !isUtc) {
-                const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-                const localStamp = tzUtil.formatDateForRrule(curr.start, tzInfo);
-                const tzidLabel = tzInfo.iana || tzInfo.etc || tzInfo.original;
-
-                if (localStamp && tzidLabel) {
-                  // RFC5545 requires DTSTART to be expressed in local time when a TZID is present.
-                  rule += `;DTSTART;TZID=${tzidLabel}:${localStamp}`;
-                } else if (localStamp) {
-                  // Fall back to a floating DTSTART (still without a trailing Z) if we lack a dependable TZ label.
-                  rule += `;DTSTART=${localStamp}`;
-                } else {
-                  // Ultimate fallback: emit a UTC value (legacy behaviour) rather than crashing.
-                  rule += `;DTSTART=${curr.start.toISOString().replaceAll('-', '').replaceAll(':', '')}`;
-                }
-              } else {
-                rule += `;DTSTART=${curr.start.toISOString().replaceAll('-', '').replaceAll(':', '')}`;
-              }
-
-              rule = rule.replace(/\.\d{3}/v, '');
-            } catch (error) { // This should not happen, issue #56
-              throw new Error('ERROR when trying to convert to ISOString ' + error, {cause: error});
-            }
-          } else {
-            throw new Error('No toISOString function in curr.start ' + curr.start);
-          }
-        }
+        rule = ensureRruleHasDtstart(rule, curr, tzUtil).replace(/\.\d{3}/v, '');
 
         // Create RRuleTemporal with separate DTSTART and RRULE parameters
         if (curr.start) {
-          // Extract RRULE segments while preserving everything except inline DTSTART
-          // When rule contains DTSTART;TZID=..., splitting on ';' produces orphaned
-          // TZID= and VALUE= segments that must also be filtered out
-          let rruleOnly = rule.split(';')
-            .filter(segment =>
-              !segment.startsWith('DTSTART')
-              && !segment.startsWith('VALUE=')
-              && !segment.startsWith('TZID='))
-            .join(';');
-
-          // Normalize UNTIL for rrule-temporal 1.4.2+ compatibility:
-          // - DATE-only DTSTART: UNTIL must also be DATE-only (strip time)
-          // - DATE-TIME DTSTART: UNTIL must be UTC with Z suffix
-          if (rruleOnly.includes('UNTIL=')) {
-            const untilMatch = rruleOnly.match(/UNTIL=(\d{8})(T\d{6})?(Z)?/v);
-            if (untilMatch) {
-              const [, datePart, timePart, zSuffix] = untilMatch;
-              const untilStart = untilMatch.index;
-              const untilEnd = untilStart + untilMatch[0].length;
-
-              if (curr.start.dateOnly) {
-                // DATE-only: strip time from UNTIL
-                if (timePart) {
-                  rruleOnly = rruleOnly.slice(0, untilStart) + `UNTIL=${datePart}` + rruleOnly.slice(untilEnd);
-                }
-              } else if (timePart && !zSuffix) {
-                // DATE-TIME without Z: convert to UTC if we have a timezone, otherwise just append Z
-                let converted = false;
-                if (curr.start.tz) {
-                  try {
-                    const tzInfo = tzUtil.resolveTZID(curr.start.tz);
-                    const untilLocal = datePart + timePart;
-                    let untilDateObject;
-
-                    if (tzInfo.iana && tzUtil.isValidIana(tzInfo.iana)) {
-                      untilDateObject = tzUtil.parseDateTimeInZone(untilLocal, tzInfo.iana);
-                    } else if (Number.isFinite(tzInfo.offsetMinutes)) {
-                      untilDateObject = tzUtil.parseWithOffset(untilLocal, tzInfo.offset);
-                    }
-
-                    if (untilDateObject) {
-                      const untilUtc = untilDateObject.toISOString().replaceAll('-', '').replaceAll(':', '').replace(/\.\d{3}/v, '');
-                      rruleOnly = rruleOnly.slice(0, untilStart) + `UNTIL=${untilUtc}` + rruleOnly.slice(untilEnd);
-                      converted = true;
-                    }
-                  } catch {
-                    // Fall through to append Z
-                  }
-                }
-
-                if (!converted) {
-                  rruleOnly = rruleOnly.replace(/UNTIL=(\d{8}T\d{6})(?!Z)/v, 'UNTIL=$1Z');
-                }
-              }
-            }
-          }
-
-          // For DATE-only events, we need to include DTSTART;VALUE=DATE in the rruleString
-          // because rrule-temporal needs to know it's a DATE (not DATE-TIME) to validate UNTIL
-          if (curr.start.dateOnly) {
-            // Build DTSTART;VALUE=DATE:YYYYMMDD from curr.start
-            // Use local getters (not UTC) to match dateParameter which creates Date with local components
-            const year = curr.start.getFullYear();
-            const month = String(curr.start.getMonth() + 1).padStart(2, '0');
-            const day = String(curr.start.getDate()).padStart(2, '0');
-            const dtstartString = `DTSTART;VALUE=DATE:${year}${month}${day}`;
-
-            // Prepend DTSTART to rruleString
-            const fullRruleString = `${dtstartString}\nRRULE:${rruleOnly}`;
-
-            const rruleTemporal = new RRuleTemporal({
-              rruleString: fullRruleString,
-            });
-
-            curr.rrule = new RRuleCompatWrapper(rruleTemporal, true /* dateOnly */);
-          } else {
-            // DATE-TIME events: convert curr.start (Date) to Temporal.ZonedDateTime
-            const tzInfo = curr.start.tz ? tzUtil.resolveTZID(curr.start.tz) : undefined;
-            let timeZone = 'UTC';
-            if (tzInfo?.iana || tzInfo?.offset) {
-              timeZone = tzInfo.iana || tzInfo.offset;
-            } else if (tzInfo) {
-              console.warn('[node-ical] TZID resolved to neither IANA nor UTC offset; falling back to UTC for DTSTART conversion.');
-            }
-
-            let dtstartTemporal;
-            try {
-              dtstartTemporal = Temporal.Instant.fromEpochMilliseconds(curr.start.getTime())
-                .toZonedDateTimeISO(timeZone);
-            } catch (error) {
-              console.warn(`[node-ical] Failed to convert timezone "${timeZone}", falling back to UTC: ${error?.message ?? String(error)}`);
-              dtstartTemporal = Temporal.Instant.fromEpochMilliseconds(curr.start.getTime())
-                .toZonedDateTimeISO('UTC');
-            }
-
-            const rruleTemporal = new RRuleTemporal({
-              rruleString: rruleOnly,
-              dtstart: dtstartTemporal,
-            });
-
-            curr.rrule = new RRuleCompatWrapper(rruleTemporal, false /* dateOnly */);
-          }
+          const rruleOnly = buildRruleStringForTemporal(rule, curr.start, tzUtil);
+          curr.rrule = buildRruleCompatWrapper(curr, rruleOnly, {
+            RRuleTemporal,
+            RRuleCompatWrapper,
+            Temporal,
+            tzUtil,
+          });
         }
       }
 
-      return originalEnd.call(this, value, parameters, curr, stack);
+      return finalizeEndedComponent(value, curr, stack, {
+        storeRecurrenceOverride,
+        randomIdFactory: randomUUID,
+        utcAdd: tzUtil.utcAdd,
+      });
     },
     SUMMARY: storeParameter('summary'),
     DESCRIPTION: storeParameter('description'),
@@ -1206,3 +462,16 @@ module.exports = {
     }
   },
 };
+
+const {objectHandlers} = ical;
+const handleObject = ical.handleObject.bind(ical);
+const parseLines = ical.parseLines.bind(ical);
+const parseICS = ical.parseICS.bind(ical);
+
+export {
+  objectHandlers,
+  handleObject,
+  parseLines,
+  parseICS,
+};
+export default ical;

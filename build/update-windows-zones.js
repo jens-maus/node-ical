@@ -1,7 +1,6 @@
 // Update windowsZones.json from the upstream CLDR windowsZones.xml using fast-xml-parser.
 // This replaces the old xml-js CLI + shell script pipeline with a single cross-platform Node script.
 
-import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -14,34 +13,18 @@ const __dirname = path.dirname(__filename);
 const SOURCE_URL = 'https://raw.githubusercontent.com/unicode-org/cldr/master/common/supplemental/windowsZones.xml';
 const OLD_MAP_PATH = path.join(__dirname, 'windowsZonesOld.json');
 const OUTPUT_PATH = path.join(__dirname, '..', 'windowsZones.json');
+const FETCH_TIMEOUT_MS = 30_000;
 
-function fetchText(url) {
-  return new Promise((resolve, reject) => {
-    https
-      .get(url, response => {
-        if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-          // Follow redirect
-          fetchText(response.headers.location).then(resolve).catch(reject);
-          return;
-        }
-
-        if (response.statusCode !== 200) {
-          reject(new Error(`HTTP ${response.statusCode} when fetching ${url}`));
-          response.resume();
-          return;
-        }
-
-        let data = '';
-        response.setEncoding('utf8');
-        response.on('data', chunk => {
-          data += chunk;
-        });
-        response.on('end', () => {
-          resolve(data);
-        });
-      })
-      .on('error', reject);
+async function fetchText(url) {
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} when fetching ${url}`);
+  }
+
+  return response.text();
 }
 
 function toArray(value) {

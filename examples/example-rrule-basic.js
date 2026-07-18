@@ -5,8 +5,11 @@
  * RRULE within a fixed window, and print the resulting instances.
  */
 
-const path = require('node:path');
-const ical = require('../node-ical.js');
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import ical from 'node-ical';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load the basic example calendar that contains one recurring event.
 const data = ical.parseFile(path.join(__dirname, 'example-rrule-basic.ics'));

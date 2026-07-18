@@ -4,7 +4,7 @@ This folder contains data and scripts used to generate `windowsZones.json`, the 
 
 ## Files
 
-- `update-windows-zones.mjs`: Node-only updater that fetches the upstream CLDR `windowsZones.xml` and regenerates `windowsZones.json` using fast-xml-parser.
+- `update-windows-zones.js`: Node-only updater that fetches the upstream CLDR `windowsZones.xml` and regenerates `windowsZones.json` using fast-xml-parser.
 - `windowsZonesOld.json`: A curated map of legacy Windows display-name labels (the human-readable aliases used by various Outlook/Exchange/ICS exporters) to the canonical Windows time zone IDs (e.g., `"(UTC+03:00) Tbilisi" -> "Georgian Standard Time"`).
 
 ## Why `windowsZonesOld.json` exists
@@ -19,7 +19,7 @@ To keep `node-ical` resilient, we preserve a set of these legacy labels and map 
 
 ## How generation works
 
-1. `update-windows-zones.mjs` downloads CLDR `windowsZones.xml` and parses it directly.
+1. `update-windows-zones.js` downloads CLDR `windowsZones.xml` and parses it directly.
 2. It builds a `zoneTable` from CLDR, mapping Windows IDs to `{ iana: [primaryIana] }`.
 3. It then loads `build/windowsZonesOld.json` and, for each legacy label (top-level key), looks up the canonical Windows ID (value) and injects a mapping entry into the final `zoneTable` so that legacy labels resolve to the same IANA zone as the canonical ID.
 4. The script writes `windowsZones.json` in a one-entry-per-line format with sorted keys for stable diffs.
@@ -38,7 +38,7 @@ npm run build:strict
 # or
 CI=true npm run build
 # or (low-level)
-node build/update-windows-zones.mjs --strict
+node build/update-windows-zones.js --strict
 ```
 
 Note: CI runs the generator in strict mode to catch unresolved aliases early in pull requests.

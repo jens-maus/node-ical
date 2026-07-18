@@ -1,9 +1,12 @@
-const assert = require('node:assert');
-const {spawnSync} = require('node:child_process');
-const process = require('node:process');
-const path = require('node:path');
-const fs = require('node:fs');
-const {describe, it} = require('mocha');
+import assert from 'node:assert';
+import {spawnSync} from 'node:child_process';
+import process from 'node:process';
+import path from 'node:path';
+import fs from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {describe, it} from 'mocha';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const exampleScripts = [
   'example-rrule-basic.js',
@@ -48,7 +51,7 @@ describe('example output snapshots', function () {
   for (const script of exampleScripts) {
     it(`${script} output matches snapshot`, function () {
       const output = normalizeNewlines(runExample(script));
-      const snapshotFile = path.join(snapshotDir, script.replace(/\.m?js$/v, '.txt'));
+      const snapshotFile = path.join(snapshotDir, script.replace(/\.(?:c|m)?js$/v, '.txt'));
       if (fs.existsSync(snapshotFile)) {
         const expected = normalizeNewlines(fs.readFileSync(snapshotFile, 'utf8')).trim();
         assert.strictEqual(output, expected, `Output of ${script} does not match snapshot. If this is intentional, update the snapshot.`);

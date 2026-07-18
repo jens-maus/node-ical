@@ -6,9 +6,9 @@
 // value existed earlier in the same month, the entire start month was skipped.
 // Fixed in rrule-temporal v1.4.7 (https://github.com/neogermi/rrule-temporal/pull/111)
 
-const assert = require('node:assert/strict');
-const {describe, it} = require('mocha');
-const ical = require('../node-ical.js');
+import assert from 'node:assert/strict';
+import {describe, it} from 'mocha';
+import ical from 'node-ical';
 
 describe('FREQ=MONTHLY with multiple BYMONTHDAY values (regression test for rrule-temporal v1.4.7)', function () {
   it('should include remaining BYMONTHDAY occurrences in the DTSTART month when a earlier BYMONTHDAY value exists', function () {

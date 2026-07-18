@@ -52,11 +52,14 @@ jobs:
       run: npm ci
 
     - name: Generate windowsZones (strict)
-      run: node build/update-windows-zones.mjs
+      run: node build/update-windows-zones.js
       env:
         CI: true
 
+    - name: Build CommonJS entry
+      run: npm run build:cjs
+
     - name: Unit Tests
-      run: npx mocha --timeout 8000
+      run: npx mocha --extension js --timeout 8000
       env:
         CI: true

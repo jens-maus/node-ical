@@ -3,9 +3,9 @@
  * Ensures comprehensive coverage of all component types
  */
 
-const assert_ = require('node:assert/strict');
-const {describe, it} = require('mocha');
-const ical = require('../node-ical.js');
+import assert_ from 'node:assert/strict';
+import {describe, it} from 'mocha';
+import ical from 'node-ical';
 
 function values(object) {
   return Object.values(object);

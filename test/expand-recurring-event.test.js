@@ -1,7 +1,10 @@
-const assert = require('node:assert');
-const path = require('node:path');
-const {describe, it} = require('mocha');
-const ical = require('../node-ical.js');
+import assert from 'node:assert';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {describe, it} from 'mocha';
+import ical from 'node-ical';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('expandRecurringEvent', () => {
   describe('Basic functionality', () => {

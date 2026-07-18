@@ -1,6 +1,6 @@
-const assert = require('node:assert/strict');
-const {describe, it} = require('mocha');
-const ical = require('../node-ical.js');
+import assert from 'node:assert/strict';
+import {describe, it} from 'mocha';
+import ical from 'node-ical';
 
 describe('parser: metadata preservation', () => {
   it('preserves tz/dateOnly metadata when normalizing all-day DTSTART for RRULE', () => {
