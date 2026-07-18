@@ -12,7 +12,8 @@ await build({
   bundle: true,
   platform: 'node',
   format: 'cjs',
-  target: 'node20',
+  // Keep in sync with engines.node in package.json and node-version in .github/workflows/nodejs.yml
+  target: 'node22',
   // Keep node_modules dependencies as require() calls; only bundle our own code
   // (and inline windowsZones.json, which is imported relatively).
   packages: 'external',
