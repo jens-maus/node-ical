@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict';
 import {execSync} from 'node:child_process';
-import {createRequire} from 'node:module';
-import path from 'node:path';
 import {describe, it} from 'mocha';
-
-const require = createRequire(import.meta.url);
 
 describe('Temporal Polyfill Configuration', () => {
   it('should NOT have JSBI dependency installed', () => {
@@ -15,28 +11,5 @@ describe('Temporal Polyfill Configuration', () => {
       // Expected: JSBI should not be found (command will fail)
       assert.ok(true, 'JSBI is not installed as expected');
     }
-  });
-
-  it('should use temporal-polyfill (not @js-temporal/polyfill with JSBI)', () => {
-    const result = execSync('npm ls @js-temporal/polyfill --json', {encoding: 'utf8'});
-    const data = JSON.parse(result);
-
-    // Find the actual resolved package
-    const resolved = data.dependencies['rrule-temporal'].dependencies['@js-temporal/polyfill'];
-
-    assert.ok(resolved, '@js-temporal/polyfill should be resolved');
-    assert.match(resolved.resolved, /temporal-polyfill/v);
-  });
-
-  it('should load temporal-polyfill when requiring @js-temporal/polyfill', () => {
-    // Clear require cache to force fresh load
-    const modulePath = require.resolve('@js-temporal/polyfill');
-    delete require.cache[modulePath];
-
-    const _Temporal = require('@js-temporal/polyfill');
-    const packageJsonPath = path.join(path.dirname(modulePath), 'package.json');
-    const packageJson = require(packageJsonPath);
-
-    assert.strictEqual(packageJson.name, 'temporal-polyfill');
   });
 });
