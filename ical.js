@@ -7,9 +7,7 @@ import {getDateKey} from './lib/date-utils.js';
 import {
   parseValue,
   finalizeEndedComponent,
-  ensureRruleHasDtstart,
-  buildRruleStringForTemporal,
-  buildRruleCompatWrapper,
+  createTemporalRule,
   storeParameter,
   typeParameter,
   addTZFactory,
@@ -246,12 +244,9 @@ const ical = {
         let rule = curr.rrule.replace('RRULE:', '');
         // Make sure the rrule starts with FREQ=
         rule = rule.slice(rule.lastIndexOf('FREQ='));
-        rule = ensureRruleHasDtstart(rule, curr, tzUtil).replace(/\.\d{3}/v, '');
 
-        // Create RRuleTemporal with separate DTSTART and RRULE parameters
         if (curr.start) {
-          const rruleOnly = buildRruleStringForTemporal(rule, curr.start, tzUtil);
-          curr.rrule = buildRruleCompatWrapper(curr, rruleOnly, {
+          curr.rrule = createTemporalRule(curr, rule, {
             RRuleTemporal,
             RRuleCompatWrapper,
             Temporal,
