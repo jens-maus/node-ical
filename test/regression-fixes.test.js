@@ -482,4 +482,41 @@ describe('regression fixes', () => {
     assert.ok(event.rdate, 'base series should keep its RDATE');
     assert.ok(event.recurrences, 'the RECURRENCE-ID override should still be recorded');
   });
+
+  it('keeps a recurring all-day (VALUE=DATE) DTSTART at exact local midnight', () => {
+    // CreateTemporalRule() no longer re-truncates entry.start to midnight before
+    // building the Temporal RRULE - it relies on VALUE=DATE parsing always
+    // producing a midnight Date already. This guards that assumption directly:
+    // if a future change ever lets a non-midnight time slip through for a
+    // date-only recurring event, this test must fail.
+    const parsed = ical.parseICS([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//TEST//date-only-midnight-invariant//EN',
+      'BEGIN:VEVENT',
+      'UID:date-only-midnight-invariant@test',
+      'DTSTAMP:20250101T000000Z',
+      'DTSTART;VALUE=DATE:20250101',
+      'RRULE:FREQ=DAILY;COUNT=5',
+      'SUMMARY:All-day recurring event',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n'));
+
+    const event = findFirstVevent(parsed);
+    assert.ok(event, 'event should exist');
+    assert.equal(event.start.getHours(), 0);
+    assert.equal(event.start.getMinutes(), 0);
+    assert.equal(event.start.getSeconds(), 0);
+    assert.equal(event.start.getMilliseconds(), 0);
+
+    const occurrences = event.rrule.between(new Date('2025-01-01T00:00:00Z'), new Date('2025-01-10T00:00:00Z'), true);
+    assert.equal(occurrences.length, 5, 'RRULE should still expand to 5 daily occurrences');
+    for (const occurrence of occurrences) {
+      assert.equal(occurrence.getHours(), 0, `occurrence ${occurrence.toISOString()} should stay at local midnight`);
+      assert.equal(occurrence.getMinutes(), 0);
+      assert.equal(occurrence.getSeconds(), 0);
+      assert.equal(occurrence.getMilliseconds(), 0);
+    }
+  });
 });
