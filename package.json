@@ -47,7 +47,7 @@
     "dayjs": "^1.11.21",
     "esbuild": "^0.28.1",
     "fast-xml-parser": "^5.10.1",
-    "lint-staged": "^17.0.8",
+    "lint-staged": "^17.2.0",
     "luxon": "^3.7.2",
     "mocha": "^11.7.6",
     "moment-timezone": "^0.6.2",
