@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "rrule-temporal": "^2.0.2",
-    "temporal-polyfill": "^1.0.1"
+    "temporal-polyfill": "^1.0.2"
   },
   "devDependencies": {
     "date-fns": "^4.4.0",
