@@ -52,7 +52,7 @@
     "mocha": "^11.7.6",
     "moment-timezone": "^0.6.3",
     "simple-git-hooks": "^2.13.1",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "xo": "^3.0.2"
   },
   "xo": {
