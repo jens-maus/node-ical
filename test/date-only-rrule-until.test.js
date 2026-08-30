@@ -200,4 +200,41 @@ END:VCALENDAR`;
     const recurrences = event.rrule.all();
     assert.ok(recurrences.length > 0, 'Should have recurrences');
   });
+
+  it('should parse Outlook yearly date-only recurrence with UTC UNTIL offset', function () {
+    const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Microsoft Corporation//Outlook 16.0 MIMEDIR//EN
+BEGIN:VEVENT
+SUMMARY:Annual Company Anniversary
+DTSTART;VALUE=DATE:20261020
+DTEND;VALUE=DATE:20261021
+RRULE:FREQ=YEARLY;UNTIL=20261019T230000Z;INTERVAL=1;BYMONTHDAY=20;BYMONTH=10
+UID:test-outlook-rrule-until
+END:VEVENT
+END:VCALENDAR`;
+
+    const parsed = ical.sync.parseICS(ics);
+    const event = Object.values(parsed).find(event_ => event_.summary === 'Annual Company Anniversary');
+    assert.ok(event, 'Event should exist');
+    assert.strictEqual(event.start.dateOnly, true, 'Start should be date-only');
+
+    const instances = ical.expandRecurringEvent(event, {
+      from: new Date('2026-01-01'),
+      to: new Date('2027-01-01'),
+    });
+
+    assert.strictEqual(instances.length, 1, 'Should expand to 1 occurrence');
+    assert.strictEqual(instances[0].start.getFullYear(), 2026);
+    assert.strictEqual(instances[0].start.getMonth(), 9);
+    assert.strictEqual(instances[0].start.getDate(), 20);
+
+    const recurrences = event.rrule.all();
+    assert.strictEqual(recurrences.length, 1, 'Should have 1 recurrence via rrule.all()');
+    const firstDate = new Date(recurrences[0]);
+    assert.strictEqual(firstDate.getFullYear(), 2026);
+    assert.strictEqual(firstDate.getMonth(), 9);
+    assert.strictEqual(firstDate.getDate(), 20);
+  });
 });
+
