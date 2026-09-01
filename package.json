@@ -51,7 +51,7 @@
     "luxon": "^3.7.2",
     "mocha": "^11.8.0",
     "moment-timezone": "^0.6.3",
-    "simple-git-hooks": "^2.13.1",
+    "simple-git-hooks": "^2.14.0",
     "typescript": "^6.0.3",
     "xo": "^3.0.2"
   },
