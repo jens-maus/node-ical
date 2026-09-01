@@ -458,14 +458,17 @@ END:VCALENDAR`;
       assert.equal(first.start.tz, 'Europe/Berlin');
       assert.equal(first.start.toISOString(), '2022-07-14T12:00:00.000Z');
       // RRULE must carry the DTSTART timezone identifier
-      assert.ok(first.rrule && first.rrule.options && first.rrule.options.tzid);
+      assert.ok(first.rrule);
+      assert.ok(first.rrule.options);
+      assert.ok(first.rrule.options.tzid);
       assert.equal(first.rrule.options.tzid, 'Europe/Berlin');
 
       const second = Object.values(data).find(x => x.uid === '000021b');
       assert.equal(second.datetype, 'date-time');
       assert.equal(second.start.tz, 'Etc/GMT-2');
       assert.equal(second.start.toISOString(), '2022-07-15T12:00:00.000Z');
-      assert.ok(second.rrule && second.rrule.options.tzid);
+      assert.ok(second.rrule);
+      assert.ok(second.rrule.options.tzid);
       assert.equal(second.rrule.options.tzid, 'Etc/GMT-2');
     });
 
@@ -482,8 +485,8 @@ END:VCALENDAR`;
 
       // String representation should follow RFC5545 format
       const rruleString = first.rrule.toString();
-      assert.ok(/DTSTART;TZID=/v.test(rruleString), 'DTSTART should include TZID parameter');
-      assert.ok(!/RRULE:.*TZID=/v.test(rruleString), 'RRULE line should not contain TZID');
+      assert.match(rruleString, /DTSTART;TZID=/v, 'DTSTART should include TZID parameter');
+      assert.doesNotMatch(rruleString, /RRULE:.*TZID=/v, 'RRULE line should not contain TZID');
     });
   });
 
@@ -631,8 +634,8 @@ END:VCALENDAR`;
       if (zone) {
         const startLocalYMD = event.start.toLocaleDateString('sv-SE', {timeZone: zone});
         const endLocalYMD = event.end.toLocaleDateString('sv-SE', {timeZone: zone});
-        assert.ok(/\d{4}-\d{2}-\d{2}/v.test(startLocalYMD));
-        assert.ok(/\d{4}-\d{2}-\d{2}/v.test(endLocalYMD));
+        assert.match(startLocalYMD, /\d{4}-\d{2}-\d{2}/v);
+        assert.match(endLocalYMD, /\d{4}-\d{2}-\d{2}/v);
         assert.notEqual(startLocalYMD, endLocalYMD);
         // Confirm exactly one day apart by constructing local midnights
         const [sy, sm, sd] = startLocalYMD.split('-').map(Number);
