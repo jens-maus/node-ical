@@ -199,10 +199,7 @@ describe('unit: tz-utils', () => {
       };
       // Must not throw; should resolve to a valid CET/CEST IANA zone.
       // The key scenario: year=1 would produce "1-01-15T12:00:00Z" without the fix.
-      let result;
-      assert.doesNotThrow(() => {
-        result = tz.resolveVTimezoneToIana(cetVTimezone, 1);
-      });
+      const result = tz.resolveVTimezoneToIana(cetVTimezone, 1);
       assert.ok(result.iana, 'should resolve to an IANA zone despite year 0001 DTSTART');
       assert.equal(result.offset, '+01:00');
     });

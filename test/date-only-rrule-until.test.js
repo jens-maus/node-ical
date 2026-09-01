@@ -32,7 +32,7 @@ END:VCALENDAR`;
     assert.ok(event.rrule, 'RRULE should be defined');
 
     // Should not throw when accessing rrule
-    assert.doesNotThrow(() => event.rrule.toString());
+    event.rrule.toString();
 
     // Generate recurrences
     const recurrences = event.rrule.all();

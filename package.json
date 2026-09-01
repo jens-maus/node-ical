@@ -64,6 +64,7 @@
       "jsdoc/require-asterisk-prefix": "off",
       "jsdoc/require-param-description": "off",
       "regexp/prefer-named-capture-group": "off",
+      "unicorn/consistent-boolean-name": "off",
       "unicorn/prefer-module": "off",
       "max-params": [
         "warn",

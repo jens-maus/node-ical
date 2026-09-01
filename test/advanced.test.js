@@ -532,10 +532,8 @@ END:VCALENDAR`;
         assert.strictEqual(event.end.toISOString(), '2020-08-25T15:50:00.000Z');
         // The tz should be a real IANA zone, not 'Customized Time Zone' or a fixed offset
         assert.notEqual(event.start.tz, 'Customized Time Zone');
-        assert.ok(
-          !event.start.tz.startsWith('+') && !event.start.tz.startsWith('-'),
-          `expected IANA zone, got offset: ${event.start.tz}`,
-        );
+        assert.ok(!event.start.tz.startsWith('+'), `expected IANA zone, got offset: ${event.start.tz}`);
+        assert.ok(!event.start.tz.startsWith('-'), `expected IANA zone, got offset: ${event.start.tz}`);
       });
 
       it('rejects invalid custom tz (bad_custom_ms_tz2.ics)', () => {
@@ -826,7 +824,8 @@ END:VCALENDAR`;
     it('keeps whole-day recurrence across DST (whole_day_moved_over_dst_change_berlin.ics)', () => {
       const data = ical.parseFile('./test/fixtures/whole_day_moved_over_dst_change_berlin.ics');
       const moved = Object.values(data).find(x => x.uid === '14nv8jl8d6dvdbl477lod4fftf@google.com');
-      assert.ok(moved && moved.recurrences, 'Missing recurrence map');
+      assert.ok(moved, 'Missing recurring event');
+      assert.ok(moved.recurrences, 'Missing recurrence map');
       // Find the expected recurrence by local calendar date rather than by map key
       const rec = Object.values(moved.recurrences).find(r => r.start.toDateString() === new Date(2024, 9, 30).toDateString());
       assert.ok(rec, 'Expected a recurrence on local 2024-10-30');
