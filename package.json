@@ -39,8 +39,8 @@
     "node": ">=22"
   },
   "dependencies": {
-    "rrule-temporal": "^2.0.2",
-    "temporal-polyfill": "^1.0.1"
+    "rrule-temporal": "^2.2.2",
+    "temporal-polyfill": "^1.0.4"
   },
   "devDependencies": {
     "date-fns": "^4.4.0",
@@ -49,11 +49,11 @@
     "fast-xml-parser": "^5.11.1",
     "lint-staged": "^17.4.1",
     "luxon": "^3.7.2",
-    "mocha": "^11.8.0",
+    "mocha": "^12.0.0",
     "moment-timezone": "^0.6.3",
     "simple-git-hooks": "^2.14.0",
     "typescript": "^6.0.3",
-    "xo": "^3.0.2"
+    "xo": "^4.0.0"
   },
   "xo": {
     "space": 2,
@@ -63,12 +63,12 @@
       "jsdoc/check-line-alignment": "off",
       "jsdoc/require-asterisk-prefix": "off",
       "jsdoc/require-param-description": "off",
-      "regexp/prefer-named-capture-group": "off",
-      "unicorn/prefer-module": "off",
       "max-params": [
         "warn",
         5
-      ]
+      ],
+      "regexp/prefer-named-capture-group": "off",
+      "unicorn/consistent-boolean-name": "off"
     }
   },
   "scripts": {
@@ -91,5 +91,10 @@
   "lint-staged": {
     "!**/*.d.ts": [],
     "**/*.{js,cjs,mjs,ts,tsx}": "xo --fix"
+  },
+  "allowScripts": {
+    "simple-git-hooks@2.14.0": true,
+    "unrs-resolver@1.12.2": true,
+    "esbuild@0.28.2": true
   }
 }

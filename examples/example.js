@@ -17,9 +17,11 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
 const data = await ical.fromURL(url);
 
 for (const ev of Object.values(data)) {
-  if (ev.type === 'VEVENT') {
-    const when = ev.start ? dateFormat.format(ev.start) : 'unknown time';
-    const where = ev.location ? ` in ${ev.location}` : '';
-    console.log(`${ev.summary}${where} — ${when}`);
+  if (ev.type !== 'VEVENT') {
+    continue;
   }
+
+  const when = ev.start ? dateFormat.format(ev.start) : 'unknown time';
+  const where = ev.location ? ` in ${ev.location}` : '';
+  console.log(`${ev.summary}${where} — ${when}`);
 }

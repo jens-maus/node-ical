@@ -22,7 +22,7 @@ describe('Non-UTC UNTIL in RRULE', function () {
       assert.ok(event.rrule, 'RRULE should be defined');
 
       // The RRULE should not throw an error
-      assert.doesNotThrow(() => event.rrule.toString());
+      event.rrule.toString();
 
       // Verify UNTIL was converted to UTC
       const {until} = event.rrule.options;
@@ -121,7 +121,7 @@ END:VCALENDAR`;
       // Should parse without errors
       assert.ok(event, 'Event should be defined');
       assert.ok(event.rrule, 'RRULE should be defined');
-      assert.doesNotThrow(() => event.rrule.toString());
+      event.rrule.toString();
     });
   });
 
@@ -170,7 +170,7 @@ END:VCALENDAR`;
       const parsed = ical.parseICS(icsData);
       const event = Object.values(parsed).find(event_ => event_.type === 'VEVENT');
       if (event?.rrule) {
-        assert.doesNotThrow(() => event.rrule.toString());
+        event.rrule.toString();
       }
     });
 
@@ -193,7 +193,7 @@ END:VCALENDAR`;
       // Should parse without errors
       assert.ok(event, 'Event should be defined');
       assert.ok(event.rrule, 'RRULE should be defined');
-      assert.doesNotThrow(() => event.rrule.toString());
+      event.rrule.toString();
 
       // Should have recurrences
       const recurrences = event.rrule.all();

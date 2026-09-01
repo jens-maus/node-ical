@@ -262,7 +262,8 @@ END:VCALENDAR`;
       const data = ical.parseICS(ics);
       const event = findItem(values(data), item => item.type === 'VEVENT');
 
-      assert_.ok(event && event.rrule, 'Event should have an RRULE');
+      assert_.ok(event, 'Event should be defined');
+      assert_.ok(event.rrule, 'Event should have an RRULE');
 
       // BYDAY should still apply (Monday and Friday), COUNT should be kept at 4
       const occurrences = event.rrule.all();
@@ -299,7 +300,8 @@ END:VCALENDAR`;
       const data = ical.parseICS(ics);
       const event = findItem(values(data), item => item.type === 'VEVENT');
 
-      assert_.ok(event && event.rrule, 'Event should have an RRULE');
+      assert_.ok(event, 'Event should be defined');
+      assert_.ok(event.rrule, 'Event should have an RRULE');
 
       const beforeDate = event.rrule.before(new Date('2023-01-03T09:00:00.000Z'), false);
       const afterDate = event.rrule.after(new Date('2023-01-03T09:00:00.000Z'), false);
