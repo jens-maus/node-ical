@@ -49,7 +49,7 @@
     "fast-xml-parser": "^5.10.1",
     "lint-staged": "^17.2.0",
     "luxon": "^3.7.2",
-    "mocha": "^11.7.6",
+    "mocha": "^11.8.0",
     "moment-timezone": "^0.6.3",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^6.0.3",
