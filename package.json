@@ -63,13 +63,12 @@
       "jsdoc/check-line-alignment": "off",
       "jsdoc/require-asterisk-prefix": "off",
       "jsdoc/require-param-description": "off",
-      "regexp/prefer-named-capture-group": "off",
-      "unicorn/consistent-boolean-name": "off",
-      "unicorn/prefer-module": "off",
       "max-params": [
         "warn",
         5
-      ]
+      ],
+      "regexp/prefer-named-capture-group": "off",
+      "unicorn/consistent-boolean-name": "off"
     }
   },
   "scripts": {
