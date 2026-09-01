@@ -91,5 +91,10 @@
   "lint-staged": {
     "!**/*.d.ts": [],
     "**/*.{js,cjs,mjs,ts,tsx}": "xo --fix"
+  },
+  "allowScripts": {
+    "simple-git-hooks@2.14.0": true,
+    "unrs-resolver@1.12.2": true,
+    "esbuild@0.28.2": true
   }
 }
