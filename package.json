@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "date-fns": "^4.4.0",
-    "dayjs": "^1.11.21",
+    "dayjs": "^1.11.23",
     "esbuild": "^0.28.1",
     "fast-xml-parser": "^5.10.1",
     "lint-staged": "^17.2.0",
