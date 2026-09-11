@@ -143,18 +143,18 @@ END:VCALENDAR`;
 
       const originalListeners = process.listeners('uncaughtException');
       process.removeAllListeners('uncaughtException');
-      let restored = false;
+      let isRestored = false;
       const timeout = setTimeout(() => {
         restore();
         done(new Error('Expected callback error to surface via uncaughtException'));
       }, 100);
 
       const restore = () => {
-        if (restored) {
+        if (isRestored) {
           return;
         }
 
-        restored = true;
+        isRestored = true;
         clearTimeout(timeout);
         process.removeListener('uncaughtException', onUncaught);
         for (const listener of originalListeners) {

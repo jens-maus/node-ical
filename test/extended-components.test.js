@@ -39,7 +39,8 @@ describe('parser: extended component types', () => {
 
       assert_.ok(todo.organizer);
       assert_.ok(todo.attendee);
-      assert_.ok(Array.isArray(todo.alarms) && todo.alarms.length > 0);
+      assert_.ok(Array.isArray(todo.alarms));
+      assert_.ok(todo.alarms.length > 0);
     });
 
     it('parses VTODO with completion (utf8-french-calendar.ics)', () => {
@@ -130,8 +131,8 @@ describe('parser: extended component types', () => {
       const data = ical.parseFile('./test/fixtures/vtodo-vfreebusy.ics');
 
       // Each component type should be accessible by its UID
-      assert_.ok(data['uid4@host1.com']?.type === 'VTODO');
-      assert_.ok(data['uid5@host1.com']?.type === 'VJOURNAL');
+      assert_.strictEqual(data['uid4@host1.com']?.type, 'VTODO');
+      assert_.strictEqual(data['uid5@host1.com']?.type, 'VJOURNAL');
 
       // Also check that VEVENT components are present
       const events = Object.values(data).filter(c => c?.type === 'VEVENT');

@@ -5,13 +5,11 @@ import {describe, it} from 'mocha';
 
 describe('Temporal Polyfill Configuration', () => {
   it('should NOT have JSBI dependency installed', () => {
-    try {
-      execSync('npm ls jsbi --json', {encoding: 'utf8', stdio: 'pipe'});
-      assert.fail('JSBI should not be installed');
-    } catch {
-      // Expected: JSBI should not be found (command will fail)
-      assert.ok(true, 'JSBI is not installed as expected');
-    }
+    assert.throws(
+      () => execSync('npm ls jsbi --json', {encoding: 'utf8', stdio: 'pipe'}),
+      error => error.status === 1,
+      'JSBI should not be installed',
+    );
   });
 
   it('should use temporal-polyfill v1 as a direct dependency', () => {

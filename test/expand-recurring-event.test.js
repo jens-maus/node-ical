@@ -705,7 +705,8 @@ describe('expandRecurringEvent', () => {
       const instance = instances[0];
       // For full-day events, end is typically start of next day
       const dayDiff = (instance.end - instance.start) / (1000 * 60 * 60 * 24);
-      assert.ok(dayDiff >= 0 && dayDiff <= 1, 'Full-day event should span about 1 day');
+      assert.ok(dayDiff >= 0, 'Full-day event should not have a negative duration');
+      assert.ok(dayDiff <= 1, 'Full-day event should span at most 1 day');
     });
   });
 
