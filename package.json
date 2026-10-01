@@ -50,7 +50,7 @@
     "lint-staged": "^17.6.0",
     "luxon": "^3.7.2",
     "mocha": "^12.0.2",
-    "moment-timezone": "^0.6.3",
+    "moment-timezone": "^0.6.4",
     "simple-git-hooks": "^2.14.0",
     "typescript": "^6.0.3",
     "xo": "^4.0.0"
