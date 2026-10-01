@@ -39,7 +39,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "rrule-temporal": "^2.2.4",
+    "rrule-temporal": "^2.2.7",
     "temporal-polyfill": "^1.0.4"
   },
   "devDependencies": {
