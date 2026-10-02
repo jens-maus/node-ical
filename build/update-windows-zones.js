@@ -32,11 +32,7 @@ function toArray(value) {
     return value;
   }
 
-  if (value === undefined || value === null) {
-    return [];
-  }
-
-  return [value];
+  return value === undefined || value === null ? [] : [value];
 }
 
 function parseXmlToDoc(xml) {

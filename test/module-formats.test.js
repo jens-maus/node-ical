@@ -53,11 +53,19 @@ describe('package entry points', () => {
   });
 
   it('resolves the advertised package exports for both import and require', async () => {
-    const packageJson = require('../package.json');
+    const packageJson = require('node-ical/package.json');
+    const esmPackageJson = await import('node-ical/package.json', {
+      with: {type: 'json'},
+    });
 
     assert.equal(packageJson.type, 'module');
-    assert.equal(packageJson.exports['.'].require, './node-ical.cjs');
-    assert.equal(packageJson.exports['.'].import, './node-ical.js');
+    assert.equal(packageJson.types, './node-ical.d.ts');
+    assert.equal(packageJson.exports['.'].require.default, './node-ical.cjs');
+    assert.equal(packageJson.exports['.'].require.types, './node-ical.d.cts');
+    assert.equal(packageJson.exports['.'].import.default, './node-ical.js');
+    assert.equal(packageJson.exports['.'].import.types, './node-ical.d.ts');
+    assert.equal(packageJson.exports['./package.json'], './package.json');
+    assert.deepEqual(esmPackageJson.default, packageJson);
 
     const esm = await import('node-ical');
     const cjs = require('node-ical');

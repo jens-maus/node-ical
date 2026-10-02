@@ -77,11 +77,7 @@ class RRuleCompatWrapper {
     }
 
     // Convert known Temporal instances to Date
-    if (typeof value === 'object' && !(value instanceof Date) && typeof value.epochMilliseconds === 'number') {
-      return new Date(value.epochMilliseconds);
-    }
-
-    return value;
+    return typeof value === 'object' && !(value instanceof Date) && typeof value.epochMilliseconds === 'number' ? new Date(value.epochMilliseconds) : value;
   }
 
   constructor(rruleTemporal, dateOnly = false) {
