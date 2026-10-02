@@ -1,82 +1,85 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
-declare module 'node-ical' {
-  /**
+/**
    * Compatibility wrapper returned by node-ical (RRULE results are Date-based).
    * Mirrors the public surface of the internal RRuleCompatWrapper.
    */
-  export type RRule = {
-    options: Record<string, unknown> & {byweekday?: Array<string | number>};
-    between: (after: Date, before: Date, inclusive?: boolean) => Date[];
-    all: (iterator?: (date: Date, index: number) => boolean | void) => Date[];
-    before: (date: Date, inclusive?: boolean) => Date | undefined;
-    after: (date: Date, inclusive?: boolean) => Date | undefined;
-    toText: (locale?: string) => string;
-    toString: () => string;
-  };
+export type RRule = {
+  options: Record<string, unknown> & {byweekday?: Array<string | number>};
+  between: (after: Date, before: Date, inclusive?: boolean) => Date[];
+  all: (iterator?: (date: Date, index: number) => boolean | void) => Date[];
+  before: (date: Date, inclusive?: boolean) => Date | undefined;
+  after: (date: Date, inclusive?: boolean) => Date | undefined;
+  toText: (locale?: string) => string;
+  toString: () => string;
+};
 
-  /**
+/**
    * Minimal Fetch options type (subset of RequestInit) to avoid requiring DOM lib.
    */
-  export type FetchOptions = {
-    method?: string;
-    /**
+export type FetchOptions = {
+  method?: string;
+  /**
      * Accept common header container shapes without depending on DOM lib types.
      * - Plain object map
      * - Any iterable of [key,value] tuples (covers Arrays and WHATWG Headers at runtime)
      */
-    headers?: Record<string, string> | Iterable<[string, string]>;
-    /** Request body (caller supplied) */
-    body?: unknown;
-    /** Additional fetch options (e.g. agent, redirect, follow, timeout, signal, etc.) */
-    [key: string]: unknown;
-  };
-
+  headers?: Record<string, string> | Iterable<[string, string]>;
   /**
+    Request body (caller supplied)
+    */
+  body?: unknown;
+  /**
+    Additional fetch options (e.g. agent, redirect, follow, timeout, signal, etc.)
+    */
+  [key: string]: unknown;
+};
+
+/**
      * Methods (Sync)
      */
-  export type NodeICalSync = {
-    parseICS: (body: string) => CalendarResponse;
+export type NodeICalSync = {
+  parseICS: (body: string) => CalendarResponse;
 
-    parseFile: (file: string) => CalendarResponse;
-  };
+  parseFile: (file: string) => CalendarResponse;
+};
 
-  export const sync: NodeICalSync;
+export const sync: NodeICalSync;
 
-  /**
+/**
      * Methods (Async)
      */
-  export type NodeICalAsync = {
-    fromURL:
+export type NodeICalAsync = {
+  fromURL:
       ((url: string, callback: NodeIcalCallback) => void)
       & ((url: string, options: FetchOptions | NodeIcalCallback, callback?: NodeIcalCallback) => void)
       & ((url: string) => Promise<CalendarResponse>);
 
-    parseICS: ((body: string, callback: NodeIcalCallback) => void) & ((body: string) => Promise<CalendarResponse>);
+  parseICS: ((body: string, callback: NodeIcalCallback) => void) & ((body: string) => Promise<CalendarResponse>);
 
-    parseFile: ((file: string, callback: NodeIcalCallback) => void) & ((file: string) => Promise<CalendarResponse>);
-  };
+  parseFile: ((file: string, callback: NodeIcalCallback) => void) & ((file: string) => Promise<CalendarResponse>);
+};
 
-  export const async: NodeICalAsync;
+export const async: NodeICalAsync;
 
-  /**
+/**
      * Methods (Autodetect)
      */
-  export function fromURL(url: string, callback: NodeIcalCallback): void;
+export function fromURL(url: string, callback: NodeIcalCallback): void;
 
-  export function fromURL(url: string, options: FetchOptions | NodeIcalCallback, callback?: NodeIcalCallback): void;
+export function fromURL(url: string, options: FetchOptions | NodeIcalCallback, callback?: NodeIcalCallback): void;
 
-  export function fromURL(url: string): Promise<CalendarResponse>;
+export function fromURL(url: string): Promise<CalendarResponse>;
 
-  export function parseICS(body: string, callback: NodeIcalCallback): void;
+export function parseICS(body: string, callback: NodeIcalCallback): void;
 
-  export function parseICS(body: string): CalendarResponse;
+export function parseICS(body: string): CalendarResponse;
 
-  export function parseFile(file: string, callback: NodeIcalCallback): void;
+export function parseFile(file: string, callback: NodeIcalCallback): void;
 
-  export function parseFile(file: string): CalendarResponse;
+export function parseFile(file: string): CalendarResponse;
 
-  /**
+/**
    * Expand a recurring event into individual instances within a date range.
    *
    * @param event - The VEVENT component to expand
@@ -104,177 +107,213 @@ declare module 'node-ical' {
    * });
    * ```
    */
-  export function expandRecurringEvent(
-    event: VEvent,
-    options: ExpandRecurringEventOptions,
-  ): EventInstance[];
+export function expandRecurringEvent(
+  event: VEvent,
+  options: ExpandRecurringEventOptions,
+): EventInstance[];
 
-  declare const _default: {
-    fromURL: typeof fromURL;
-    parseFile: typeof parseFile;
-    parseICS: typeof parseICS;
-    sync: typeof sync;
-    async: typeof async;
-    expandRecurringEvent: typeof expandRecurringEvent;
-    /** Internal compatibility hooks; intentionally left loose to avoid encouraging direct use. */
-    objectHandlers: unknown;
-    /** Internal compatibility hooks; intentionally left loose to avoid encouraging direct use. */
-    handleObject: unknown;
-    /** Internal compatibility hooks; intentionally left loose to avoid encouraging direct use. */
-    parseLines: unknown;
-  };
-
-  export default _default;
-
+declare const _default: {
+  fromURL: typeof fromURL;
+  parseFile: typeof parseFile;
+  parseICS: typeof parseICS;
+  sync: typeof sync;
+  async: typeof async;
+  expandRecurringEvent: typeof expandRecurringEvent;
   /**
+    Internal compatibility hooks; intentionally left loose to avoid encouraging direct use.
+    */
+  objectHandlers: unknown;
+  /**
+    Internal compatibility hooks; intentionally left loose to avoid encouraging direct use.
+    */
+  handleObject: unknown;
+  /**
+    Internal compatibility hooks; intentionally left loose to avoid encouraging direct use.
+    */
+  parseLines: unknown;
+};
+
+export default _default;
+
+/**
    * Options for expanding recurring events
    */
-  export type ExpandRecurringEventOptions = {
-    /** Start of date range (inclusive) */
-    from: Date;
-    /** End of date range (inclusive) */
-    to: Date;
-    /** Whether to apply RECURRENCE-ID overrides (default: true) */
-    includeOverrides?: boolean;
-    /** Whether to exclude EXDATE dates (default: true) */
-    excludeExdates?: boolean;
-    /** Whether to include events that started before range but are still ongoing (default: false) */
-    expandOngoing?: boolean;
-  };
-
+export type ExpandRecurringEventOptions = {
   /**
+    Start of date range (inclusive)
+    */
+  from: Date;
+  /**
+    End of date range (inclusive)
+    */
+  to: Date;
+  /**
+    Whether to apply RECURRENCE-ID overrides (default: true)
+    */
+  includeOverrides?: boolean;
+  /**
+    Whether to exclude EXDATE dates (default: true)
+    */
+  excludeExdates?: boolean;
+  /**
+    Whether to include events that started before range but are still ongoing (default: false)
+    */
+  expandOngoing?: boolean;
+};
+
+/**
    * An individual instance of a recurring or non-recurring event
    */
-  export type EventInstance = {
-    /** Start date/time of this instance */
-    start: DateWithTimeZone;
-    /** End date/time of this instance */
-    end: DateWithTimeZone;
-    /** Event summary/title - copied from event, may include params */
-    summary: ParameterValue;
-    /** Whether this is a full-day event (date-only, no time component) */
-    isFullDay: boolean;
-    /** Whether this instance came from a recurring rule */
-    isRecurring: boolean;
-    /** Whether this instance is a RECURRENCE-ID override of the base event */
-    isOverride: boolean;
-    /** The VEVENT object for this instance (base event or override) */
-    event: VEvent;
-  };
-
+export type EventInstance = {
   /**
+    Start date/time of this instance
+    */
+  start: DateWithTimeZone;
+  /**
+    End date/time of this instance
+    */
+  end: DateWithTimeZone;
+  /**
+    Event summary/title - copied from event, may include params
+    */
+  summary: ParameterValue;
+  /**
+    Whether this is a full-day event (date-only, no time component)
+    */
+  isFullDay: boolean;
+  /**
+    Whether this instance came from a recurring rule
+    */
+  isRecurring: boolean;
+  /**
+    Whether this instance is a RECURRENCE-ID override of the base event
+    */
+  isOverride: boolean;
+  /**
+    The VEVENT object for this instance (base event or override)
+    */
+  event: VEvent;
+};
+
+/**
      * Response objects
      */
-  export type NodeIcalCallback = (error: any, data: CalendarResponse | undefined) => void;
+export type NodeIcalCallback = (error: any, data: CalendarResponse | undefined) => void;
 
-  /**
+/**
    * Response from parsing an iCalendar file.
    * Contains calendar components indexed by UID, plus an optional vcalendar object
    * with VCALENDAR-level properties (e.g., WR-CALNAME, WR-TIMEZONE, method, version).
    */
-  export type CalendarResponse = {
-    /** VCALENDAR-level properties (calendar metadata) */
-    vcalendar?: VCalendar;
-    /** Calendar components (events, todos, etc.) indexed by UID */
-    [uid: string]: CalendarComponent | VCalendar | undefined;
-  };
-
-  export type CalendarComponent = VTimeZone | VEvent | VTodo | VJournal | VFreebusy | VCalendar;
-
-  export type VTimeZone = TimeZoneProps & TimeZoneDictionary;
-
-  type TimeZoneProps = BaseComponent & {
-    type: 'VTIMEZONE';
-    tzid: string;
-    tzurl?: string;
-  };
-
-  type TimeZoneDictionary = Record<string, TimeZoneDef | undefined>;
-
+export type CalendarResponse = {
   /**
+    VCALENDAR-level properties (calendar metadata)
+    */
+  vcalendar?: VCalendar;
+  /**
+    Calendar components (events, todos, etc.) indexed by UID
+    */
+  [uid: string]: CalendarComponent | VCalendar | undefined;
+};
+
+export type CalendarComponent = VTimeZone | VEvent | VTodo | VJournal | VFreebusy | VCalendar;
+
+export type VTimeZone = TimeZoneProps & TimeZoneDictionary;
+
+type TimeZoneProps = BaseComponent & {
+  type: 'VTIMEZONE';
+  tzid: string;
+  tzurl?: string;
+};
+
+type TimeZoneDictionary = Record<string, TimeZoneDef | undefined>;
+
+/**
    * Example :
    * TRIGGER:-P15M
    * TRIGGER;RELATED=END:P5M
    * TRIGGER;VALUE=DATE-TIME:19980101T050000Z
    */
-  type Trigger = string;
+type Trigger = string;
 
-  /**
+/**
    * https://www.kanzaki.com/docs/ical/valarm.html
    */
-  export type VAlarm = BaseComponent & {
-    type: 'VALARM';
-    action: 'AUDIO' | 'DISPLAY' | 'EMAIL' | 'PROCEDURE';
-    trigger: Trigger;
-    description?: string;
-    /**
+export type VAlarm = BaseComponent & {
+  type: 'VALARM';
+  action: 'AUDIO' | 'DISPLAY' | 'EMAIL' | 'PROCEDURE';
+  trigger: Trigger;
+  description?: string;
+  /**
      * https://www.kanzaki.com/docs/ical/repeat.html
      */
-    repeat?: number;
-    /**
+  repeat?: number;
+  /**
      * Time between repeated alarms (if repeat is set)
      * DURATION:PT15M
      */
-    duration?: unknown;
-    /**
+  duration?: unknown;
+  /**
      * Everything except DISPLAY
      * https://www.kanzaki.com/docs/ical/attach.html
      */
-    attach: unknown;
-    /**
+  attach: unknown;
+  /**
      * For action = email
      */
-    summary?: string;
-
-    /**
-     * For action = email
-     */
-    attendee?: Attendee;
-
-  };
+  summary?: string;
 
   /**
+     * For action = email
+     */
+  attendee?: Attendee;
+
+};
+
+/**
    * Common properties shared by calendar components (VEVENT, VTODO, VJOURNAL)
    * that support recurrence and scheduling.
    */
-  type CalendarComponentCommon = {
-    uid?: string;
-    dtstamp?: DateWithTimeZone;
-    sequence?: number;
-    summary?: ParameterValue;
-    description?: ParameterValue;
-    start?: DateWithTimeZone;
-    datetype?: DateType;
-    created?: DateWithTimeZone;
-    lastmodified?: DateWithTimeZone;
-    class?: Class;
-    url?: string;
-    organizer?: Organizer;
-    attendee?: Attendee[] | Attendee;
-    categories?: string[];
-    rrule?: RRule;
-    recurrenceid?: DateWithTimeZone;
-    exdate?: Record<string, DateWithTimeZone>;
-  };
+type CalendarComponentCommon = {
+  uid?: string;
+  dtstamp?: DateWithTimeZone;
+  sequence?: number;
+  summary?: ParameterValue;
+  description?: ParameterValue;
+  start?: DateWithTimeZone;
+  datetype?: DateType;
+  created?: DateWithTimeZone;
+  lastmodified?: DateWithTimeZone;
+  class?: Class;
+  url?: string;
+  organizer?: Organizer;
+  attendee?: Attendee[] | Attendee;
+  categories?: string[];
+  rrule?: RRule;
+  recurrenceid?: DateWithTimeZone;
+  exdate?: Record<string, DateWithTimeZone>;
+};
 
-  export type VEvent = CalendarComponentCommon & BaseComponent & {
-    type: 'VEVENT';
-    // RFC 5545 required fields (override optional from CalendarComponentCommon)
-    uid: string;
-    dtstamp: DateWithTimeZone;
-    start: DateWithTimeZone;
-    datetype: DateType;
-    summary: ParameterValue;
-    // VEvent-specific fields
-    method?: Method;
-    /** Event location – may include params (e.g., LANGUAGE, ALTREP) */
-    location?: ParameterValue;
-    end?: DateWithTimeZone;
-    transparency?: Transparency;
-    completion?: string;
-    geo?: any;
-    status?: VEventStatus;
-    /**
+export type VEvent = CalendarComponentCommon & BaseComponent & {
+  type: 'VEVENT';
+  // RFC 5545 required fields (override optional from CalendarComponentCommon)
+  uid: string;
+  dtstamp: DateWithTimeZone;
+  start: DateWithTimeZone;
+  datetype: DateType;
+  summary: ParameterValue;
+  // VEvent-specific fields
+  method?: Method;
+  /**
+    Event location – may include params (e.g., LANGUAGE, ALTREP)
+    */
+  location?: ParameterValue;
+  end?: DateWithTimeZone;
+  transparency?: Transparency;
+  completion?: string;
+  geo?: any;
+  status?: VEventStatus;
+  /**
      * Modified instances of recurring events (RECURRENCE-ID overrides).
      * Uses dual-key approach for RFC 5545 compliance:
      * - Date-only key (YYYY-MM-DD) for simple lookups
@@ -287,21 +326,21 @@ declare module 'node-ical' {
      * // Access recurrence by specific time
      * const override = event.recurrences?.['2024-07-15T14:00:00.000Z'];
      */
-    recurrences?: Record<string, Omit<VEvent, 'recurrences'>>;
-    alarms?: VAlarm[];
-  };
+  recurrences?: Record<string, Omit<VEvent, 'recurrences'>>;
+  alarms?: VAlarm[];
+};
 
-  /**
+/**
    * Todo status values as defined in RFC 5545
    */
-  export type VTodoStatus = 'NEEDS-ACTION' | 'COMPLETED' | 'IN-PROCESS' | 'CANCELLED';
+export type VTodoStatus = 'NEEDS-ACTION' | 'COMPLETED' | 'IN-PROCESS' | 'CANCELLED';
 
-  /**
+/**
    * Journal status values as defined in RFC 5545
    */
-  export type VJournalStatus = 'DRAFT' | 'FINAL' | 'CANCELLED';
+export type VJournalStatus = 'DRAFT' | 'FINAL' | 'CANCELLED';
 
-  /**
+/**
    * VTODO component representing a task or to-do item.
    *
    * @example
@@ -313,33 +352,43 @@ declare module 'node-ical' {
    *   console.log(`Completed: ${todo.completion}%`);
    * });
    */
-  export type VTodo = CalendarComponentCommon & BaseComponent & {
-    type: 'VTODO';
-    // RFC 5545 required fields (override optional from CalendarComponentCommon)
-    uid: string;
-    dtstamp: DateWithTimeZone;
-    // VTodo-specific fields
-    method?: Method;
-    /** Task location – may include params (e.g., LANGUAGE, ALTREP) */
-    location?: ParameterValue;
-    /** When this task is due */
-    due?: DateWithTimeZone;
-    /** When this task was completed */
-    completed?: DateWithTimeZone;
-    /** Percentage of task completion (0-100) */
-    completion?: string;
-    status?: VTodoStatus;
-    /** Task priority (0 = undefined, 1 = highest, 9 = lowest) */
-    priority?: number;
-    /**
+export type VTodo = CalendarComponentCommon & BaseComponent & {
+  type: 'VTODO';
+  // RFC 5545 required fields (override optional from CalendarComponentCommon)
+  uid: string;
+  dtstamp: DateWithTimeZone;
+  // VTodo-specific fields
+  method?: Method;
+  /**
+    Task location – may include params (e.g., LANGUAGE, ALTREP)
+    */
+  location?: ParameterValue;
+  /**
+    When this task is due
+    */
+  due?: DateWithTimeZone;
+  /**
+    When this task was completed
+    */
+  completed?: DateWithTimeZone;
+  /**
+    Percentage of task completion (0-100)
+    */
+  completion?: string;
+  status?: VTodoStatus;
+  /**
+    Task priority (0 = undefined, 1 = highest, 9 = lowest)
+    */
+  priority?: number;
+  /**
      * Modified instances of recurring todos (RECURRENCE-ID overrides).
      * Uses dual-key approach (date and ISO timestamp).
      */
-    recurrences?: Record<string, Omit<VTodo, 'recurrences'>>;
-    alarms?: VAlarm[];
-  };
+  recurrences?: Record<string, Omit<VTodo, 'recurrences'>>;
+  alarms?: VAlarm[];
+};
 
-  /**
+/**
    * VJOURNAL component representing a journal entry or note.
    *
    * @example
@@ -350,39 +399,45 @@ declare module 'node-ical' {
    *   console.log(`Description: ${journal.description}`);
    * });
    */
-  export type VJournal = CalendarComponentCommon & BaseComponent & {
-    type: 'VJOURNAL';
-    // RFC 5545 required fields (override optional from CalendarComponentCommon)
-    uid: string;
-    dtstamp: DateWithTimeZone;
-    // VJournal-specific fields
-    method?: Method;
-    status?: VJournalStatus;
-    /**
+export type VJournal = CalendarComponentCommon & BaseComponent & {
+  type: 'VJOURNAL';
+  // RFC 5545 required fields (override optional from CalendarComponentCommon)
+  uid: string;
+  dtstamp: DateWithTimeZone;
+  // VJournal-specific fields
+  method?: Method;
+  status?: VJournalStatus;
+  /**
      * Modified instances of recurring journals (RECURRENCE-ID overrides).
      * Uses dual-key approach (date and ISO timestamp).
      */
-    recurrences?: Record<string, Omit<VJournal, 'recurrences'>>;
-  };
+  recurrences?: Record<string, Omit<VJournal, 'recurrences'>>;
+};
 
-  /**
+/**
    * Free/busy time type as defined in RFC 5545
    */
-  export type FreebusyType = 'FREE' | 'BUSY' | 'BUSY-UNAVAILABLE' | 'BUSY-TENTATIVE';
+export type FreebusyType = 'FREE' | 'BUSY' | 'BUSY-UNAVAILABLE' | 'BUSY-TENTATIVE';
 
-  /**
+/**
    * Free/busy period with start and end times
    */
-  export type FreebusyPeriod = {
-    /** Free/busy period type */
-    type: FreebusyType;
-    /** Start time of the period */
-    start: DateWithTimeZone;
-    /** End time of the period */
-    end: DateWithTimeZone;
-  };
-
+export type FreebusyPeriod = {
   /**
+    Free/busy period type
+    */
+  type: FreebusyType;
+  /**
+    Start time of the period
+    */
+  start: DateWithTimeZone;
+  /**
+    End time of the period
+    */
+  end: DateWithTimeZone;
+};
+
+/**
    * VFREEBUSY component representing free/busy time information.
    * Used to publish or request free/busy time for calendar users.
    *
@@ -396,26 +451,38 @@ declare module 'node-ical' {
    *   });
    * }
    */
-  export type VFreebusy = BaseComponent & {
-    type: 'VFREEBUSY';
-    method?: Method;
-    uid?: string;
-    /** Organizer of the free/busy time (optional, not always present) */
-    organizer?: Organizer;
-    /** Start of free/busy period */
-    start?: DateWithTimeZone;
-    /** End of free/busy period */
-    end?: DateWithTimeZone;
-    dtstamp?: DateWithTimeZone;
-    /** URL to access the free/busy information */
-    url?: string;
-    /** Array of free/busy time periods */
-    freebusy?: FreebusyPeriod[];
-    /** Attendee information */
-    attendee?: Attendee[] | Attendee;
-  };
-
+export type VFreebusy = BaseComponent & {
+  type: 'VFREEBUSY';
+  method?: Method;
+  uid?: string;
   /**
+    Organizer of the free/busy time (optional, not always present)
+    */
+  organizer?: Organizer;
+  /**
+    Start of free/busy period
+    */
+  start?: DateWithTimeZone;
+  /**
+    End of free/busy period
+    */
+  end?: DateWithTimeZone;
+  dtstamp?: DateWithTimeZone;
+  /**
+    URL to access the free/busy information
+    */
+  url?: string;
+  /**
+    Array of free/busy time periods
+    */
+  freebusy?: FreebusyPeriod[];
+  /**
+    Attendee information
+    */
+  attendee?: Attendee[] | Attendee;
+};
+
+/**
    * VCALENDAR component containing calendar-level metadata.
    * Accessible via data.vcalendar after parsing.
    *
@@ -427,35 +494,41 @@ declare module 'node-ical' {
    * const calendarName = data.vcalendar?.['WR-CALNAME'];
    * const timezone = data.vcalendar?.['WR-TIMEZONE'];
    */
-  export type VCalendar = {
-    type: 'VCALENDAR';
-    prodid?: string;
-    version?: string;
-    calscale?: 'GREGORIAN' | string;
-    method?: Method;
-    /** Calendar name (X-WR-CALNAME in ICS file) */
-    'WR-CALNAME'?: string;
-    /** Calendar description (X-WR-CALDESC in ICS file) */
-    'WR-CALDESC'?: string;
-    /** Default timezone (X-WR-TIMEZONE in ICS file) */
-    'WR-TIMEZONE'?: string;
-  };
-
-  export type BaseComponent = Record<string, unknown>;
-
-  export type TimeZoneDef = {
-    type: 'DAYLIGHT' | 'STANDARD';
-    params: any[];
-    tzoffsetfrom: string;
-    tzoffsetto: string;
-    tzname: string;
-    start: DateWithTimeZone;
-    dateType: DateType;
-    rrule: string;
-    rdate: string | string[];
-  };
-
+export type VCalendar = {
+  type: 'VCALENDAR';
+  prodid?: string;
+  version?: string;
+  calscale?: 'GREGORIAN' | string;
+  method?: Method;
   /**
+    Calendar name (X-WR-CALNAME in ICS file)
+    */
+  'WR-CALNAME'?: string;
+  /**
+    Calendar description (X-WR-CALDESC in ICS file)
+    */
+  'WR-CALDESC'?: string;
+  /**
+    Default timezone (X-WR-TIMEZONE in ICS file)
+    */
+  'WR-TIMEZONE'?: string;
+};
+
+export type BaseComponent = Record<string, unknown>;
+
+export type TimeZoneDef = {
+  type: 'DAYLIGHT' | 'STANDARD';
+  params: any[];
+  tzoffsetfrom: string;
+  tzoffsetto: string;
+  tzname: string;
+  start: DateWithTimeZone;
+  dateType: DateType;
+  rrule: string;
+  rdate: string | string[];
+};
+
+/**
    * A property value that may include iCalendar parameters.
    *
    * When an iCalendar property has parameters (e.g., `SUMMARY;LANGUAGE=de:Restmuell`),
@@ -474,63 +547,102 @@ declare module 'node-ical' {
    *   ? event.summary
    *   : event.summary.val;
    */
-  export type ParameterValue<T = string, P = Record<string, string>> = T | {
-    /** The actual property value */
-    val: T;
-    /** ICalendar parameters (e.g., LANGUAGE, ENCODING) */
-    params: P;
-  };
+export type ParameterValue<T = string, P = Record<string, string>> = T | {
+  /**
+    The actual property value
+    */
+  val: T;
+  /**
+    ICalendar parameters (e.g., LANGUAGE, ENCODING)
+    */
+  params: P;
+};
 
-  export type Organizer = ParameterValue<string, {
-    /** Common Name - display name of the organizer */
-    CN?: string;
-    /** Directory entry reference */
-    DIR?: string;
-    /** Sent by delegate */
-    'SENT-BY'?: string;
-    /** Language for text values */
-    LANGUAGE?: string;
-    /** Schedule agent */
-    'SCHEDULE-AGENT'?: string;
-    /** Allow additional parameters from parseParameters() */
-    [key: string]: string | undefined;
-  }>;
+export type Organizer = ParameterValue<string, {
+  /**
+    Common Name - display name of the organizer
+    */
+  CN?: string;
+  /**
+    Directory entry reference
+    */
+  DIR?: string;
+  /**
+    Sent by delegate
+    */
+  'SENT-BY'?: string;
+  /**
+    Language for text values
+    */
+  LANGUAGE?: string;
+  /**
+    Schedule agent
+    */
+  'SCHEDULE-AGENT'?: string;
+  /**
+    Allow additional parameters from parseParameters()
+    */
+  [key: string]: string | undefined;
+}>;
 
-  export type Attendee = ParameterValue<string, {
-    /** Calendar user type */
-    CUTYPE?: AttendeeCUType;
-    /** Participation role */
-    ROLE?: AttendeeRole;
-    /** Participation status */
-    PARTSTAT?: AttendeePartStat;
-    /** RSVP expectation */
-    RSVP?: boolean;
-    /** Common Name - display name of attendee */
-    CN?: string;
-    /** Number of guests (non-standard) */
-    'X-NUM-GUESTS'?: number;
-    /** Delegated to */
-    'DELEGATED-TO'?: string;
-    /** Delegated from */
-    'DELEGATED-FROM'?: string;
-    /** Group membership */
-    MEMBER?: string;
-    /** Directory entry reference */
-    DIR?: string;
-    /** Language for text values */
-    LANGUAGE?: string;
-    /** Allow additional parameters from parseParameters() */
-    [key: string]: string | number | boolean | undefined;
-  }>;
+export type Attendee = ParameterValue<string, {
+  /**
+    Calendar user type
+    */
+  CUTYPE?: AttendeeCUType;
+  /**
+    Participation role
+    */
+  ROLE?: AttendeeRole;
+  /**
+    Participation status
+    */
+  PARTSTAT?: AttendeePartStat;
+  /**
+    RSVP expectation
+    */
+  RSVP?: boolean;
+  /**
+    Common Name - display name of attendee
+    */
+  CN?: string;
+  /**
+    Number of guests (non-standard)
+    */
+  'X-NUM-GUESTS'?: number;
+  /**
+    Delegated to
+    */
+  'DELEGATED-TO'?: string;
+  /**
+    Delegated from
+    */
+  'DELEGATED-FROM'?: string;
+  /**
+    Group membership
+    */
+  MEMBER?: string;
+  /**
+    Directory entry reference
+    */
+  DIR?: string;
+  /**
+    Language for text values
+    */
+  LANGUAGE?: string;
+  /**
+    Allow additional parameters from parseParameters()
+    */
+  [key: string]: string | number | boolean | undefined;
+}>;
 
-  export type AttendeeCUType = 'INDIVIDUAL' | 'UNKNOWN' | 'GROUP' | 'ROOM' | string;
-  export type AttendeeRole = 'CHAIR' | 'REQ-PARTICIPANT' | 'NON-PARTICIPANT' | string;
-  export type AttendeePartStat = 'NEEDS-ACTION' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'DELEGATED';
+export type AttendeeCUType = 'INDIVIDUAL' | 'UNKNOWN' | 'GROUP' | 'ROOM' | string;
+export type AttendeeRole = 'CHAIR' | 'REQ-PARTICIPANT' | 'NON-PARTICIPANT' | string;
+export type AttendeePartStat = 'NEEDS-ACTION' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'DELEGATED';
 
-  export type DateWithTimeZone = Date & {tz?: string; dateOnly?: true};
-  export type DateType = 'date-time' | 'date';
-  export type Transparency = 'TRANSPARENT' | 'OPAQUE';
-  export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';
-  export type Method = 'PUBLISH' | 'REQUEST' | 'REPLY' | 'ADD' | 'CANCEL' | 'REFRESH' | 'COUNTER' | 'DECLINECOUNTER';
-  export type VEventStatus = 'TENTATIVE' | 'CONFIRMED' | 'CANCELLED';
-}
+export type DateWithTimeZone = Date & {tz?: string; dateOnly?: true};
+export type DateType = 'date-time' | 'date';
+export type Transparency = 'TRANSPARENT' | 'OPAQUE';
+export type Class = 'PUBLIC' | 'PRIVATE' | 'CONFIDENTIAL';
+export type Method = 'PUBLISH' | 'REQUEST' | 'REPLY' | 'ADD' | 'CANCEL' | 'REFRESH' | 'COUNTER' | 'DECLINECOUNTER';
+export type VEventStatus = 'TENTATIVE' | 'CONFIRMED' | 'CANCELLED';

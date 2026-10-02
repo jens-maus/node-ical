@@ -1,23 +1,53 @@
 {
   "name": "node-ical",
   "version": "0.27.2",
+  "description": "NodeJS class for parsing iCalendar/ICS files",
+  "license": "Apache-2.0",
+  "repository": "github:jens-maus/node-ical",
+  "homepage": "https://github.com/jens-maus/node-ical",
+  "author": "Jens Maus <mail@jens-maus.de>",
   "type": "module",
-  "main": "node-ical.cjs",
   "exports": {
     ".": {
-      "types": "./node-ical.d.ts",
-      "import": "./node-ical.js",
-      "require": "./node-ical.cjs",
-      "default": "./node-ical.js"
+      "import": {
+        "types": "./node-ical.d.ts",
+        "default": "./node-ical.js"
+      },
+      "require": {
+        "types": "./node-ical.d.cts",
+        "default": "./node-ical.cjs"
+      },
+      "default": {
+        "types": "./node-ical.d.ts",
+        "default": "./node-ical.js"
+      }
     },
     "./package.json": "./package.json"
   },
-  "types": "node-ical.d.ts",
-  "description": "NodeJS class for parsing iCalendar/ICS files",
+  "types": "./node-ical.d.ts",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "examples": "node examples/example-rrule-basic.js && node examples/example-rrule-moment.js && node examples/example-rrule-luxon.js && node examples/example-rrule-dayjs.js && node examples/example-rrule-datefns.js && node examples/example-rrule-vanilla.js && node examples/example.js",
+    "build:cjs": "node build/build-cjs.js",
+    "pretest": "npm run build:cjs",
+    "test": "npm run test:types && xo && mocha --extension js --timeout 8000",
+    "test:types:compat": "mocha test/package-types-compat.js --timeout 30000",
+    "test:types": "tsc --project test/tsconfig.json",
+    "lint": "xo",
+    "lintfix": "xo --fix",
+    "prepare": "simple-git-hooks && npm run build:cjs",
+    "prepack": "npm run build:cjs",
+    "build": "node build/update-windows-zones.js",
+    "build:strict": "node build/update-windows-zones.js --strict"
+  },
   "files": [
-    "node-ical.cjs",
     "node-ical.js",
     "node-ical.d.ts",
+    "node-ical.cjs",
+    "node-ical.d.cts",
     "ical.js",
     "lib/**/*.js",
     "windowsZones.json"
@@ -28,62 +58,48 @@
     "calendar",
     "nodejs"
   ],
-  "homepage": "https://github.com/jens-maus/node-ical",
-  "author": "Jens Maus <mail@jens-maus.de>",
-  "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/jens-maus/node-ical.git"
-  },
-  "engines": {
-    "node": ">=22"
-  },
   "dependencies": {
-    "rrule-temporal": "^2.2.4",
-    "temporal-polyfill": "^1.0.4"
+    "rrule-temporal": "^2.2.7",
+    "temporal-polyfill": "^1.0.5"
   },
   "devDependencies": {
     "date-fns": "^4.4.0",
     "dayjs": "^1.11.23",
     "esbuild": "^0.28.2",
     "fast-xml-parser": "^5.11.1",
-    "lint-staged": "^17.5.0",
+    "lint-staged": "^17.6.0",
     "luxon": "^3.7.2",
-    "mocha": "^12.0.0",
-    "moment-timezone": "^0.6.3",
+    "mocha": "^12.0.2",
+    "moment-timezone": "^0.6.4",
     "simple-git-hooks": "^2.14.0",
     "typescript": "^6.0.3",
-    "xo": "^4.0.0"
+    "xo": "^5.0.1"
   },
-  "xo": {
-    "space": 2,
-    "rules": {
-      "@eslint-community/eslint-comments/require-description": "off",
-      "jsdoc/check-indentation": "off",
-      "jsdoc/check-line-alignment": "off",
-      "jsdoc/require-asterisk-prefix": "off",
-      "jsdoc/require-param-description": "off",
-      "max-params": [
-        "warn",
-        5
-      ],
-      "regexp/prefer-named-capture-group": "off",
-      "unicorn/consistent-boolean-name": "off"
+  "xo": [
+    {
+      "ignores": [
+        "package.json"
+      ]
+    },
+    {
+      "space": 2
+    },
+    {
+      "rules": {
+        "@eslint-community/eslint-comments/require-description": "off",
+        "jsdoc/check-indentation": "off",
+        "jsdoc/check-line-alignment": "off",
+        "jsdoc/require-asterisk-prefix": "off",
+        "jsdoc/require-param-description": "off",
+        "max-params": [
+          "warn",
+          5
+        ],
+        "regexp/prefer-named-capture-group": "off",
+        "unicorn/consistent-boolean-name": "off"
+      }
     }
-  },
-  "scripts": {
-    "examples": "node examples/example-rrule-basic.js && node examples/example-rrule-moment.js && node examples/example-rrule-luxon.js && node examples/example-rrule-dayjs.js && node examples/example-rrule-datefns.js && node examples/example-rrule-vanilla.js && node examples/example.js",
-    "build:cjs": "node build/build-cjs.js",
-    "pretest": "npm run build:cjs",
-    "test": "npm run test:types && xo && mocha --extension js --timeout 8000",
-    "test:types": "tsc --project test/tsconfig.json",
-    "lint": "xo",
-    "lintfix": "xo --fix",
-    "prepare": "simple-git-hooks && npm run build:cjs",
-    "prepack": "npm run build:cjs",
-    "build": "node build/update-windows-zones.js",
-    "build:strict": "node build/update-windows-zones.js --strict"
-  },
+  ],
   "simple-git-hooks": {
     "pre-commit": "npx --no lint-staged",
     "pre-push": "npm test"

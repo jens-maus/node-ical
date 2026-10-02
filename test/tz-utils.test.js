@@ -147,6 +147,25 @@ describe('unit: tz-utils', () => {
       assert.equal(result.offset, '+05:30');
     });
 
+    it('treats equal STANDARD and DAYLIGHT offsets as fixed-offset zones', () => {
+      const equalOffsetVTimezone = {
+        type: 'VTIMEZONE',
+        tzid: 'Fixed Offset With DAYLIGHT',
+        standard: {
+          type: 'STANDARD',
+          tzoffsetfrom: '+0100',
+          tzoffsetto: '+0100',
+        },
+        daylight: {
+          type: 'DAYLIGHT',
+          tzoffsetfrom: '+0100',
+          tzoffsetto: '+0100',
+        },
+      };
+      const result = tz.resolveVTimezoneToIana(equalOffsetVTimezone, 2020);
+      assert.equal(result.offset, '+01:00');
+    });
+
     it('returns CET/CEST VTIMEZONE as Europe/Berlin (or equivalent)', () => {
       const cetVTimezone = {
         type: 'VTIMEZONE',

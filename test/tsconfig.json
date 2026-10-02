@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "moduleResolution": "nodenext"
   },
-  "include": ["types.test.ts", "../node-ical.d.ts"]
+  "include": ["types.test.ts", "types-cjs.test.cts", "../node-ical.d.ts"]
 }

@@ -642,6 +642,9 @@ END:VCALENDAR`;
         const endLocalMid = new Date(Date.UTC(ey, em - 1, ed));
         const diffDays = Math.round((endLocalMid - startLocalMid) / 86_400_000);
         assert.equal(diffDays, 1);
+      } else {
+        assert.equal(event.start.tz, undefined);
+        assert.equal(event.end.tz, undefined);
       }
     });
   });
@@ -833,7 +836,9 @@ END:VCALENDAR`;
 
       // If a timezone is exposed on the recurrence dates, also ensure local midnight boundaries and one-day span
       const zone2 = (rec.start && rec.start.tz) || (rec.end && rec.end.tz);
-      if (zone2 && rec.end) {
+      assert.ok(rec.end, 'Expected recurrence end date');
+
+      if (zone2) {
         const startLocalYMD = rec.start.toLocaleDateString('sv-SE', {timeZone: zone2});
         const endLocalYMD = rec.end.toLocaleDateString('sv-SE', {timeZone: zone2});
         const [sy, sm, sd] = startLocalYMD.split('-').map(Number);
@@ -842,6 +847,9 @@ END:VCALENDAR`;
         const endLocalMid = new Date(Date.UTC(ey, em - 1, ed));
         const diffDays = Math.round((endLocalMid - startLocalMid) / 86_400_000);
         assert.equal(diffDays, 1);
+      } else {
+        assert.equal(rec.start.tz, undefined);
+        assert.equal(rec.end.tz, undefined);
       }
     });
     // Regression test for https://github.com/jens-maus/node-ical/issues/495
