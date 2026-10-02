@@ -1,0 +1,14 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//TEST//Text escapes//EN
+BEGIN:VEVENT
+UID:text-escaped-backslashes
+DTSTAMP:20250101T000000Z
+DTSTART:20250101T100000Z
+DTEND:20250101T110000Z
+SUMMARY:C:\\new\\Notes
+DESCRIPTION:Write \\n or \\N for a literal escape.\nNext line.\NLast line.
+LOCATION:Folder\\\, room\; desk
+CATEGORIES:C:\\new,Notes\, drafts,Folder\\
+END:VEVENT
+END:VCALENDAR

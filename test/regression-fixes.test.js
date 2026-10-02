@@ -28,6 +28,28 @@ function findFirstVevent(data) {
 }
 
 describe('regression fixes', () => {
+  it('preserves backslashes before n and N in text properties', () => {
+    const data = ical.sync.parseFile('./test/fixtures/text-escaped-backslashes.ics');
+    const event = data['text-escaped-backslashes'];
+
+    assert.equal(event.summary, String.raw`C:\new\Notes`);
+    assert.equal(event.location, String.raw`Folder\, room; desk`);
+  });
+
+  it('distinguishes literal newline escapes from actual line breaks', () => {
+    const data = ical.sync.parseFile('./test/fixtures/text-escaped-backslashes.ics');
+    const event = data['text-escaped-backslashes'];
+
+    assert.equal(event.description, 'Write \\n or \\N for a literal escape.\nNext line.\nLast line.');
+  });
+
+  it('preserves escaped backslashes in comma-separated text values', () => {
+    const data = ical.sync.parseFile('./test/fixtures/text-escaped-backslashes.ics');
+    const event = data['text-escaped-backslashes'];
+
+    assert.deepEqual(event.categories, [String.raw`C:\new`, 'Notes, drafts', 'Folder\\']);
+  });
+
   it('keeps internal named parser exports callable without an object receiver', () => {
     const coreParsed = icalCore.parseICS(ICS_SAMPLE);
     const entryParsed = packageEntry.parseLines(ICS_SAMPLE.split(/\r?\n/v));
