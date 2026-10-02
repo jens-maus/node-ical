@@ -25,6 +25,9 @@ jobs:
     - name: Type Check
       run: npm run test:types
 
+    - name: Published package type compatibility
+      run: npm run test:types:compat
+
     - name: Lint
       run: npx xo
 

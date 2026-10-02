@@ -401,7 +401,7 @@ describe('regression fixes', () => {
     assert.equal(Object.getPrototypeOf(parsed), Object.prototype);
     assert.equal(Object.hasOwn(parsed, '__proto__'), true);
     assert.equal(Object.getOwnPropertyDescriptor(parsed, '__proto__')?.value?.uid, '__proto__');
-    assert.equal('uid' in {}, false);
+    assert.equal(Object.hasOwn(parsed, 'uid'), false);
   });
 
   it('rejects DURATION values that look valid but have the wrong shape', () => {
