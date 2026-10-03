@@ -541,4 +541,119 @@ describe('regression fixes', () => {
       assert.equal(occurrence.getMilliseconds(), 0);
     }
   });
+
+  it('parses and expands VALUE=DATE events with years below 1000 (zero-padded 4DIGIT, obsidian-ics#263)', () => {
+    // RFC 5545 defines date-fullyear as exactly 4DIGIT (0000-9999), so
+    // "09350928" is a valid all-day date. Before the fix, buildDateOnlyStamp()
+    // re-serialized the parsed Date with an un-padded year (String(935) ->
+    // "935"), producing a 7-char stamp "9350928" that rrule-temporal re-split
+    // at fixed 4/2/2 positions into "9350-92-8", throwing
+    // RangeError: Cannot parse: 9350-92-8 and dropping the whole calendar.
+    //
+    const previousTZ = process.env.TZ;
+    process.env.TZ = 'Etc/UTC';
+
+    const parseDateOnlyYearly = year => ical.parseICS([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      `PRODID:-//TEST//date-only-${year}//EN`,
+      'BEGIN:VEVENT',
+      `UID:date-only-${year}@test`,
+      'DTSTAMP:20250101T000000Z',
+      `DTSTART;VALUE=DATE:${year}0928`,
+      'RRULE:FREQ=YEARLY',
+      `SUMMARY:All-day event in ${year}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n'));
+
+    try {
+      // Early years exercise both zero-padding and the Date constructor offset;
+      // 1000/9999 check that ordinary four-digit years still work.
+      for (const year of ['0000', '0001', '0004', '0099', '0100', '0935', '0999', '1000', '9999']) {
+        const parsed = parseDateOnlyYearly(year);
+        const event = findFirstVevent(parsed);
+        assert.ok(event, `event for year ${year} should exist`);
+
+        const lowYear = Number(year);
+        assert.equal(event.start.getFullYear(), lowYear, `year ${year} should round-trip`);
+        assert.equal(event.start.getMonth(), 8, `month for ${year} should be September`);
+        assert.equal(event.start.getDate(), 28, `day for ${year} should be 28`);
+        assert.equal(event.start.dateOnly, true, `year ${year} should be date-only`);
+        assert.equal(event.end.getFullYear(), lowYear);
+        assert.equal(event.end.getMonth(), 8);
+        assert.equal(event.end.getDate(), 29);
+
+        // Recurrence expansion must work for the original (low) year too.
+        const occurrences = event.rrule.between(
+          new Date(`${year}-01-01T00:00:00Z`),
+          new Date(`${year}-12-31T23:59:59Z`),
+          true,
+        );
+        assert.equal(occurrences.length, 1, `year ${year} should expand to one yearly occurrence`);
+        assert.equal(occurrences[0].getFullYear(), lowYear, `occurrence year for ${year}`);
+        assert.equal(occurrences[0].getMonth(), 8, `occurrence month for ${year}`);
+        assert.equal(occurrences[0].getDate(), 28, `occurrence day for ${year}`);
+      }
+    } finally {
+      if (previousTZ === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = previousTZ;
+      }
+    }
+  });
+  it('preserves early all-day leap dates, year boundaries and exclusions across host timezones', () => {
+    const previousTZ = process.env.TZ;
+    const local = stamp => {
+      const date = new Date(0);
+      date.setFullYear(Number(stamp.slice(0, 4)), Number(stamp.slice(4, 6)) - 1, Number(stamp.slice(6, 8)));
+      date.setHours(0, 0, 0, 0);
+      return date;
+    };
+
+    const fields = date => [date.getFullYear(), date.getMonth() + 1, date.getDate()];
+    try {
+      for (const zone of ['Etc/UTC', 'America/New_York', 'Europe/Prague']) {
+        process.env.TZ = zone;
+        for (const [start, end, expected] of [
+          ['00000229', '00000301', [0, 2, 29]],
+          ['00040229', '00040301', [4, 2, 29]],
+          ['00991231', '01000101', [99, 12, 31]],
+        ]) {
+          for (const explicitEnd of [false, true]) {
+            const lines = [
+              'BEGIN:VCALENDAR',
+              'VERSION:2.0',
+              'BEGIN:VEVENT',
+              'UID:early-year',
+              `DTSTART;VALUE=DATE:${start}`,
+              ...(explicitEnd ? [`DTEND;VALUE=DATE:${end}`] : []),
+              'RRULE:FREQ=YEARLY;COUNT=2',
+              'END:VEVENT',
+              'END:VCALENDAR',
+            ];
+            const event = findFirstVevent(ical.parseICS(lines.join('\r\n')));
+            assert.deepEqual(fields(event.start), expected, zone);
+            assert.deepEqual(fields(event.end), fields(local(end)), zone);
+            assert.deepEqual(fields(event.rrule.all()[0]), expected, zone);
+            const instances = ical.expandRecurringEvent(event, {from: local(start), to: local(end)});
+            assert.equal(instances.length, 1, zone);
+            assert.deepEqual(fields(instances[0].start), expected, zone);
+            assert.deepEqual(fields(instances[0].end), fields(local(end)), zone);
+
+            lines.splice(lines.indexOf('END:VEVENT'), 0, `EXDATE;VALUE=DATE:${start}`);
+            const excluded = findFirstVevent(ical.parseICS(lines.join('\r\n')));
+            assert.equal(ical.expandRecurringEvent(excluded, {from: local(start), to: local(end)}).length, 0, zone);
+          }
+        }
+      }
+    } finally {
+      if (previousTZ === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = previousTZ;
+      }
+    }
+  });
 });

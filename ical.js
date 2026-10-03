@@ -3,7 +3,7 @@
 import {randomUUID} from 'node:crypto';
 import {RRuleTemporal} from 'rrule-temporal';
 import {toText as toTextFunction} from 'rrule-temporal/totext';
-import {getDateKey} from './lib/date-utils.js';
+import {getDateKey, localDate} from './lib/date-utils.js';
 import {
   parseValue,
   finalizeEndedComponent,
@@ -113,7 +113,7 @@ class RRuleCompatWrapper {
   // use local getters rather than UTC getters.
   #zdtToDate(zdt) {
     if (this._dateOnly) {
-      const d = new Date(zdt.year, zdt.month - 1, zdt.day, 0, 0, 0, 0);
+      const d = localDate(zdt.year, zdt.month - 1, zdt.day);
       d.dateOnly = true;
       return d;
     }
