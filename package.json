@@ -1,6 +1,6 @@
 {
   "name": "node-ical",
-  "version": "0.27.2",
+  "version": "0.27.3",
   "description": "NodeJS class for parsing iCalendar/ICS files",
   "license": "Apache-2.0",
   "repository": "github:jens-maus/node-ical",
