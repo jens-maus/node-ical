@@ -513,6 +513,35 @@ END:VCALENDAR`;
         assert.strictEqual(event.end.getUTCMinutes(), 30);
       });
 
+      it('maps the 2026 Canadian Windows zones to IANA zones', () => {
+        // Windows added these IDs when British Columbia, Alberta and Manitoba stopped
+        // changing their clocks; CLDR windowsZones.xml maps them since 2026-10.
+        const data = ical.parseICS([
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:bc@test',
+          'DTSTART;TZID=British Columbia Standard Time:20261020T090000',
+          'END:VEVENT',
+          'BEGIN:VEVENT',
+          'UID:alberta@test',
+          'DTSTART;TZID=Alberta Standard Time:20261020T090000',
+          'END:VEVENT',
+          'BEGIN:VEVENT',
+          'UID:manitoba@test',
+          'DTSTART;TZID=Manitoba Standard Time:20261020T090000',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n'));
+
+        assert.strictEqual(data['bc@test'].start.tz, 'America/Vancouver');
+        assert.strictEqual(data['bc@test'].start.toISOString(), '2026-10-20T16:00:00.000Z');
+        assert.strictEqual(data['alberta@test'].start.tz, 'America/Edmonton');
+        assert.strictEqual(data['alberta@test'].start.toISOString(), '2026-10-20T15:00:00.000Z');
+        assert.strictEqual(data['manitoba@test'].start.tz, 'America/Winnipeg');
+        assert.strictEqual(data['manitoba@test'].start.toISOString(), '2026-10-20T14:00:00.000Z');
+      });
+
       // Bad_ms_tz.ics – unexpected ms timezone (should not use Customized Time Zone)
       it('ignores "Customized Time Zone" (bad_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_ms_tz.ics');
