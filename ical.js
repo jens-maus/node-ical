@@ -255,6 +255,7 @@ const ical = {
         storeRecurrenceOverride,
         randomIdFactory: randomUUID,
         utcAdd: tzUtil.utcAdd,
+        findLaterOccurrence: tzUtil.findLaterOccurrence,
       });
     },
     SUMMARY: storeParameter('summary'),
