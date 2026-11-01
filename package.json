@@ -59,7 +59,7 @@
     "nodejs"
   ],
   "dependencies": {
-    "rrule-temporal": "^2.2.7",
+    "rrule-temporal": "^2.2.8",
     "temporal-polyfill": "^1.0.6"
   },
   "devDependencies": {
