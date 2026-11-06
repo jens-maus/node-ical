@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {Buffer} from 'node:buffer';
 import {describe, it} from 'mocha';
 import ical from 'node-ical';
 
@@ -116,7 +117,8 @@ describe('batched async parsing', () => {
 
   it('reports an error from a later batch to the callback', async () => {
     const text = vcalendar([
-      ...Array.from({length: 400}, (_, index) => vevent(`e${index}`)).flat(),
+      // 600 events of 4 lines each put the invalid event after the first 2,000-line batch
+      ...Array.from({length: 600}, (_, index) => vevent(`e${index}`)).flat(),
       'BEGIN:VEVENT',
       'UID:bad',
       'DTSTART:not_a_date',
@@ -125,6 +127,23 @@ describe('batched async parsing', () => {
     ]);
 
     await assert.rejects(() => parseAsync(text), /toISOString/v);
+  });
+});
+
+describe('input type', () => {
+  const text = vcalendar(vevent('x'));
+
+  it('accepts a String object', () => {
+    // eslint-disable-next-line no-new-wrappers, unicorn/new-for-builtins -- String objects worked before and still do
+    assert.ok(ical.parseICS(new String(text)).x);
+  });
+
+  it('rejects a Buffer, an array and other non-strings with a TypeError', async () => {
+    for (const input of [Buffer.from(text), [text], 42, null, undefined]) {
+      assert.throws(() => ical.sync.parseICS(input), TypeError);
+      // eslint-disable-next-line no-await-in-loop -- one input at a time keeps failures readable
+      await assert.rejects(() => ical.async.parseICS(input), TypeError);
+    }
   });
 });
 

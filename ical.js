@@ -532,7 +532,14 @@ const ical = {
    * makes the function behavior unpredictable and harder to type correctly in TypeScript.
    */
   parseICS(string, cb) {
-    const contentLines = unfoldLines(splitLines(string));
+    // Accept strings and String objects only, and fail like the former string.split() did
+    // instead of reading a Buffer or an array as lines
+    const text = string?.valueOf();
+    if (typeof text !== 'string') {
+      throw new TypeError(`parseICS() expects a string, got ${string === null ? 'null' : typeof string}; decode a Buffer with buffer.toString('utf8') first`);
+    }
+
+    const contentLines = unfoldLines(splitLines(text));
 
     if (cb) {
       // Async mode: start on the next turn of the event loop and parse in batches
