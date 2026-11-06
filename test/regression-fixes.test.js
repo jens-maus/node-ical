@@ -629,6 +629,50 @@ describe('regression fixes', () => {
     assert.deepEqual(expand(parse([start, 'RRULE:FREQ=DAILY;UNTIL=00000000T000000'])), []);
   });
 
+  it('keeps years below 100 in DATE-TIME values', () => {
+    const previousTZ = process.env.TZ;
+    const parse = properties => ical.parseICS([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//TEST//early-year-date-time//EN',
+      'BEGIN:VEVENT',
+      'UID:early-year-date-time@test',
+      'DTSTAMP:20270101T000000Z',
+      ...properties,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n'))['early-year-date-time@test'];
+
+    try {
+      process.env.TZ = 'Etc/UTC';
+
+      for (const property of ['DTSTART:00501001T100000Z', 'DTSTART:00501001T100000', 'DTSTART;TZID=Unknown/Zone:00501001T100000']) {
+        assert.equal(parse([property]).start.toISOString(), '0050-10-01T10:00:00.000Z', property);
+      }
+
+      assert.equal(parse(['DTSTART:20270101T100000Z', 'DTEND:00501001T100000Z']).end.toISOString(), '0050-10-01T10:00:00.000Z');
+      assert.ok(parse(['DTSTART:20270101T100000Z', 'RRULE:FREQ=DAILY;COUNT=2', 'EXDATE:00501001T100000Z']).exdate['0050-10-01']);
+
+      // The series keeps its first year and still recurs on the same date
+      const series = parse(['DTSTART:00011225T100000Z', 'RRULE:FREQ=YEARLY']);
+      assert.equal(series.start.toISOString(), '0001-12-25T10:00:00.000Z');
+      const instances = ical.expandRecurringEvent(series, {
+        from: new Date('2027-01-01T00:00:00Z'),
+        to: new Date('2027-12-31T23:59:59Z'),
+      });
+      assert.deepEqual(instances.map(instance => instance.start.toISOString()), ['2027-12-25T10:00:00.000Z']);
+
+      // A zero date rolling back past year 0 must not abort the calendar
+      assert.ok(parse(['DTSTART;VALUE=DATE:00000000', 'RRULE:FREQ=YEARLY']).rrule);
+    } finally {
+      if (previousTZ === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = previousTZ;
+      }
+    }
+  });
+
   it('parses and expands VALUE=DATE events with years below 1000 (zero-padded 4DIGIT, obsidian-ics#263)', () => {
     // RFC 5545 defines date-fullyear as exactly 4DIGIT (0000-9999), so
     // "09350928" is a valid all-day date. Before the fix, buildDateOnlyStamp()

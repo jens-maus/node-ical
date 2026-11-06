@@ -12,6 +12,7 @@ describe('unit: tz-utils', () => {
   it('parses local wall time with explicit offset', () => {
     const d = tz.parseWithOffset('20240101T120000', '+02:00');
     assert.equal(d.toISOString(), '2024-01-01T10:00:00.000Z');
+    assert.equal(tz.parseWithOffset('00501001T120000', '+02:00').toISOString(), '0050-10-01T10:00:00.000Z');
   });
 
   it('throws on malformed offset strings', () => {
@@ -35,7 +36,8 @@ describe('unit: tz-utils', () => {
       // A zero month keeps its day, and a zero day then goes back one more month
       ['20270015T120000', '2026-12-15T11:00:00.000Z'],
       ['20270000T120000', '2026-11-30T11:00:00.000Z'],
-      // Years below 100 count from 1900, as they do in Date
+      // An early year stays, bar year 0, which would otherwise turn negative
+      ['00501000T120000', '0050-09-30T11:06:32.000Z'],
       ['00000000T120000', '1899-11-30T11:00:00.000Z'],
       // Landing in a skipped or repeated hour resolves like any other time there
       ['20240400T023000', '2024-03-31T01:30:00.000Z'],
