@@ -473,6 +473,63 @@ describe('regression fixes', () => {
     }
   });
 
+  it('adds DURATION days and weeks as calendar days across DST changes', () => {
+    const previousTZ = process.env.TZ;
+    const parse = (dtstart, duration) => findFirstVevent(ical.parseICS([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//TEST//duration-dst//EN',
+      'BEGIN:VEVENT',
+      'UID:duration-dst@test',
+      'DTSTAMP:20260101T000000Z',
+      dtstart,
+      `DURATION:${duration}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')));
+    const fields = date => [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours()];
+
+    try {
+      for (const zone of ['Etc/UTC', 'Europe/Berlin', 'America/New_York', 'America/Santiago']) {
+        process.env.TZ = zone;
+        for (const [start, duration, expected] of [
+          ['20261024', 'P2D', [2026, 10, 26, 0]],
+          ['20261031', 'P1W', [2026, 11, 7, 0]],
+          ['20260328', 'P2D', [2026, 3, 30, 0]],
+          // Santiago skips local midnight on 2026-09-06, so the start is 01:00 there
+          ['20260906', 'P1D', [2026, 9, 7, 0]],
+        ]) {
+          const event = parse(`DTSTART;VALUE=DATE:${start}`, duration);
+          assert.deepEqual(fields(event.end), expected, `${zone} ${start} ${duration}`);
+          const [instance] = ical.expandRecurringEvent(event, {from: event.start, to: event.start});
+          assert.deepEqual(fields(instance.end), expected, `${zone} ${start} ${duration} expanded`);
+        }
+
+        assert.deepEqual(fields(parse('DTSTART;VALUE=DATE:20260309', '-P2D').end), [2026, 3, 7, 0], `${zone} -P2D`);
+      }
+
+      for (const [duration, expected] of [
+        ['P1D', '2026-10-25T09:00:00.000Z'],
+        ['P1W', '2026-10-31T09:00:00.000Z'],
+        ['P1DT2H', '2026-10-25T11:00:00.000Z'],
+        ['PT24H', '2026-10-25T08:00:00.000Z'],
+        ['PT1H1D', '2026-10-25T10:00:00.000Z'],
+      ]) {
+        const event = parse('DTSTART;TZID=Europe/Berlin:20261024T100000', duration);
+        assert.equal(event.end.toISOString(), expected, duration);
+      }
+
+      // Out of Temporal's range: must not abort parsing the calendar.
+      assert.ok(parse('DTSTART;TZID=Europe/Berlin:20261024T100000', 'P9999999999D'));
+    } finally {
+      if (previousTZ === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = previousTZ;
+      }
+    }
+  });
+
   it('preserves an RDATE-only base series that arrives after its RECURRENCE-ID override', () => {
     const parsed = ical.parseICS([
       'BEGIN:VCALENDAR',
