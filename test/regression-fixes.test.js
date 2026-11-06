@@ -457,7 +457,7 @@ describe('regression fixes', () => {
         const parsed = parse('DTSTART;TZID=Europe/Berlin:20271001T100000', rule);
         const event = parsed['invalid-rrule@test'];
 
-        assert.equal(event.rrule, undefined, rule);
+        assert.equal(Object.hasOwn(event, 'rrule'), false, rule);
         assert.ok(parsed['next@test'], rule);
 
         // The event reads as a single occurrence
@@ -468,7 +468,7 @@ describe('regression fixes', () => {
         assert.deepEqual(instances.map(instance => instance.start.toISOString()), ['2027-10-01T08:00:00.000Z'], rule);
       }
 
-      assert.equal(parse('DTSTART;VALUE=DATE:20271001', 'FREQ=BOGUS')['invalid-rrule@test'].rrule, undefined);
+      assert.equal(Object.hasOwn(parse('DTSTART;VALUE=DATE:20271001', 'FREQ=BOGUS')['invalid-rrule@test'], 'rrule'), false);
       assert.equal(warnings.length, rules.length + 1);
       assert.ok(warnings.every(warning => warning.startsWith('[node-ical] Ignoring invalid RRULE')), warnings.join('\n'));
     } finally {
