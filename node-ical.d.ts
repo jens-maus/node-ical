@@ -163,7 +163,7 @@ export type ExpandRecurringEventOptions = {
   /**
     Cap on recurrence periods walked during expansion (default: 10,000).
     Expansion throws once a rule needs more, e.g. a window spanning more than 10,000 periods
-    or a COUNT beyond 10,000. Must be a positive integer.
+    or a window past a COUNT that takes more than 10,000 periods to reach. Must be a positive integer.
     */
   maxIterations?: number;
 };

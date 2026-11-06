@@ -312,7 +312,7 @@ instances.forEach(instance => {
 - `expandOngoing` – Include events starting before `from` but still ongoing (default: `false`)
 - `maxIterations` – Cap on recurrence periods walked during expansion (default: `10000`, see below)
 
-**Iteration limit:** As a safeguard against runaway rules, expansion stops after 10,000 recurrence periods and throws `Maximum iterations (10000) exceeded`. Only the requested window counts, not how long ago the series started, so typical ranges such as a month or a year are not affected. A window spanning more than 10,000 periods (about 27 years of a daily rule, 14 months of an hourly one or 7 days of a minutely one) or a rule with a `COUNT` beyond 10,000 needs a higher cap:
+**Iteration limit:** As a safeguard against runaway rules, expansion stops after 10,000 recurrence periods and throws `Maximum iterations (10000) exceeded`. Only the requested window counts, not how long ago the series started, so typical ranges such as a month or a year are not affected. A window spanning more than 10,000 periods (about 27 years of a daily rule, 14 months of an hourly one or 7 days of a minutely one) needs a higher cap, and so does a window past a `COUNT` that takes more than 10,000 periods to reach. A period holds all occurrences of one day, week and so on, so `FREQ=DAILY;COUNT=12000` exceeds the default, while `FREQ=DAILY;BYHOUR=9,15;COUNT=12000` reaches its `COUNT` within 6,000 periods:
 
 ```javascript
 const instances = ical.expandRecurringEvent(event, {
