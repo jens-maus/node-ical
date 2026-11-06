@@ -338,6 +338,41 @@ describe('expandRecurringEvent', () => {
       assert.ok(isos.has('2025-01-14T09:00:00.000Z'), 'Jan 14 09:00 should be present (different day)');
       assert.ok(isos.has('2025-01-14T15:00:00.000Z'), 'Jan 14 15:00 should be present');
     });
+
+    it('should exclude timed event instance when EXDATE falls in the repeated DST hour (Berlin fall-back)', () => {
+      // 02:30 happens twice in Europe/Berlin on Oct 27 2024. Per RFC 5545 §3.3.5 a TZID time there
+      // means the first occurrence (02:30 CEST = 00:30Z), which is also the instant the RRULE
+      // generates. The EXDATE must resolve to that same instant to exclude it.
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Test//EXDATE DST fall-back//EN',
+        'BEGIN:VEVENT',
+        'UID:exdate-dst-fall-back@node-ical-test',
+        'SUMMARY:Weekly 02:30 Berlin',
+        'DTSTART;TZID=Europe/Berlin:20241020T023000',
+        'DTEND;TZID=Europe/Berlin:20241020T033000',
+        'RRULE:FREQ=WEEKLY;COUNT=3',
+        'EXDATE;TZID=Europe/Berlin:20241027T023000',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n');
+
+      const events = ical.sync.parseICS(ics);
+      const event = Object.values(events).find(calEvent => calEvent.type === 'VEVENT');
+
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2024-10-15T00:00:00Z'),
+        to: new Date('2024-11-10T00:00:00Z'),
+      });
+
+      const isos = new Set(instances.map(instance => instance.start.toISOString()));
+
+      assert.ok(!isos.has('2024-10-27T00:30:00.000Z'), 'Oct 27 02:30 CEST (00:30Z) should be excluded by EXDATE');
+      assert.ok(isos.has('2024-10-20T00:30:00.000Z'), 'Oct 20 02:30 CEST should be present');
+      assert.ok(isos.has('2024-11-03T01:30:00.000Z'), 'Nov 3 02:30 CET should be present');
+      assert.strictEqual(instances.length, 2);
+    });
   });
 
   describe('RECURRENCE-ID overrides', () => {
@@ -517,6 +552,46 @@ describe('expandRecurringEvent', () => {
 
       assert.strictEqual(afternoon.isOverride, false, 'Afternoon should NOT use override');
       assert.strictEqual(afternoon.event.summary, 'Base Event', 'Afternoon should have base event summary');
+    });
+
+    it('should apply RECURRENCE-ID override when it falls in the repeated DST hour (Berlin fall-back)', () => {
+      // As with EXDATE, a RECURRENCE-ID of 02:30 on Oct 27 2024 in Europe/Berlin means the first
+      // occurrence of that time (00:30Z), the instant the RRULE generates for that day.
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Test//RECURRENCE-ID DST fall-back//EN',
+        'BEGIN:VEVENT',
+        'UID:recurrence-id-dst-fall-back@node-ical-test',
+        'SUMMARY:Weekly 02:30 Berlin',
+        'DTSTART;TZID=Europe/Berlin:20241020T023000',
+        'DTEND;TZID=Europe/Berlin:20241020T033000',
+        'RRULE:FREQ=WEEKLY;COUNT=3',
+        'END:VEVENT',
+        'BEGIN:VEVENT',
+        'UID:recurrence-id-dst-fall-back@node-ical-test',
+        'SUMMARY:Weekly 02:30 Berlin (Moved)',
+        'RECURRENCE-ID;TZID=Europe/Berlin:20241027T023000',
+        'DTSTART;TZID=Europe/Berlin:20241027T100000',
+        'DTEND;TZID=Europe/Berlin:20241027T110000',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n');
+
+      const events = ical.sync.parseICS(ics);
+      const event = Object.values(events).find(calEvent => calEvent.type === 'VEVENT');
+
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2024-10-15T00:00:00Z'),
+        to: new Date('2024-11-10T00:00:00Z'),
+      });
+
+      const oct27 = instances.filter(instance => instance.start.toISOString().startsWith('2024-10-27'));
+
+      assert.strictEqual(oct27.length, 1, 'Oct 27 should appear once, not also at its original 02:30');
+      assert.strictEqual(oct27[0].isOverride, true, 'Oct 27 should use the override');
+      assert.strictEqual(oct27[0].start.toISOString(), '2024-10-27T09:00:00.000Z', 'Should use override DTSTART time (10:00 CET)');
+      assert.strictEqual(instances.length, 3);
     });
   });
 
