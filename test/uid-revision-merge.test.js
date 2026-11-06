@@ -208,6 +208,38 @@ describe('UID revision merge', () => {
       assert.equal(warnings.length, 1);
       assert.match(warnings[0], /Ignoring older RECURRENCE-ID override \(SEQUENCE 1 < 2\)/v);
     });
+
+    it('keeps timed overrides of different occurrences on the same day apart', () => {
+      const {result, warnings} = withWarnings(() => parse([
+        vevent('DTSTART:20260105T100000Z', 'SUMMARY:Every four hours', 'RRULE:FREQ=HOURLY;INTERVAL=4;COUNT=12'),
+        vevent('SEQUENCE:2', 'RECURRENCE-ID:20260106T100000Z', 'DTSTART:20260106T110000Z', 'SUMMARY:Moved 10:00'),
+        vevent('SEQUENCE:1', 'RECURRENCE-ID:20260106T140000Z', 'DTSTART:20260106T150000Z', 'SUMMARY:Moved 14:00'),
+      ])[UID]);
+
+      assert.deepEqual(warnings, []);
+      assert.equal(result.recurrences['2026-01-06T10:00:00.000Z'].summary, 'Moved 10:00');
+      assert.equal(result.recurrences['2026-01-06T14:00:00.000Z'].summary, 'Moved 14:00');
+
+      const instances = ical.expandRecurringEvent(result, {
+        from: new Date('2026-01-06T08:00:00Z'),
+        to: new Date('2026-01-06T16:00:00Z'),
+      });
+      assert.deepEqual(
+        instances.map(instance => `${instance.summary} ${instance.start.toISOString()}`),
+        ['Moved 10:00 2026-01-06T11:00:00.000Z', 'Moved 14:00 2026-01-06T15:00:00.000Z'],
+      );
+    });
+
+    it('applies SEQUENCE to date-only overrides of the same day', () => {
+      const {result, warnings} = withWarnings(() => parse([
+        vevent('DTSTART;VALUE=DATE:20260105', 'SUMMARY:Daily', 'RRULE:FREQ=DAILY;COUNT=5'),
+        vevent('SEQUENCE:2', 'RECURRENCE-ID;VALUE=DATE:20260106', 'DTSTART;VALUE=DATE:20260106', 'SUMMARY:Newer'),
+        vevent('SEQUENCE:1', 'RECURRENCE-ID;VALUE=DATE:20260106', 'DTSTART;VALUE=DATE:20260106', 'SUMMARY:Older'),
+      ])[UID]);
+
+      assert.equal(result.recurrences['2026-01-06'].summary, 'Newer');
+      assert.equal(warnings.length, 1);
+    });
   });
 
   describe('replacing a revision', () => {
