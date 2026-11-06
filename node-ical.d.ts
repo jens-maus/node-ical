@@ -89,6 +89,7 @@ export function parseFile(file: string): CalendarResponse;
    * @param options.includeOverrides - Whether to apply RECURRENCE-ID overrides (default: true)
    * @param options.excludeExdates - Whether to exclude EXDATE dates (default: true)
    * @param options.expandOngoing - Whether to include events that started before range but are still ongoing (default: false)
+   * @param options.maxIterations - Cap on recurrence periods walked during expansion (default: 10,000)
    * @returns Array of event instances sorted by start date
    *
    * @example
@@ -159,6 +160,12 @@ export type ExpandRecurringEventOptions = {
     Whether to include events that started before range but are still ongoing (default: false)
     */
   expandOngoing?: boolean;
+  /**
+    Cap on recurrence periods walked during expansion (default: 10,000).
+    Expansion throws once a rule needs more, e.g. a window spanning more than 10,000 periods
+    or a window past a COUNT that takes more than 10,000 periods to reach. Must be a positive integer.
+    */
+  maxIterations?: number;
 };
 
 /**
