@@ -105,6 +105,60 @@ describe('UID revision merge', () => {
     });
   });
 
+  describe('override without its base series', () => {
+    const revisedOverride = (sequence, summary, start) => vevent(
+      `SEQUENCE:${sequence}`,
+      'RECURRENCE-ID:20260112T100000Z',
+      `DTSTART:${start}`,
+      `SUMMARY:${summary}`,
+    );
+
+    it('updates the entry with a newer revision of the same occurrence', () => {
+      const event = parse([
+        revisedOverride(0, 'Version 1', '20260112T120000Z'),
+        revisedOverride(1, 'Version 2', '20260112T150000Z'),
+      ])[UID];
+
+      assert.equal(event.summary, 'Version 2');
+      assert.equal(event.sequence, 1);
+      assert.equal(event.start.toISOString(), '2026-01-12T15:00:00.000Z');
+      assert.equal(event.recurrences['2026-01-12'].summary, 'Version 2');
+
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2026-01-01T00:00:00Z'),
+        to: new Date('2026-02-01T00:00:00Z'),
+      });
+      assert.deepEqual(
+        instances.map(instance => `${instance.summary} ${instance.start.toISOString()}`),
+        ['Version 2 2026-01-12T15:00:00.000Z'],
+      );
+    });
+
+    it('keeps the entry when an older revision of the same occurrence follows', () => {
+      const {result, warnings} = withWarnings(() => parse([
+        revisedOverride(2, 'Version 2', '20260112T150000Z'),
+        revisedOverride(1, 'Version 1', '20260112T120000Z'),
+      ])[UID]);
+
+      assert.equal(result.summary, 'Version 2');
+      assert.equal(result.start.toISOString(), '2026-01-12T15:00:00.000Z');
+      assert.equal(warnings.length, 1);
+    });
+
+    it('leaves the base series alone when an override revision follows it', () => {
+      const event = parse([
+        revisedOverride(0, 'Version 1', '20260112T120000Z'),
+        series(0),
+        revisedOverride(1, 'Version 2', '20260112T150000Z'),
+      ])[UID];
+
+      assert.equal(event.summary, 'Weekly series');
+      assert.ok(event.rrule);
+      assert.equal(event.recurrenceid, undefined);
+      assert.equal(event.recurrences['2026-01-12'].summary, 'Version 2');
+    });
+  });
+
   describe('SEQUENCE precedence', () => {
     it('replaces the entry with a higher SEQUENCE revision', () => {
       const event = parse([series(1), vevent('SEQUENCE:2', 'DTSTART:20260105T140000Z', 'SUMMARY:Rescheduled')])[UID];
