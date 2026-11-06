@@ -426,6 +426,56 @@ describe('regression fixes', () => {
     assert.equal(Object.hasOwn(parsed, 'uid'), false);
   });
 
+  it('keeps the rest of a calendar with an invalid RRULE', () => {
+    const originalWarn = console.warn;
+    const warnings = [];
+    console.warn = message => {
+      warnings.push(message);
+    };
+
+    const parse = (start, rule) => ical.parseICS([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//TEST//invalid-rrule//EN',
+      'BEGIN:VEVENT',
+      'UID:invalid-rrule@test',
+      'DTSTAMP:20270101T000000Z',
+      start,
+      `RRULE:${rule}`,
+      'END:VEVENT',
+      'BEGIN:VEVENT',
+      'UID:next@test',
+      'DTSTAMP:20270101T000000Z',
+      'DTSTART:20270601T100000Z',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n'));
+    const rules = ['FREQ=BOGUS', 'COUNT=2', 'FREQ=WEEKLY;BYDAY=XX', 'FREQ=DAILY;INTERVAL=0', 'FREQ=DAILY;UNTIL=garbage', 'FREQ=DAILY;UNTIL=20271000T100000Z'];
+
+    try {
+      for (const rule of rules) {
+        const parsed = parse('DTSTART;TZID=Europe/Berlin:20271001T100000', rule);
+        const event = parsed['invalid-rrule@test'];
+
+        assert.equal(event.rrule, undefined, rule);
+        assert.ok(parsed['next@test'], rule);
+
+        // The event reads as a single occurrence
+        const instances = ical.expandRecurringEvent(event, {
+          from: new Date('2027-09-01T00:00:00Z'),
+          to: new Date('2027-11-01T00:00:00Z'),
+        });
+        assert.deepEqual(instances.map(instance => instance.start.toISOString()), ['2027-10-01T08:00:00.000Z'], rule);
+      }
+
+      assert.equal(parse('DTSTART;VALUE=DATE:20271001', 'FREQ=BOGUS')['invalid-rrule@test'].rrule, undefined);
+      assert.equal(warnings.length, rules.length + 1);
+      assert.ok(warnings.every(warning => warning.startsWith('[node-ical] Ignoring invalid RRULE')), warnings.join('\n'));
+    } finally {
+      console.warn = originalWarn;
+    }
+  });
+
   it('rejects DURATION values that look valid but have the wrong shape', () => {
     const originalWarn = console.warn;
     console.warn = () => {
