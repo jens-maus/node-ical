@@ -17,50 +17,7 @@ import {
 } from './lib/ical-parser-utils.js';
 import {Temporal} from './lib/temporal.js';
 import tzUtil from './lib/tz-utils.js';
-
-/**
- * Store a recurrence override with dual-key strategy.
- * Uses both date-only (YYYY-MM-DD) and full ISO keys for DATE-TIME entries.
- * Implements RFC 5545 SEQUENCE logic: newer versions (higher SEQUENCE) replace older ones.
- * @param {object} recurrences - Recurrences object to store in
- * @param {Date} recurrenceId - RECURRENCE-ID date value
- * @param {object} recurrenceObject - Recurrence override data
- */
-function storeRecurrenceOverride(recurrences, recurrenceId, recurrenceObject) {
-  if (typeof recurrenceId.toISOString !== 'function') {
-    console.warn(`[node-ical] Invalid recurrenceid (no toISOString): ${recurrenceId}`);
-    return;
-  }
-
-  const dateKey = getDateKey(recurrenceId);
-  const isoKey = recurrenceId.dateOnly === true ? null : recurrenceId.toISOString();
-
-  // Check for existing override: prefer ISO key if available (more precise), fallback to date key
-  // This handles both DATE-TIME (precise time) and DATE (date-only) recurrence IDs
-  const existing = (isoKey && recurrences[isoKey]) || recurrences[dateKey];
-
-  // Check SEQUENCE to determine which version to keep (RFC 5545)
-  // Normalize SEQUENCE to number, default to 0 if invalid/missing
-  if (existing !== undefined) {
-    const existingSeq = Number.isFinite(existing.sequence) ? existing.sequence : 0;
-    const newSeq = Number.isFinite(recurrenceObject.sequence) ? recurrenceObject.sequence : 0;
-
-    if (newSeq < existingSeq) {
-      // Older version - ignore it
-      const key = isoKey || dateKey;
-      console.warn(`[node-ical] Ignoring older RECURRENCE-ID override (SEQUENCE ${newSeq} < ${existingSeq}) for ${key}`);
-      return;
-    }
-    // If newSeq >= existingSeq, continue and overwrite (newer or same version)
-  }
-
-  recurrences[dateKey] = recurrenceObject;
-
-  // Also store with full ISO key for DATE-TIME entries (enables precise matching)
-  if (isoKey) {
-    recurrences[isoKey] = recurrenceObject;
-  }
-}
+import {storeRecurrenceOverride} from './lib/uid-revision-merge.js';
 
 /**
  * Wrapper class to convert RRuleTemporal (Temporal.ZonedDateTime) to Date objects
