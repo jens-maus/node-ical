@@ -24,6 +24,27 @@ describe('unit: tz-utils', () => {
     assert.equal(d.toISOString(), '2024-01-01T11:00:00.000Z');
   });
 
+  it('rolls back a zero month or day in a named zone', () => {
+    for (const [value, expected] of [
+      ['20271000T120000', '2027-09-30T10:00:00.000Z'],
+      ['2027-10-00T12:00:00', '2027-09-30T10:00:00.000Z'],
+      // Across a year, and into February with and without a leap day
+      ['20270100T120000', '2026-12-31T11:00:00.000Z'],
+      ['20270300T120000', '2027-02-28T11:00:00.000Z'],
+      ['20280300T120000', '2028-02-29T11:00:00.000Z'],
+      // A zero month keeps its day, and a zero day then goes back one more month
+      ['20270015T120000', '2026-12-15T11:00:00.000Z'],
+      ['20270000T120000', '2026-11-30T11:00:00.000Z'],
+      // Years below 100 count from 1900, as they do in Date
+      ['00000000T120000', '1899-11-30T11:00:00.000Z'],
+      // Landing in a skipped or repeated hour resolves like any other time there
+      ['20240400T023000', '2024-03-31T01:30:00.000Z'],
+      ['20271100T023000', '2027-10-31T00:30:00.000Z'],
+    ]) {
+      assert.equal(tz.parseDateTimeInZone(value, 'Europe/Berlin').toISOString(), expected, value);
+    }
+  });
+
   it('adds UTC-based durations without changing local semantics', () => {
     const start = new Date('2024-01-01T00:00:00.000Z');
     const plusOneDay = tz.utcAdd(start, 1, 'days');
