@@ -700,6 +700,25 @@ describe('regression fixes', () => {
         assert.equal(parse([property]).start.toISOString(), '0050-10-01T10:00:00.000Z', property);
       }
 
+      // Date remaps years up to 99, so these sit on either side of that
+      assert.equal(parse(['DTSTART:00991231T100000Z']).start.toISOString(), '0099-12-31T10:00:00.000Z');
+      assert.equal(parse(['DTSTART:01000101T100000Z']).start.toISOString(), '0100-01-01T10:00:00.000Z');
+
+      // A floating value under a VTIMEZONE that resolves to no known zone
+      const underUnknownVtimezone = ical.parseICS([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'BEGIN:VTIMEZONE',
+        'TZID:Unknown/Zone',
+        'END:VTIMEZONE',
+        'BEGIN:VEVENT',
+        'UID:early-year-vtimezone@test',
+        'DTSTART:00501001T100000',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n'))['early-year-vtimezone@test'];
+      assert.equal(underUnknownVtimezone.start.toISOString(), '0050-10-01T10:00:00.000Z');
+
       assert.equal(parse(['DTSTART:20270101T100000Z', 'DTEND:00501001T100000Z']).end.toISOString(), '0050-10-01T10:00:00.000Z');
       assert.ok(parse(['DTSTART:20270101T100000Z', 'RRULE:FREQ=DAILY;COUNT=2', 'EXDATE:00501001T100000Z']).exdate['0050-10-01']);
 
