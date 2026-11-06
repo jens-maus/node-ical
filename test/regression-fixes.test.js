@@ -599,6 +599,36 @@ describe('regression fixes', () => {
     }
   });
 
+  it('keeps parsing a calendar with a zero month or day in a TZID time', () => {
+    const parse = properties => ical.parseICS([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//TEST//zero-month-or-day//EN',
+      'BEGIN:VEVENT',
+      'UID:zero-month-or-day@test',
+      'DTSTAMP:20270101T000000Z',
+      ...properties,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n'))['zero-month-or-day@test'];
+    const start = 'DTSTART;TZID=Europe/Berlin:20271001T100000';
+    const daily = 'RRULE:FREQ=DAILY;COUNT=2';
+    const expand = event => ical.expandRecurringEvent(event, {
+      from: new Date('2027-09-01T00:00:00Z'),
+      to: new Date('2027-11-01T00:00:00Z'),
+    }).map(instance => instance.start.toISOString());
+
+    assert.equal(parse(['DTSTART;TZID=Europe/Berlin:20271000T100000']).start.toISOString(), '2027-09-30T08:00:00.000Z');
+    assert.equal(parse([start, 'DTEND;TZID=Europe/Berlin:20271000T110000']).end.toISOString(), '2027-09-30T09:00:00.000Z');
+    assert.ok(parse([start, daily, 'EXDATE;TZID=Europe/Berlin:20271000T100000']).exdate['2027-09-30']);
+    assert.equal(parse(['RECURRENCE-ID;TZID=Europe/Berlin:20271000T100000', start]).recurrenceid.toISOString(), '2027-09-30T08:00:00.000Z');
+    assert.deepEqual(expand(parse(['DTSTART;TZID=Europe/Berlin:20271000T100000', daily])), ['2027-09-30T08:00:00.000Z', '2027-10-01T08:00:00.000Z']);
+
+    // A local UNTIL rolled back past DTSTART ends the series before it begins
+    assert.deepEqual(expand(parse([start, 'RRULE:FREQ=DAILY;UNTIL=20271000T100000'])), []);
+    assert.deepEqual(expand(parse([start, 'RRULE:FREQ=DAILY;UNTIL=00000000T000000'])), []);
+  });
+
   it('parses and expands VALUE=DATE events with years below 1000 (zero-padded 4DIGIT, obsidian-ics#263)', () => {
     // RFC 5545 defines date-fullyear as exactly 4DIGIT (0000-9999), so
     // "09350928" is a valid all-day date. Before the fix, buildDateOnlyStamp()
