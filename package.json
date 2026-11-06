@@ -72,8 +72,13 @@
     "mocha": "^12.0.3",
     "moment-timezone": "^0.6.5",
     "simple-git-hooks": "^2.14.0",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "xo": "^5.0.1"
+  },
+  "overrides": {
+    "eslint-config-xo": {
+      "typescript": "^6.0.3"
+    }
   },
   "xo": [
     {
@@ -110,7 +115,6 @@
   },
   "allowScripts": {
     "simple-git-hooks@2.14.0": true,
-    "unrs-resolver@1.12.2": true,
     "esbuild@0.28.2": true
   }
 }
