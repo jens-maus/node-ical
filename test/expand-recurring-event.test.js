@@ -669,6 +669,101 @@ describe('expandRecurringEvent', () => {
       // Verify times are preserved across DST transition
       assert.ok(instances.length > 0);
     });
+
+    it('should keep the length of an event whose DTEND repeats the DTSTART clock time at fall back (Berlin)', () => {
+      // 02:30 happens twice in Europe/Berlin on Oct 27 2024. An event from 02:30 CEST to
+      // 02:30 CET carries the same clock time in both properties. DTEND must be later than
+      // DTSTART (RFC 5545 §3.8.2.2), so it can only mean the second 02:30, one hour later.
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Test//DTEND DST fall-back//EN',
+        'BEGIN:VEVENT',
+        'UID:dtend-dst-fall-back@node-ical-test',
+        'SUMMARY:Weekly 02:30 Berlin',
+        'DTSTART;TZID=Europe/Berlin:20241027T023000',
+        'DTEND;TZID=Europe/Berlin:20241027T023000',
+        'RRULE:FREQ=WEEKLY;COUNT=3',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n');
+
+      const events = ical.sync.parseICS(ics);
+      const event = Object.values(events).find(calEvent => calEvent.type === 'VEVENT');
+
+      assert.strictEqual(event.start.toISOString(), '2024-10-27T00:30:00.000Z', 'DTSTART should be the first 02:30 (CEST)');
+      assert.strictEqual(event.end.toISOString(), '2024-10-27T01:30:00.000Z', 'DTEND should be the second 02:30 (CET)');
+
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2024-10-20T00:00:00Z'),
+        to: new Date('2024-11-15T00:00:00Z'),
+      });
+
+      assert.strictEqual(instances.length, 3);
+      for (const instance of instances) {
+        assert.strictEqual(instance.end.getTime() - instance.start.getTime(), 60 * 60 * 1000, `${instance.start.toISOString()} should last one hour`);
+      }
+    });
+
+    it('should keep the length of an edited occurrence whose DTEND repeats the DTSTART clock time (Berlin)', () => {
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Test//DTEND DST override//EN',
+        'BEGIN:VEVENT',
+        'UID:dtend-dst-override@node-ical-test',
+        'SUMMARY:Weekly 10:00 Berlin',
+        'DTSTART;TZID=Europe/Berlin:20241020T100000',
+        'DTEND;TZID=Europe/Berlin:20241020T110000',
+        'RRULE:FREQ=WEEKLY;COUNT=3',
+        'END:VEVENT',
+        'BEGIN:VEVENT',
+        'UID:dtend-dst-override@node-ical-test',
+        'SUMMARY:Moved to 02:30',
+        'RECURRENCE-ID;TZID=Europe/Berlin:20241027T100000',
+        'DTSTART;TZID=Europe/Berlin:20241027T023000',
+        'DTEND;TZID=Europe/Berlin:20241027T023000',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n');
+
+      const events = ical.sync.parseICS(ics);
+      const event = Object.values(events).find(calEvent => calEvent.type === 'VEVENT');
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2024-10-20T00:00:00Z'),
+        to: new Date('2024-11-15T00:00:00Z'),
+      });
+
+      const moved = instances.find(instance => instance.start.toISOString() === '2024-10-27T00:30:00.000Z');
+      assert.ok(moved, 'the moved occurrence should start at the first 02:30 (CEST)');
+      assert.strictEqual(moved.end.toISOString(), '2024-10-27T01:30:00.000Z', 'its DTEND should be the second 02:30 (CET)');
+    });
+
+    it('should leave DTEND alone where it does not have to mean the later occurrence (Berlin)', () => {
+      for (const [properties, expectedEnd] of [
+        // No DTEND ends at its start (RFC 5545 §3.6.1), in a repeated hour too
+        [['DTSTART;TZID=Europe/Berlin:20241027T023000'], '2024-10-27T00:30:00.000Z'],
+        // Outside a repeated hour, a DTEND equal to DTSTART stays as written
+        [['DTSTART;TZID=Europe/Berlin:20240606T100000', 'DTEND;TZID=Europe/Berlin:20240606T100000'], '2024-06-06T08:00:00.000Z'],
+        // The first 02:30 is already later than DTSTART
+        [['DTSTART;TZID=Europe/Berlin:20241027T013000', 'DTEND;TZID=Europe/Berlin:20241027T023000'], '2024-10-27T00:30:00.000Z'],
+      ]) {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'PRODID:-//Test//DTEND DST unchanged//EN',
+          'BEGIN:VEVENT',
+          'UID:dtend-dst-unchanged@node-ical-test',
+          ...properties,
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n');
+
+        const event = Object.values(ical.sync.parseICS(ics)).find(calEvent => calEvent.type === 'VEVENT');
+
+        assert.strictEqual(event.end.toISOString(), expectedEnd, properties.join(' '));
+      }
+    });
   });
 
   describe('Timezone metadata preservation', () => {

@@ -61,6 +61,18 @@ describe('unit: tz-utils', () => {
       assert.equal(secondOccurrence.toISOString(), '2024-10-27T01:30:00.000Z');
       assert.equal(tz.utcAdd(firstOccurrence, 1, 'hours').toISOString(), secondOccurrence.toISOString());
     });
+
+    it('finds the later occurrence of a repeated wall time', () => {
+      const berlin = 'Europe/Berlin';
+      const firstOccurrence = tz.parseDateTimeInZone('20241027T023000', berlin);
+      const unambiguous = tz.parseDateTimeInZone('20241027T033000', berlin);
+
+      // 02:30 local happens again at 01:30Z, once clocks fall back from UTC+2 to UTC+1
+      assert.equal(tz.findLaterOccurrence(firstOccurrence), Date.parse('2024-10-27T01:30:00.000Z'));
+      assert.equal(tz.findLaterOccurrence(unambiguous), undefined);
+      const withoutZone = new Date(firstOccurrence);
+      assert.equal(tz.findLaterOccurrence(withoutZone), undefined, 'a date without a zone has nothing to repeat');
+    });
   });
 
   it('guesses a local zone string when TZ is set', () => {
