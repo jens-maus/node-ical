@@ -38,4 +38,15 @@ describe('CommonJS compatibility', () => {
     assert.equal(parsedEvent.uid, expectedUid);
     assert.equal(parsedEvent.summary, expectedSummary);
   });
+
+  it('expands a recurring event with maxIterations through require()', () => {
+    const parsedEvent = findFirstVevent(nodeIcal.parseICS(ICS_FIXTURE.replace(
+      'SUMMARY:CommonJS Compatibility Event',
+      'RRULE:FREQ=DAILY',
+    )));
+    const range = {from: new Date('2026-01-01T00:00:00Z'), to: new Date('2054-01-01T00:00:00Z')};
+
+    assert.throws(() => nodeIcal.expandRecurringEvent(parsedEvent, range), /Maximum iterations/v);
+    assert.equal(nodeIcal.expandRecurringEvent(parsedEvent, {...range, maxIterations: 20_000}).length, 10_227);
+  });
 });

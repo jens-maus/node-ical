@@ -157,6 +157,34 @@ const fullJournal: ical.VJournal = {
 };
 
 // ============================================================================
+// ExpandRecurringEventOptions Type Tests
+// ============================================================================
+
+// Test: from/to are enough, maxIterations is optional
+const minimalExpandOptions: ical.ExpandRecurringEventOptions = {
+  from: new Date(),
+  to: new Date(),
+};
+const expandMaxIterations: number | undefined = minimalExpandOptions.maxIterations;
+
+// Test: maxIterations accepts a number
+const fullExpandOptions: ical.ExpandRecurringEventOptions = {
+  from: new Date(),
+  to: new Date(),
+  includeOverrides: true,
+  excludeExdates: true,
+  expandOngoing: false,
+  maxIterations: 50_000,
+};
+
+const invalidExpandOptions: ical.ExpandRecurringEventOptions = {
+  from: new Date(),
+  to: new Date(),
+  // @ts-expect-error maxIterations must be a number
+  maxIterations: '50000',
+};
+
+// ============================================================================
 // CalendarResponse Type Tests
 // ============================================================================
 

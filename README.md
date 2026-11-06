@@ -310,6 +310,19 @@ instances.forEach(instance => {
 - `includeOverrides` – Apply RECURRENCE-ID modifications (default: `true`)
 - `excludeExdates` – Exclude EXDATE dates (default: `true`)
 - `expandOngoing` – Include events starting before `from` but still ongoing (default: `false`)
+- `maxIterations` – Cap on recurrence periods walked during expansion (default: `10000`, see below)
+
+**Iteration limit:** As a safeguard against runaway rules, expansion stops after 10,000 recurrence periods and throws `Maximum iterations (10000) exceeded`. Only the requested window counts, not how long ago the series started, so typical ranges such as a month or a year are not affected. A window spanning more than 10,000 periods (about 27 years of a daily rule, 14 months of an hourly one or 7 days of a minutely one) or a rule with a `COUNT` beyond 10,000 needs a higher cap:
+
+```javascript
+const instances = ical.expandRecurringEvent(event, {
+  from: new Date('1999-01-01'),
+  to: new Date('2030-12-31'),
+  maxIterations: 50_000,
+});
+```
+
+Raise the cap only as far as you need: with calendars from untrusted sources, a high cap combined with a wide window lets a rule like `FREQ=SECONDLY` produce millions of instances.
 
 **Key features:**
 - DST-safe: Full-day events stay on the correct calendar day across timezone transitions

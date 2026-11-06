@@ -1038,4 +1038,84 @@ describe('expandRecurringEvent', () => {
       );
     });
   });
+
+  // Issue #591: rrule-temporal stops after 10,000 recurrence periods
+  describe('maxIterations option', () => {
+    const parseEvent = (start, rule) => Object.values(ical.parseICS([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Test//max-iterations//EN',
+      'BEGIN:VEVENT',
+      'UID:max-iterations@node-ical-test',
+      'DTSTAMP:20260101T000000Z',
+      start,
+      rule,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n'))).find(component => component.type === 'VEVENT');
+    const iterationError = /Maximum iterations \(10000\) exceeded/v;
+
+    it('expands a window spanning more than 10,000 periods with a higher cap', () => {
+      const event = parseEvent('DTSTART;TZID=Europe/Berlin:19990901T100000', 'RRULE:FREQ=DAILY');
+      const range = {from: new Date('1999-09-01T00:00:00Z'), to: new Date('2027-12-31T00:00:00Z')};
+
+      assert.throws(() => ical.expandRecurringEvent(event, range), iterationError);
+
+      const instances = ical.expandRecurringEvent(event, {...range, maxIterations: 20_000});
+      assert.strictEqual(instances.length, 10_348);
+      assert.strictEqual(instances[0].start.toISOString(), '1999-09-01T08:00:00.000Z');
+      assert.strictEqual(instances.at(-1).start.toISOString(), '2027-12-30T09:00:00.000Z');
+
+      // The parsed rule keeps its default cap
+      assert.throws(() => ical.expandRecurringEvent(event, range), iterationError);
+    });
+
+    it('reaches occurrences beyond a COUNT of 10,000 with a higher cap', () => {
+      const event = parseEvent('DTSTART;TZID=Europe/Berlin:20000101T100000', 'RRULE:FREQ=DAILY;COUNT=12000');
+      const range = {from: new Date('2030-01-01T00:00:00Z'), to: new Date('2030-01-31T23:59:59Z')};
+
+      assert.throws(() => ical.expandRecurringEvent(event, range), iterationError);
+
+      const instances = ical.expandRecurringEvent(event, {...range, maxIterations: 20_000});
+      assert.strictEqual(instances.length, 31);
+      assert.strictEqual(instances[0].start.toISOString(), '2030-01-01T09:00:00.000Z');
+    });
+
+    it('keeps all-day series on their calendar days with a higher cap', () => {
+      const event = parseEvent('DTSTART;VALUE=DATE:19900101', 'RRULE:FREQ=DAILY;COUNT=12000');
+      const range = {from: new Date('1989-12-01T00:00:00Z'), to: new Date('2030-01-01T00:00:00Z')};
+
+      assert.throws(() => ical.expandRecurringEvent(event, range), iterationError);
+
+      const instances = ical.expandRecurringEvent(event, {...range, maxIterations: 20_000});
+      assert.strictEqual(instances.length, 12_000);
+      assert.ok(instances.every(instance => instance.isFullDay));
+      assert.strictEqual(instances[0].start.toDateString(), new Date(1990, 0, 1).toDateString());
+      assert.strictEqual(instances.at(-1).start.toDateString(), new Date(1990, 0, 12_000).toDateString());
+    });
+
+    it('returns the same instances with or without the option for a small window', () => {
+      const event = parseEvent('DTSTART;TZID=Europe/Berlin:19900101T100000', 'RRULE:FREQ=WEEKLY;BYDAY=MO,WE');
+      const range = {from: new Date('2026-11-01T00:00:00Z'), to: new Date('2026-11-30T23:59:59Z')};
+      const startsOf = instances => instances.map(instance => instance.start.toISOString());
+
+      assert.deepStrictEqual(
+        startsOf(ical.expandRecurringEvent(event, {...range, maxIterations: 50_000})),
+        startsOf(ical.expandRecurringEvent(event, range)),
+      );
+    });
+
+    it('rejects a maxIterations that is not a positive integer', () => {
+      const event = parseEvent('DTSTART:20260101T100000Z', 'RRULE:FREQ=DAILY');
+      const range = {from: new Date('2026-01-01T00:00:00Z'), to: new Date('2026-01-31T00:00:00Z')};
+
+      for (const maxIterations of [0, -1, 1.5, NaN, Infinity, '20000']) {
+        assert.throws(
+          () => ical.expandRecurringEvent(event, {...range, maxIterations}),
+          {name: 'TypeError', message: 'options.maxIterations must be a positive integer'},
+          String(maxIterations),
+        );
+      }
+    });
+  });
 });
