@@ -48,8 +48,8 @@ describe('unit: tz-utils', () => {
       const resolved = tz.parseDateTimeInZone(ambiguous, berlin);
 
       assert.ok(resolved instanceof Date);
-      // The first occurrence keeps the summer offset (UTC+2) so 02:30 local resolves to 01:30Z
-      assert.equal(resolved.toISOString(), '2024-10-27T01:30:00.000Z');
+      // The first occurrence keeps the summer offset (UTC+2) so 02:30 local resolves to 00:30Z
+      assert.equal(resolved.toISOString(), '2024-10-27T00:30:00.000Z');
       assert.equal(resolved.tz, berlin);
     });
 
