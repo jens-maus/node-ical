@@ -547,6 +547,8 @@ describe('regression fixes', () => {
     assert.equal(count('RRULE;COUNT=2:FREQ=DAILY'), 29);
     assert.equal(count('RRULE;COUNT=2;X-FOO=BAR:FREQ=DAILY'), 29);
     assert.equal(count('RRULE;X-FOO=BAR:COUNT=2;FREQ=DAILY'), 2);
+    assert.equal(count('RRULE;X-FREQ=BAR:COUNT=2;FREQ=DAILY'), 2);
+    assert.equal(count('RRULE;X-FOO="a:b":COUNT=2;FREQ=DAILY'), 2);
   });
 
   it('keeps the rule behind junk and parameters in badRRULE.ics', () => {

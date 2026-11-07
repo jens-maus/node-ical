@@ -360,14 +360,14 @@ const ical = {
       if (['VEVENT', 'VTODO', 'VJOURNAL'].includes(value) && curr.rrule) {
         let rule = curr.rrule.replace('RRULE:', '');
         // Text before FREQ= can be junk, like a doubled RRULE: or a parameter, or rule parts,
-        // which can come in any order. A property name with its parameters ends at a colon and holds
-        // no rule parts. An earlier FREQ= means glued rules, where the last one counts
+        // which can come in any order. A property name with its parameters ends at a colon outside
+        // quotes and holds no rule parts. An earlier FREQ= part means glued rules, where the last one counts
         const freqIndex = rule.lastIndexOf('FREQ=');
         if (freqIndex > 0) {
-          const leadingText = rule.slice(0, freqIndex);
-          const leadingParts = /freq=/iv.test(leadingText)
+          const leadingText = rule.slice(0, freqIndex).replace(/^[^:;=]+(?:;(?:"[^"]*"|[^":])*)?:/v, '');
+          const leadingParts = /(?:^|[:;])freq=/iv.test(leadingText)
             ? []
-            : leadingText.replace(/^[^:;=]+(?:;[^:]*)?:/v, '').split(';').filter(part => part.includes('='));
+            : leadingText.split(';').filter(part => part.includes('='));
           rule = [...leadingParts, rule.slice(freqIndex)].join(';');
         }
 
