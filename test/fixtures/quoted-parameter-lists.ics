@@ -1,0 +1,14 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//node-ical//quoted-parameter-lists//EN
+BEGIN:VEVENT
+UID:quoted-parameter-lists@node-ical.test
+DTSTAMP:20260101T000000Z
+DTSTART:20260101T100000Z
+SUMMARY;X-TAGS=one,two:Planning
+ORGANIZER;CN="Doe, Jane":mailto:jane@example.com
+ATTENDEE;MEMBER="mailto:team@example.com","mailto:dev@example.com";CN=John Doe:mailto:john@example.com
+ATTENDEE;DELEGATED-TO="mailto:ann@example.com","mailto:bob@example.com":mailto:rick@example.com
+ATTENDEE;DELEGATED-FROM="mailto:rick@example.com";CN=Ann:mailto:ann@example.com
+END:VEVENT
+END:VCALENDAR

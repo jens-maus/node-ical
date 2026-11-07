@@ -182,10 +182,13 @@ const exdateParameter = createExdateParameterFactory({
 // Default batch size for async parsing to prevent event loop blocking
 const PARSE_BATCH_SIZE = 2000;
 
+// A parameter value: quoted strings and other characters except ";" and ":", so that a
+// quoted value may contain them and a list like "a","b" stays one value (RFC 5545 §3.1)
+const PARAMETER_VALUE = '(?:"[^"]*"|[^":;])+';
 // A content line: name, optional ;parameters and the value after the first unquoted colon
-const CONTENT_LINE = /^((?:\w|-)+)((?:;(?:\w|-)+=(?:"[^"]*"|[^":;]+))*):(.*)$/v;
-// One ;name=value parameter of a matched content line, with a quoted value kept whole
-const PARAMETER = /;((?:\w|-)+=(?:"[^"]*"|[^":;]+))/gv;
+const CONTENT_LINE = new RegExp(String.raw`^((?:\w|-)+)((?:;(?:\w|-)+=${PARAMETER_VALUE})*):(.*)$`, 'v');
+// One ;name=value parameter of a matched content line
+const PARAMETER = new RegExp(String.raw`;((?:\w|-)+=${PARAMETER_VALUE})`, 'gv');
 
 /**
  * Yield the lines of an iCalendar string one at a time, so parsing does not hold an array
