@@ -15,7 +15,7 @@ function vevent(uid, ...properties) {
 
 function parseAsync(text) {
   return new Promise((resolve, reject) => {
-    ical.parseICS(text, (error, data) => {
+    ical.async.parseICS(text, (error, data) => {
       if (error) {
         reject(error);
       } else {
@@ -95,7 +95,7 @@ describe('batched async parsing', () => {
 
   it('never calls the callback synchronously', () => {
     let isCalled = false;
-    ical.parseICS(vcalendar(vevent('x')), () => {
+    ical.async.parseICS(vcalendar(vevent('x')), () => {
       isCalled = true;
     });
 
