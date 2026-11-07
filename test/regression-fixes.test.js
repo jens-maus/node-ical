@@ -405,6 +405,90 @@ describe('regression fixes', () => {
     assert.equal(journal.end, undefined, 'VJOURNAL should not receive an implicit end date');
   });
 
+  it('borrows only a VTIMEZONE that a floating value comes after', () => {
+    const vtimezone = tzid => [
+      'BEGIN:VTIMEZONE',
+      `TZID:${tzid}`,
+      'BEGIN:STANDARD',
+      'DTSTART:19701025T030000',
+      'TZOFFSETFROM:+0200',
+      'TZOFFSETTO:+0100',
+      'END:STANDARD',
+      'BEGIN:DAYLIGHT',
+      'DTSTART:19700329T020000',
+      'TZOFFSETFROM:+0100',
+      'TZOFFSETTO:+0200',
+      'END:DAYLIGHT',
+      'END:VTIMEZONE',
+    ];
+    const event = uid => ['BEGIN:VEVENT', `UID:${uid}`, 'DTSTAMP:20270101T000000Z', 'DTSTART:20270601T100000', 'END:VEVENT'];
+    const parsed = ical.parseICS([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      ...event('before@test'),
+      ...vtimezone('Europe/Berlin'),
+      ...event('after@test'),
+      ...vtimezone('Europe/Paris'),
+      ...event('still-first@test'),
+      'END:VCALENDAR',
+    ].join('\r\n'));
+
+    assert.equal(parsed['before@test'].start.tz, undefined);
+    assert.equal(parsed['after@test'].start.tz, parsed['still-first@test'].start.tz);
+    assert.equal(parsed['after@test'].start.toISOString(), '2027-06-01T08:00:00.000Z');
+  });
+
+  it('does not walk the whole calendar for each floating value', () => {
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0'];
+    for (let index = 0; index < 500; index++) {
+      lines.push('BEGIN:VEVENT', `UID:floating-${index}@test`, 'DTSTAMP:20270101T000000Z', 'DTSTART:20270601T100000', 'END:VEVENT');
+    }
+
+    lines.push('END:VCALENDAR');
+
+    const originalValues = Object.values;
+    let walks = 0;
+    Object.values = object => {
+      const values = originalValues(object);
+      walks += values.length > 100 ? 1 : 0;
+      return values;
+    };
+
+    let parsed;
+    try {
+      parsed = ical.parseICS(lines.join('\r\n'));
+    } finally {
+      Object.values = originalValues;
+    }
+
+    assert.equal(Object.keys(parsed).length, 501);
+    assert.equal(walks, 0);
+  });
+
+  it('finds a VTIMEZONE after a stray END:VTIMEZONE', () => {
+    const parsed = ical.parseICS([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'END:VTIMEZONE',
+      'BEGIN:VTIMEZONE',
+      'TZID:Asia/Tokyo',
+      'BEGIN:STANDARD',
+      'DTSTART:19700101T000000',
+      'TZOFFSETFROM:+0900',
+      'TZOFFSETTO:+0900',
+      'END:STANDARD',
+      'END:VTIMEZONE',
+      'BEGIN:VEVENT',
+      'UID:floating@test',
+      'DTSTAMP:20270101T000000Z',
+      'DTSTART:20270601T100000',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n'));
+
+    assert.equal(parsed['floating@test'].start.toISOString(), '2027-06-01T01:00:00.000Z');
+  });
+
   it('treats __proto__ UIDs as data instead of mutating the result prototype', () => {
     const parsed = ical.parseICS([
       'BEGIN:VCALENDAR',
