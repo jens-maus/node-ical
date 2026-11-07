@@ -555,9 +555,94 @@ describe('regression fixes', () => {
       assert.equal(Object.hasOwn(parse('DTSTART;VALUE=DATE:20271001', 'FREQ=BOGUS')['invalid-rrule@test'], 'rrule'), false);
       assert.equal(warnings.length, rules.length + 1);
       assert.ok(warnings.every(warning => warning.startsWith('[node-ical] Ignoring invalid RRULE')), warnings.join('\n'));
+      assert.ok(warnings.some(warning => warning.includes('"COUNT=2"')), warnings.join('\n'));
     } finally {
       console.warn = originalWarn;
     }
+  });
+
+  it('reads RRULE parts written before FREQ', () => {
+    const starts = rule => {
+      const event = ical.parseICS([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//TEST//rrule-order//EN',
+        'BEGIN:VEVENT',
+        'UID:rrule-order@test',
+        'DTSTAMP:20270101T000000Z',
+        'DTSTART:20270104T090000Z',
+        `RRULE:${rule}`,
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n'))['rrule-order@test'];
+
+      return ical.expandRecurringEvent(event, {
+        from: new Date('2027-01-01T12:00:00Z'),
+        to: new Date('2027-03-01T12:00:00Z'),
+      }).map(instance => instance.start.toISOString());
+    };
+
+    assert.deepEqual(starts('COUNT=3;FREQ=DAILY'), ['2027-01-04T09:00:00.000Z', '2027-01-05T09:00:00.000Z', '2027-01-06T09:00:00.000Z']);
+
+    for (const [reordered, ordered] of [
+      ['BYDAY=MO,TU;FREQ=WEEKLY;COUNT=4', 'FREQ=WEEKLY;BYDAY=MO,TU;COUNT=4'],
+      ['INTERVAL=2;FREQ=DAILY;COUNT=3', 'FREQ=DAILY;INTERVAL=2;COUNT=3'],
+      ['UNTIL=20270201T000000Z;BYMONTHDAY=15;FREQ=MONTHLY', 'FREQ=MONTHLY;BYMONTHDAY=15;UNTIL=20270201T000000Z'],
+      ['WKST=SU;INTERVAL=2;BYDAY=TU,SU;COUNT=4;FREQ=WEEKLY', 'FREQ=WEEKLY;WKST=SU;INTERVAL=2;BYDAY=TU,SU;COUNT=4'],
+      ['freq=daily;count=2', 'FREQ=DAILY;COUNT=2'],
+      // Text that isn't a rule part still gets dropped
+      ['RRULE:AnythingRandom;FREQ=WEEKLY;BYDAY=MO;COUNT=2', 'FREQ=WEEKLY;BYDAY=MO;COUNT=2'],
+      ['RRULE:RRULE:FREQ=DAILY;COUNT=2', 'FREQ=DAILY;COUNT=2'],
+      ['X-FOO:FREQ=DAILY;COUNT=2', 'FREQ=DAILY;COUNT=2'],
+      ['X-FOO:COUNT=2;FREQ=DAILY', 'FREQ=DAILY;COUNT=2'],
+      // A colon in a rule part doesn't make it a property name
+      ['UNTIL=2027-01-05T00:00:00Z;FREQ=DAILY', 'FREQ=DAILY;UNTIL=2027-01-05T00:00:00Z'],
+    ]) {
+      assert.deepEqual(starts(reordered), starts(ordered), reordered);
+    }
+
+    // Of two glued rules, only the last one counts
+    assert.deepEqual(starts('RRULE:FREQ=WEEKLY;COUNT=2;RRULE:FREQ=DAILY'), starts('FREQ=DAILY'));
+    assert.deepEqual(starts('freq=WEEKLY;COUNT=2;FREQ=DAILY'), starts('FREQ=DAILY'));
+    assert.deepEqual(starts('COUNT=2;FREQ=WEEKLY;freq=DAILY'), starts('FREQ=DAILY'));
+  });
+
+  it('reads a parameter on the RRULE line as no rule part', () => {
+    const count = line => {
+      const event = ical.parseICS([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//TEST//rrule-parameter//EN',
+        'BEGIN:VEVENT',
+        'UID:rrule-parameter@test',
+        'DTSTAMP:20270101T000000Z',
+        'DTSTART:20270104T090000Z',
+        line,
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n'))['rrule-parameter@test'];
+
+      return ical.expandRecurringEvent(event, {
+        from: new Date('2027-01-01T12:00:00Z'),
+        to: new Date('2027-02-01T12:00:00Z'),
+      }).length;
+    };
+
+    assert.equal(count('RRULE:FREQ=DAILY'), 29);
+    assert.equal(count('RRULE;COUNT=2:FREQ=DAILY'), 29);
+    assert.equal(count('RRULE;COUNT=2;X-FOO=BAR:FREQ=DAILY'), 29);
+    assert.equal(count('RRULE;X-FOO=BAR:COUNT=2;FREQ=DAILY'), 2);
+    assert.equal(count('RRULE;X-FREQ=BAR:COUNT=2;FREQ=DAILY'), 2);
+    assert.equal(count('RRULE:FREQ=DAILY;COUNT=2;X-freq=WEEKLY'), 2);
+    assert.equal(count('RRULE:COUNT=2;FREQ=DAILY;X-freq=WEEKLY'), 2);
+    assert.equal(count('RRULE;X-FOO="a:b":COUNT=2;FREQ=DAILY'), 2);
+  });
+
+  it('keeps the rule behind junk and parameters in badRRULE.ics', () => {
+    const events = Object.values(ical.sync.parseFile('./test/fixtures/badRRULE.ics')).filter(entry => entry.type === 'VEVENT');
+
+    assert.equal(events.length, 3);
+    assert.ok(events.every(event => event.rrule));
   });
 
   it('rejects DURATION values that look valid but have the wrong shape', () => {
