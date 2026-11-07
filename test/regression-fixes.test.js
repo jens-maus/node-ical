@@ -549,7 +549,8 @@ describe('regression fixes', () => {
     assert.equal(count('RRULE;COUNT=2;X-FOO=BAR:FREQ=DAILY'), 29);
     assert.equal(count('RRULE;X-FOO=BAR:COUNT=2;FREQ=DAILY'), 2);
     assert.equal(count('RRULE;X-FREQ=BAR:COUNT=2;FREQ=DAILY'), 2);
-    assert.equal(count('RRULE;X-FREQ=BAR:freq=DAILY;COUNT=2'), 2);
+    assert.equal(count('RRULE:FREQ=DAILY;COUNT=2;X-freq=WEEKLY'), 2);
+    assert.equal(count('RRULE:COUNT=2;FREQ=DAILY;X-freq=WEEKLY'), 2);
     assert.equal(count('RRULE;X-FOO="a:b":COUNT=2;FREQ=DAILY'), 2);
   });
 
