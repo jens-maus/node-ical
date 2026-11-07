@@ -510,12 +510,43 @@ describe('regression fixes', () => {
       ['RRULE:AnythingRandom;FREQ=WEEKLY;BYDAY=MO;COUNT=2', 'FREQ=WEEKLY;BYDAY=MO;COUNT=2'],
       ['RRULE:RRULE:FREQ=DAILY;COUNT=2', 'FREQ=DAILY;COUNT=2'],
       ['X-FOO:FREQ=DAILY;COUNT=2', 'FREQ=DAILY;COUNT=2'],
+      ['X-FOO:COUNT=2;FREQ=DAILY', 'FREQ=DAILY;COUNT=2'],
+      // A colon in a rule part doesn't make it a property name
+      ['UNTIL=2027-01-05T00:00:00Z;FREQ=DAILY', 'FREQ=DAILY;UNTIL=2027-01-05T00:00:00Z'],
     ]) {
       assert.deepEqual(starts(reordered), starts(ordered), reordered);
     }
 
     // Of two glued rules, only the last one counts
     assert.deepEqual(starts('RRULE:FREQ=WEEKLY;COUNT=2;RRULE:FREQ=DAILY'), starts('FREQ=DAILY'));
+    assert.deepEqual(starts('freq=WEEKLY;COUNT=2;FREQ=DAILY'), starts('FREQ=DAILY'));
+  });
+
+  it('reads a parameter on the RRULE line as no rule part', () => {
+    const count = line => {
+      const event = ical.parseICS([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//TEST//rrule-parameter//EN',
+        'BEGIN:VEVENT',
+        'UID:rrule-parameter@test',
+        'DTSTAMP:20270101T000000Z',
+        'DTSTART:20270104T090000Z',
+        line,
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n'))['rrule-parameter@test'];
+
+      return ical.expandRecurringEvent(event, {
+        from: new Date('2027-01-01T12:00:00Z'),
+        to: new Date('2027-02-01T12:00:00Z'),
+      }).length;
+    };
+
+    assert.equal(count('RRULE:FREQ=DAILY'), 29);
+    assert.equal(count('RRULE;COUNT=2:FREQ=DAILY'), 29);
+    assert.equal(count('RRULE;COUNT=2;X-FOO=BAR:FREQ=DAILY'), 29);
+    assert.equal(count('RRULE;X-FOO=BAR:COUNT=2;FREQ=DAILY'), 2);
   });
 
   it('keeps the rule behind junk and parameters in badRRULE.ics', () => {
