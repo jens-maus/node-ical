@@ -520,6 +520,7 @@ describe('regression fixes', () => {
     // Of two glued rules, only the last one counts
     assert.deepEqual(starts('RRULE:FREQ=WEEKLY;COUNT=2;RRULE:FREQ=DAILY'), starts('FREQ=DAILY'));
     assert.deepEqual(starts('freq=WEEKLY;COUNT=2;FREQ=DAILY'), starts('FREQ=DAILY'));
+    assert.deepEqual(starts('COUNT=2;FREQ=WEEKLY;freq=DAILY'), starts('FREQ=DAILY'));
   });
 
   it('reads a parameter on the RRULE line as no rule part', () => {
@@ -548,6 +549,7 @@ describe('regression fixes', () => {
     assert.equal(count('RRULE;COUNT=2;X-FOO=BAR:FREQ=DAILY'), 29);
     assert.equal(count('RRULE;X-FOO=BAR:COUNT=2;FREQ=DAILY'), 2);
     assert.equal(count('RRULE;X-FREQ=BAR:COUNT=2;FREQ=DAILY'), 2);
+    assert.equal(count('RRULE;X-FREQ=BAR:freq=DAILY;COUNT=2'), 2);
     assert.equal(count('RRULE;X-FOO="a:b":COUNT=2;FREQ=DAILY'), 2);
   });
 

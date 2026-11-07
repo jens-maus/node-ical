@@ -362,7 +362,7 @@ const ical = {
         // Text before FREQ= can be junk, like a doubled RRULE: or a parameter, or rule parts,
         // which can come in any order. A property name with its parameters ends at a colon outside
         // quotes and holds no rule parts. An earlier FREQ= part means glued rules, where the last one counts
-        const freqIndex = rule.lastIndexOf('FREQ=');
+        const freqIndex = rule.replaceAll(/freq=/giv, 'FREQ=').lastIndexOf('FREQ=');
         if (freqIndex > 0) {
           const leadingText = rule.slice(0, freqIndex).replace(/^[^:;=]+(?:;(?:"[^"]*"|[^":])*)?:/v, '');
           const leadingParts = /(?:^|[:;])freq=/iv.test(leadingText)
