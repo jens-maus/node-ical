@@ -1,0 +1,14 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//node-ical//issue-600//EN
+BEGIN:VEVENT
+UID:issue-600@node-ical.test
+DTSTAMP:20260101T000000Z
+DTSTART:20260101T100000Z
+SUMMARY;LANGUAGE=en;X-NOTE="a;b":Meeting
+LOCATION;ALTREP="https://example.com/?a=1;b=2":Room 1
+ORGANIZER;CN="Doe; Jane":mailto:jane@example.com
+ATTENDEE;CN="Doe; John";ROLE=REQ-PARTICIPANT:mailto:john@example.com
+ATTENDEE;CN="Roe: Rick";ROLE=OPT-PARTICIPANT:mailto:rick@example.com
+END:VEVENT
+END:VCALENDAR

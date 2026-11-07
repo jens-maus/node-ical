@@ -184,6 +184,8 @@ const PARSE_BATCH_SIZE = 2000;
 
 // A content line: name, optional ;parameters and the value after the first unquoted colon
 const CONTENT_LINE = /^((?:\w|-)+)((?:;(?:\w|-)+=(?:"[^"]*"|[^":;]+))*):(.*)$/v;
+// One ;name=value parameter of a matched content line, with a quoted value kept whole
+const PARAMETER = /;((?:\w|-)+=(?:"[^"]*"|[^":;]+))/gv;
 
 /**
  * Yield the lines of an iCalendar string one at a time, so parsing does not hold an array
@@ -266,7 +268,7 @@ function parseContentLine(parser, line, ctx, stack) {
   }
 
   const [, name, parameterString, value] = match;
-  const parameters = parameterString ? parameterString.split(';').slice(1) : [];
+  const parameters = Array.from(parameterString.matchAll(PARAMETER), parameter => parameter[1]);
 
   return parser.handleObject(name, value, parameters, ctx, stack, line) || {};
 }
