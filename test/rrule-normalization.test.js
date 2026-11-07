@@ -35,6 +35,7 @@ describe('normalizeRruleValue()', () => {
       ['RRULE;X-FOO=BAR:COUNT=3;FREQ=DAILY', 'COUNT=3;FREQ=DAILY'],
       ['RRULE;COUNT=2:FREQ=DAILY', 'FREQ=DAILY'],
       ['RRULE;X-FOO="a:b":COUNT=3;freq=daily', 'COUNT=3;freq=daily'],
+      ['RRULE;X-FOO="a","b:c":FREQ=DAILY;COUNT=2', 'FREQ=DAILY;COUNT=2'],
       // Stray text before the rule
       ['RRULE:RRULE:FREQ=DAILY;COUNT=2', 'FREQ=DAILY;COUNT=2'],
       ['RRULE:X-FOO:COUNT=2;FREQ=DAILY', 'COUNT=2;FREQ=DAILY'],
@@ -65,6 +66,10 @@ describe('RRULE normalization when parsing', () => {
   it('reads a lowercase rule after property parameters', () => {
     assert.deepEqual(occurrences('RRULE;X-FOO=BAR:freq=daily;count=3'), ['2027-01-04', '2027-01-05', '2027-01-06']);
     assert.deepEqual(occurrences('RRULE;X-FOO=BAR:COUNT=3;freq=daily'), ['2027-01-04', '2027-01-05', '2027-01-06']);
+  });
+
+  it('reads a rule after a parameter with a list of quoted values', () => {
+    assert.deepEqual(occurrences('RRULE;X-FOO="a","b":FREQ=DAILY;COUNT=2'), ['2027-01-04', '2027-01-05']);
   });
 
   it('keeps no part of an earlier glued rule, whatever the case of FREQ', () => {

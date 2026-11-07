@@ -6,6 +6,7 @@ UID:quoted-parameter-lists@node-ical.test
 DTSTAMP:20260101T000000Z
 DTSTART:20260101T100000Z
 SUMMARY;X-TAGS=one,two:Planning
+LOCATION;X-TAGS=,"blue",,"green":Room 1
 ORGANIZER;CN="Doe, Jane":mailto:jane@example.com
 ATTENDEE;MEMBER="mailto:team@example.com","mailto:dev@example.com";CN=John Doe:mailto:john@example.com
 ATTENDEE;DELEGATED-TO="mailto:ann@example.com","mailto:bob@example.com":mailto:rick@example.com

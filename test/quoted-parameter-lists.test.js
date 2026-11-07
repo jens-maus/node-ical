@@ -24,6 +24,10 @@ describe('parameters with a list of quoted values', () => {
     assert.deepEqual(event.attendee[1].params, {'DELEGATED-TO': 'mailto:ann@example.com,mailto:bob@example.com'});
   });
 
+  it('keeps empty values of the list', () => {
+    assert.deepEqual(event.location, {params: {'X-TAGS': ',blue,,green'}, val: 'Room 1'});
+  });
+
   it('still unquotes a single quoted value', () => {
     assert.deepEqual(event.attendee[2].params, {'DELEGATED-FROM': 'mailto:rick@example.com', CN: 'Ann'});
     assert.deepEqual(event.organizer.params, {CN: 'Doe, Jane'});

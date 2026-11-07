@@ -5,6 +5,7 @@ import {RRuleTemporal} from 'rrule-temporal';
 import {toText as toTextFunction} from 'rrule-temporal/totext';
 import {getDateKey, localDate} from './lib/date-utils.js';
 import {
+  PARAMETER_VALUE,
   parseValue,
   finalizeEndedComponent,
   createTemporalRule,
@@ -182,9 +183,6 @@ const exdateParameter = createExdateParameterFactory({
 // Default batch size for async parsing to prevent event loop blocking
 const PARSE_BATCH_SIZE = 2000;
 
-// A parameter value: quoted strings and other characters except ";" and ":", so that a
-// quoted value may contain them and a list like "a","b" stays one value (RFC 5545 §3.1)
-const PARAMETER_VALUE = '(?:"[^"]*"|[^":;])+';
 // A content line: name, optional ;parameters and the value after the first unquoted colon
 const CONTENT_LINE = new RegExp(String.raw`^((?:\w|-)+)((?:;(?:\w|-)+=${PARAMETER_VALUE})*):(.*)$`, 'v');
 // One ;name=value parameter of a matched content line
