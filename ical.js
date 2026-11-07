@@ -363,12 +363,18 @@ const ical = {
         rule = rule.slice(rule.lastIndexOf('FREQ='));
 
         if (curr.start) {
-          curr.rrule = createTemporalRule(curr, rule, {
+          const temporalRule = createTemporalRule(curr, rule, {
             RRuleTemporal,
             RRuleCompatWrapper,
             Temporal,
             tzUtil,
           });
+
+          if (temporalRule) {
+            curr.rrule = temporalRule;
+          } else {
+            delete curr.rrule;
+          }
         }
       }
 
