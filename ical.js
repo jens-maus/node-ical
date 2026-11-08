@@ -248,6 +248,9 @@ function * unfoldLines(lines) {
   }
 }
 
+// A TZID parameter with a quoted value
+const QUOTED_TZID = /^TZID="[^"]*"$/v;
+
 /**
  * Parse one unfolded content line into the current component.
  * @param {object} parser - The ical object, for its handleObject()
@@ -257,9 +260,21 @@ function * unfoldLines(lines) {
  * @returns {object} The component to continue with
  */
 function parseContentLine(parser, line, ctx, stack) {
-  // Remove any double quotes in any tzid statement // except around (utc+hh:mm
+  // Remove the double quotes around a TZID value and in the value of a line with a TZID,
+  // except around "(UTC+01:00) ...". Other quoted parameters keep their quotes, so a colon
+  // inside them does not end the parameters. A line that does not parse this way loses
+  // all its quotes, as before.
   if (line.includes('TZID=') && !line.includes('"(')) {
-    line = line.replaceAll('"', '');
+    const tzidMatch = CONTENT_LINE.exec(line);
+    if (tzidMatch) {
+      const [, name, parameterString, value] = tzidMatch;
+      const parameters = parameterString.replaceAll(PARAMETER, (parameter, nameValue) => (
+        QUOTED_TZID.test(nameValue) ? `;${nameValue.replaceAll('"', '')}` : parameter
+      ));
+      line = `${name}${parameters}:${value.replaceAll('"', '')}`;
+    } else {
+      line = line.replaceAll('"', '');
+    }
   }
 
   const match = CONTENT_LINE.exec(line);
