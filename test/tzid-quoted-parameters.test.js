@@ -26,6 +26,7 @@ describe('TZID next to other quoted parameters', () => {
       'DTSTART;TZID=America/New_York;X-NOTE="a:b":20260101T100000',
       'DTSTART;TZID="America/New_York";X-NOTE="a:b":20260101T100000',
       'DTSTART;X-NOTE="a:b";TZID="America/New_York":20260101T100000',
+      'DTSTART;X-NOTE="foo;TZID=";TZID="America/New_York":20260101T100000',
     ]) {
       const date = start(line);
       assert.ok(date instanceof Date, line);

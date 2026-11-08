@@ -247,8 +247,8 @@ function * unfoldLines(lines) {
   }
 }
 
-// A quoted TZID parameter
-const QUOTED_TZID = /;TZID="([^"]*)"/gv;
+// A TZID parameter with a quoted value
+const QUOTED_TZID = /^TZID="[^"]*"$/v;
 
 /**
  * Parse one unfolded content line into the current component.
@@ -264,10 +264,16 @@ function parseContentLine(parser, line, ctx, stack) {
   // inside them does not end the parameters. A line that does not parse this way loses
   // all its quotes, as before.
   if (line.includes('TZID=') && !line.includes('"(')) {
-    const tzidMatch = CONTENT_LINE.exec(line.replaceAll(QUOTED_TZID, ';TZID=$1'));
-    line = tzidMatch
-      ? `${tzidMatch[1]}${tzidMatch[2]}:${tzidMatch[3].replaceAll('"', '')}`
-      : line.replaceAll('"', '');
+    const tzidMatch = CONTENT_LINE.exec(line);
+    if (tzidMatch) {
+      const [, name, parameterString, value] = tzidMatch;
+      const parameters = parameterString.replaceAll(PARAMETER, (parameter, nameValue) => (
+        QUOTED_TZID.test(nameValue) ? `;${nameValue.replaceAll('"', '')}` : parameter
+      ));
+      line = `${name}${parameters}:${value.replaceAll('"', '')}`;
+    } else {
+      line = line.replaceAll('"', '');
+    }
   }
 
   const match = CONTENT_LINE.exec(line);
