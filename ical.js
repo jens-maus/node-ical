@@ -5,6 +5,7 @@ import {RRuleTemporal} from 'rrule-temporal';
 import {toText as toTextFunction} from 'rrule-temporal/totext';
 import {getDateKey, localDate} from './lib/date-utils.js';
 import {
+  PARAMETER_VALUE,
   parseValue,
   finalizeEndedComponent,
   createTemporalRule,
@@ -183,9 +184,9 @@ const exdateParameter = createExdateParameterFactory({
 const PARSE_BATCH_SIZE = 2000;
 
 // A content line: name, optional ;parameters and the value after the first unquoted colon
-const CONTENT_LINE = /^((?:\w|-)+)((?:;(?:\w|-)+=(?:"[^"]*"|[^":;]+))*):(.*)$/v;
-// One ;name=value parameter of a matched content line, with a quoted value kept whole
-const PARAMETER = /;((?:\w|-)+=(?:"[^"]*"|[^":;]+))/gv;
+const CONTENT_LINE = new RegExp(String.raw`^((?:\w|-)+)((?:;(?:\w|-)+=${PARAMETER_VALUE})*):(.*)$`, 'v');
+// One ;name=value parameter of a matched content line
+const PARAMETER = new RegExp(String.raw`;((?:\w|-)+=${PARAMETER_VALUE})`, 'gv');
 
 /**
  * Yield the lines of an iCalendar string one at a time, so parsing does not hold an array
