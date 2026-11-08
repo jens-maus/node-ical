@@ -5,19 +5,22 @@ import ical from 'node-ical';
 // The quotes around a TZID value are removed, but other quoted parameters on the same line keep
 // theirs, so a colon inside them does not end the parameters
 
-function start(dateLine) {
-  const event = ical.sync.parseICS([
+function parseEvent(line) {
+  return ical.sync.parseICS([
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'BEGIN:VEVENT',
     'UID:tzid-quoted-parameters@test',
     'DTSTAMP:20260101T000000Z',
-    dateLine,
+    line.startsWith('DTSTART') ? line : 'DTSTART:20260101T100000Z',
+    ...(line.startsWith('DTSTART') ? [] : [line]),
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n'))['tzid-quoted-parameters@test'];
+}
 
-  return event.start;
+function start(dateLine) {
+  return parseEvent(dateLine).start;
 }
 
 describe('TZID next to other quoted parameters', () => {
@@ -33,6 +36,19 @@ describe('TZID next to other quoted parameters', () => {
       assert.equal(date.toISOString(), '2026-01-01T15:00:00.000Z', line);
       assert.equal(date.tz, 'America/New_York', line);
     }
+  });
+
+  it('keeps a quoted parameter that contains a colon and TZID= on other properties', () => {
+    const event = parseEvent('SUMMARY;X-NOTE="a:b;TZID=foo":Meeting');
+    assert.deepEqual(event.summary, {params: {'X-NOTE': 'a:b;TZID=foo'}, val: 'Meeting'});
+  });
+
+  it('reads quoted parameter values like on a line without TZID text', () => {
+    const withTzidText = parseEvent('ATTENDEE;CN="123";X-NOTE="note;TZID=note":mailto:a@example.com');
+    const withoutTzidText = parseEvent('ATTENDEE;CN="123";X-NOTE="note":mailto:a@example.com');
+
+    assert.equal(withTzidText.attendee.params.CN, withoutTzidText.attendee.params.CN);
+    assert.equal(withTzidText.attendee.params['X-NOTE'], 'note;TZID=note');
   });
 
   it('still reads a quoted TZID and quotes around the value', () => {
