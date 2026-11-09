@@ -157,6 +157,27 @@ const fullJournal: ical.VJournal = {
 };
 
 // ============================================================================
+// Autodetect parseICS/parseFile Type Tests
+// ============================================================================
+
+/* eslint-disable @typescript-eslint/no-deprecated -- the deprecated callback overload must keep type-checking until 1.0 */
+declare const autodetectParseICS: typeof ical.parseICS;
+declare const autodetectParseFile: typeof ical.parseFile;
+
+// Test: the sync form returns the calendar
+const autodetectParsed: ical.CalendarResponse = autodetectParseICS('BEGIN:VCALENDAR\r\nEND:VCALENDAR');
+const autodetectParsedFile: ical.CalendarResponse = autodetectParseFile('calendar.ics');
+
+// Test: the deprecated callback form still type-checks until node-ical 1.0
+autodetectParseICS('BEGIN:VCALENDAR\r\nEND:VCALENDAR', (error, data) => {
+  const callbackData: ical.CalendarResponse | undefined = data;
+});
+autodetectParseFile('calendar.ics', (error, data) => {
+  const callbackData: ical.CalendarResponse | undefined = data;
+});
+/* eslint-enable @typescript-eslint/no-deprecated */
+
+// ============================================================================
 // ExpandRecurringEventOptions Type Tests
 // ============================================================================
 
