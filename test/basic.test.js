@@ -365,7 +365,7 @@ END:VCALENDAR`;
       assert_.equal(fb.start.getUTCFullYear(), 2014);
       assert_.equal(fb.start.getUTCMonth(), 3);
       assert_.equal(fb.end.getUTCMonth(), 6);
-      const busy = fb.freebusy.find(x => x.type === 'BUSY');
+      const busy = fb.freebusy.find(period => period.type === 'BUSY');
       assert_.equal(busy.start.getUTCFullYear(), 2014);
       assert_.equal(busy.start.getUTCMonth(), 3);
     });
