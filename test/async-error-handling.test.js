@@ -56,7 +56,8 @@ describe('parseICS async mode', () => {
       const data = await parseICSPromise(validICS);
       assert.ok(data, 'Data should be returned');
 
-      const events = Object.values(data).filter(x => x.type === 'VEVENT');
+      const events = Object.values(data).filter(value => value.type === 'VEVENT');
+
       assert.equal(events.length, 1);
       assert.equal(events[0].summary, 'Valid Event');
       assert.equal(events[0].uid, 'valid-event-123');
@@ -66,8 +67,9 @@ describe('parseICS async mode', () => {
       const syncResult = ical.sync.parseICS(validICS);
       const asyncResult = await parseICSPromise(validICS);
 
-      const syncEvents = Object.values(syncResult).filter(x => x.type === 'VEVENT');
-      const asyncEvents = Object.values(asyncResult).filter(x => x.type === 'VEVENT');
+      const syncEvents = Object.values(syncResult).filter(value => value.type === 'VEVENT');
+      const asyncEvents = Object.values(asyncResult).filter(value => value.type === 'VEVENT');
+
       assert.equal(syncEvents.length, asyncEvents.length);
       assert.equal(syncEvents[0].summary, asyncEvents[0].summary);
       assert.equal(syncEvents[0].uid, asyncEvents[0].uid);
@@ -130,7 +132,8 @@ END:VEVENT
 END:VCALENDAR`;
 
       const data = await parseICSPromise(multiEventICS);
-      const events = Object.values(data).filter(x => x.type === 'VEVENT');
+      const events = Object.values(data).filter(value => value.type === 'VEVENT');
+
       assert.equal(events.length, 2);
     });
 

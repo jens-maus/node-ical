@@ -88,7 +88,7 @@ describe('parser: advanced cases', () => {
       // Give this parsing-heavy regression test extra breathing room to avoid spurious timeouts.
       this.timeout(20_000);
       const data = ical.parseFile('./test/fixtures/daily-count-exdate-recurrence-id.ics');
-      const event = Object.values(data).find(x => x.uid === '0000001' && x.summary === 'Treasure Hunting');
+      const event = Object.values(data).find(event => event.uid === '0000001' && event.summary === 'Treasure Hunting');
       assert.ok(event.rrule);
       assert.equal(event.summary, 'Treasure Hunting');
       assert.ok(event.exdate);
@@ -109,7 +109,7 @@ describe('parser: advanced cases', () => {
     // Google-calendar-kiev-tz.ics – RECURRENCE-ID appears before RRULE and must still bind correctly
     it('handles RECURRENCE-ID before RRULE (google-calendar-kiev-tz.ics)', () => {
       const data = ical.parseFile('./test/fixtures/google-calendar-kiev-tz.ics');
-      const event = Object.values(data).find(x => x.uid === '6m2q7kb2l02798oagemrcgm6pk@google.com' && x.summary === 'repeated');
+      const event = Object.values(data).find(event => event.uid === '6m2q7kb2l02798oagemrcgm6pk@google.com' && event.summary === 'repeated');
       assert.ok(event.rrule);
       assert.equal(event.summary, 'repeated');
       const key = new Date(Date.UTC(2016, 7, 26, 11, 0, 0)).toISOString().slice(0, 10);
@@ -220,7 +220,7 @@ describe('parser: advanced cases', () => {
 
     // Biweekly-exdate-until.ics – comma-separated EXDATEs plus EXDATEs with malformed times stay resilient
     it('parses comma-separated EXDATEs (biweekly-exdate-until.ics)', () => {
-      const event = Object.values(biweeklyData).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+      const event = Object.values(biweeklyData).find(event => event.uid === '98765432-ABCD-DCBB-999A-987765432123');
       assert.equal(event.summary, 'Example of comma-separated exdates');
       assert.ok(event.exdate);
       const checks = [
@@ -237,7 +237,7 @@ describe('parser: advanced cases', () => {
     });
 
     it('tolerates EXDATEs with bad times (biweekly-exdate-until.ics)', () => {
-      const event = Object.values(biweeklyData).find(x => x.uid === '1234567-ABCD-ABCD-ABCD-123456789012');
+      const event = Object.values(biweeklyData).find(event => event.uid === '1234567-ABCD-ABCD-ABCD-123456789012');
       assert.equal(event.summary, 'Example of exdate with bad times');
       assert.ok(event.exdate);
       const bads = [
@@ -250,7 +250,7 @@ describe('parser: advanced cases', () => {
     });
 
     it('exdate is a plain object, not an array (biweekly-exdate-until.ics)', () => {
-      const event = Object.values(biweeklyData).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+      const event = Object.values(biweeklyData).find(event => event.uid === '98765432-ABCD-DCBB-999A-987765432123');
       assert.ok(event.exdate);
 
       // Should be a plain object, not an array
@@ -301,7 +301,7 @@ describe('parser: advanced cases', () => {
     // Regression test for issue #167: "Exdate showing blank array when EXDATE parameters exist"
     // https://github.com/jens-maus/node-ical/issues/167
     it('exdate is not shown as blank/empty array (regression for #167)', () => {
-      const event = Object.values(biweeklyData).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+      const event = Object.values(biweeklyData).find(event => event.uid === '98765432-ABCD-DCBB-999A-987765432123');
 
       // The bug was: JSON.stringify showed [] even though data existed
       const stringified = JSON.stringify(event.exdate);
@@ -327,7 +327,7 @@ describe('parser: advanced cases', () => {
     // Regression test for issue #360: "Recurring events with exclusions are not handled"
     // https://github.com/jens-maus/node-ical/issues/360
     it('recurring events with EXDATE exclusions are properly parsed (regression for #360)', () => {
-      const event = Object.values(biweeklyData).find(x => x.uid === '98765432-ABCD-DCBB-999A-987765432123');
+      const event = Object.values(biweeklyData).find(event => event.uid === '98765432-ABCD-DCBB-999A-987765432123');
 
       // The bug was: parseIcs ignored exceptions and created exdate: []
       assert.ok(event.exdate, 'exdate should exist');
@@ -364,7 +364,7 @@ describe('parser: advanced cases', () => {
   describe('Timezone detection', () => {
     it('infers/retains timezone per event (mixed-timezone-handling.ics)', () => {
       const data = ical.parseFile('./test/fixtures/mixed-timezone-handling.ics');
-      const events = Object.values(data).filter(x => x.type === 'VEVENT');
+      const events = Object.values(data).filter(event => event.type === 'VEVENT');
       assert.equal(events.length, 5);
       const uids = [
         '1C9439B1-FF65-11D6-9973-003065F99D04',
@@ -395,7 +395,7 @@ END:VEVENT
 END:VCALENDAR`;
 
       const data = ical.parseICS(ics);
-      const event = Object.values(data).find(x => x.uid === 'offset-minutes');
+      const event = Object.values(data).find(event => event.uid === 'offset-minutes');
       assert.ok(event, 'Expected to find the synthetic event by UID');
 
       const {start, rrule} = event;
@@ -420,7 +420,7 @@ END:VCALENDAR`;
     // Tentative-apple-calendar.ics – VEVENT status values remain intact across parsing
     it('parses VEVENT status values (tentative-apple-calendar.ics)', () => {
       const data = ical.parseFile('./test/fixtures/tentative-apple-calendar.ics');
-      const getByUid = uid => Object.values(data).find(x => x.uid === uid);
+      const getByUid = uid => Object.values(data).find(event => event.uid === uid);
       assert.equal(getByUid('31a1ffc9-9b76-465b-ae4a-cadb694c9d37').status, 'TENTATIVE');
       assert.equal(getByUid('F00F3710-BF4D-46D3-9A2C-1037AB24C6AC').status, 'CONFIRMED');
       assert.equal(getByUid('8CAB46C5-669F-4249-B1AD-52BFA72F4E0A').status, 'CANCELLED');
@@ -432,7 +432,7 @@ END:VCALENDAR`;
   describe('Floating DTSTART with VTIMEZONE', () => {
     it('applies VTIMEZONE to floating DTSTART (dst-transition-rules.ics)', () => {
       const data = ical.parseFile('./test/fixtures/dst-transition-rules.ics');
-      const event = Object.values(data).find(x => x.uid === 'f683404f-aede-43eb-8774-27f62bb27c92');
+      const event = Object.values(data).find(event => event.uid === 'f683404f-aede-43eb-8774-27f62bb27c92');
       assert.equal(event.start.toJSON(), '2022-10-09T08:00:00.000Z');
       assert.equal(event.end.toJSON(), '2022-10-09T09:00:00.000Z');
     });
@@ -453,7 +453,7 @@ END:VCALENDAR`;
   describe('RRULE with timezone DTSTART', () => {
     it('handles RRULE with timezone DTSTART (yearly-party.ics)', () => {
       const data = ical.parseFile('./test/fixtures/yearly-party.ics');
-      const first = Object.values(data).find(x => x.uid === '000021a');
+      const first = Object.values(data).find(event => event.uid === '000021a');
       assert.equal(first.datetype, 'date-time');
       assert.equal(first.start.tz, 'Europe/Berlin');
       assert.equal(first.start.toISOString(), '2022-07-14T12:00:00.000Z');
@@ -463,7 +463,7 @@ END:VCALENDAR`;
       assert.ok(first.rrule.options.tzid);
       assert.equal(first.rrule.options.tzid, 'Europe/Berlin');
 
-      const second = Object.values(data).find(x => x.uid === '000021b');
+      const second = Object.values(data).find(event => event.uid === '000021b');
       assert.equal(second.datetype, 'date-time');
       assert.equal(second.start.tz, 'Etc/GMT-2');
       assert.equal(second.start.toISOString(), '2022-07-15T12:00:00.000Z');
@@ -477,7 +477,7 @@ END:VCALENDAR`;
       // filter out orphaned segments (like TZID=...) that result from splitting
       // DTSTART;TZID=... on semicolons. The output should have clean RFC5545 format.
       const data = ical.parseFile('./test/fixtures/yearly-party.ics');
-      const first = Object.values(data).find(x => x.uid === '000021a');
+      const first = Object.values(data).find(event => event.uid === '000021a');
 
       // RRULE must be successfully parsed (would fail if string was malformed)
       assert.ok(first.rrule, 'RRULE should be parsed');
@@ -494,7 +494,7 @@ END:VCALENDAR`;
   describe('Microsoft time zones', () => {
     it('maps Exchange tz to IANA (exchange-custom-tz.ics)', () => {
       const data = ical.parseFile('./test/fixtures/exchange-custom-tz.ics');
-      const event = Object.values(data).find(x => x.uid === '040000008200E00074C5B7101A82E00800000000C9AB6E5A6AFED401000000000000000010000000C55132227F0F0948A7D58F6190A3AEF9');
+      const event = Object.values(data).find(event => event.uid === '040000008200E00074C5B7101A82E00800000000C9AB6E5A6AFED401000000000000000010000000C55132227F0F0948A7D58F6190A3AEF9');
       assert.equal(event.start.tz, 'Asia/Bangkok');
       assert.equal(event.end.tz, 'Asia/Bangkok');
     });
@@ -506,7 +506,7 @@ END:VCALENDAR`;
 
       it('maps Windows zones to times (ms_timezones.ics)', () => {
         const data = ical.parseFile('./test/fixtures/ms_timezones.ics');
-        const event = Object.values(data).find(x => x.summary === 'Log Yesterday\'s Jira time');
+        const event = Object.values(data).find(event => event.summary === 'Log Yesterday\'s Jira time');
         assert.strictEqual(event.start.getUTCFullYear(), 2020);
         assert.strictEqual(event.start.getUTCMonth(), 5);
         assert.strictEqual(event.start.getUTCHours(), 7);
@@ -545,7 +545,7 @@ END:VCALENDAR`;
       // Bad_ms_tz.ics – unexpected ms timezone (should not use Customized Time Zone)
       it('ignores "Customized Time Zone" (bad_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_ms_tz.ics');
-        const event = Object.values(data).find(x => x.summary === '[private]');
+        const event = Object.values(data).find(event => event.summary === '[private]');
         assert.notEqual(event.start.tz, 'Customized Time Zone');
       });
 
@@ -556,7 +556,7 @@ END:VCALENDAR`;
         // recurring events spanning DST transitions are handled correctly.
         // August is in EDT (-04:00), so correct UTC = 10:35 + 4h = 14:35 UTC.
         const data = ical.parseFile('./test/fixtures/bad_ms_tz.ics');
-        const event = Object.values(data).find(x => x.summary === '[private]');
+        const event = Object.values(data).find(event => event.summary === '[private]');
         assert.strictEqual(event.start.toISOString(), '2020-08-25T14:35:00.000Z');
         assert.strictEqual(event.end.toISOString(), '2020-08-25T15:50:00.000Z');
         // The tz should be a real IANA zone, not 'Customized Time Zone' or a fixed offset
@@ -567,35 +567,35 @@ END:VCALENDAR`;
 
       it('rejects invalid custom tz (bad_custom_ms_tz2.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_custom_ms_tz2.ics');
-        const event = Object.values(data).find(x => x.summary === '[private]');
+        const event = Object.values(data).find(event => event.summary === '[private]');
         assert.notEqual(event.start.tz, 'Customized Time Zone 1');
       });
 
       it('applies old MS tz before DST (Office-2012-owa.ics)', () => {
-        const event = Object.values(officeData).find(x => x.summary === ' TEST');
+        const event = Object.values(officeData).find(event => event.summary === ' TEST');
         assert.equal(event.end.toISOString().slice(0, 10), new Date(Date.UTC(2020, 9, 28, 15, 0, 0)).toISOString().slice(0, 10));
       });
 
       it('applies old MS tz after DST (Office-2012-owa.ics)', () => {
-        const event = Object.values(officeData).find(x => x.summary === ' TEST 3');
+        const event = Object.values(officeData).find(event => event.summary === ' TEST 3');
         assert.equal(event.end.toISOString().slice(0, 10), new Date(Date.UTC(2020, 10, 2, 20, 0, 0)).toISOString().slice(0, 10));
       });
 
       it('handles custom tz recurrence (bad_custom_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_custom_ms_tz.ics');
-        const event = Object.values(data).find(x => x.summary === '[private]');
+        const event = Object.values(data).find(event => event.summary === '[private]');
         assert.equal(event.start.toISOString().slice(0, 10), new Date(Date.UTC(2021, 2, 25, 10, 35, 0)).toISOString().slice(0, 10));
       });
 
       it('uses start as end when missing (bad_custom_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_custom_ms_tz.ics');
-        const event = Object.values(data).find(x => x.summary === '*masked-away*');
+        const event = Object.values(data).find(event => event.summary === '*masked-away*');
         assert.equal(event.end.toISOString().slice(0, 10), event.start.toISOString().slice(0, 10));
       });
 
       it('handles negative duration (bad_custom_ms_tz.ics)', () => {
         const data = ical.parseFile('./test/fixtures/bad_custom_ms_tz.ics');
-        const event = Object.values(data).find(x => x.summary === '*masked-away2*');
+        const event = Object.values(data).find(event => event.summary === '*masked-away2*');
         // DATE-only DTSTART with time-component duration: the computed end falls
         // on 2021-03-23 in *local* time in any sane timezone, so compare as a
         // local calendar date rather than a UTC ISO string.
@@ -608,7 +608,7 @@ END:VCALENDAR`;
       // fallback inside fallbackWithStackTimezone().
       it('resolves floating DTSTART via VTIMEZONE STANDARD/DAYLIGHT rules', () => {
         const data = ical.parseFile('./test/fixtures/floating-dtstart-custom-vtimezone.ics');
-        const event = Object.values(data).find(x => x.uid === 'floating-with-custom-vtimezone@test');
+        const event = Object.values(data).find(event => event.uid === 'floating-with-custom-vtimezone@test');
         assert.ok(event, 'event should exist');
         // The VTIMEZONE defines STANDARD=-0500 / DAYLIGHT=-0400 (US Eastern).
         // June 10 is in EDT (-04:00), so 14:00 wall → 18:00 UTC.
@@ -623,13 +623,13 @@ END:VCALENDAR`;
         const data = ical.parseFile('./test/fixtures/multi-era-vtimezone.ics');
 
         // 2025 event: modern rule (DTSTART 2007) applies → EDT in June → 14:00 wall = 18:00 UTC
-        const modern = Object.values(data).find(x => x.uid === 'multi-era-2025@test');
+        const modern = Object.values(data).find(event => event.uid === 'multi-era-2025@test');
         assert.ok(modern, '2025 event should exist');
         // Modern rule (post-2007): EDT in June → 14:00-04:00 = 18:00 UTC
         assert.strictEqual(modern.start.toISOString(), '2025-06-10T18:00:00.000Z');
 
         // 1985 event: old rule (DTSTART 1671) applies → EDT in October 15 → 14:00 wall = 18:00 UTC
-        const vintage = Object.values(data).find(x => x.uid === 'multi-era-1985@test');
+        const vintage = Object.values(data).find(event => event.uid === 'multi-era-1985@test');
         assert.ok(vintage, '1985 event should exist');
         // Old rule (pre-2007): EDT in Oct 15 → 14:00-04:00 = 18:00 UTC
         assert.strictEqual(vintage.start.toISOString(), '1985-10-15T18:00:00.000Z');
@@ -641,7 +641,7 @@ END:VCALENDAR`;
   describe('Invalid RRULE handling', () => {
     it('retains start time on invalid RRULE date (badRRULE.ics)', () => {
       const data = ical.parseFile('./test/fixtures/badRRULE.ics');
-      const event = Object.values(data).find(x => x.summary === 'Academic Time');
+      const event = Object.values(data).find(event => event.summary === 'Academic Time');
       assert.equal(event.start.toISOString().slice(11), '15:50:00.000Z');
     });
   });
@@ -650,7 +650,7 @@ END:VCALENDAR`;
   describe('Forward TZ behavior', () => {
     it('preserves midnight in forward TZ (test_with_forward_TZ.ics)', () => {
       const data = ical.parseFile('./test/fixtures/test_with_forward_TZ.ics');
-      const event = Object.values(data).find(x => x.summary === 'Fear TWD');
+      const event = Object.values(data).find(event => event.summary === 'Fear TWD');
       assert.equal(event.datetype, 'date');
       // Date-only event must preserve its calendar-day boundaries
       assert.equal(event.start.toDateString(), new Date(2020, 9, 17).toDateString());
@@ -682,7 +682,7 @@ END:VCALENDAR`;
   describe('Timezone lists', () => {
     it('selects first valid tz from list (test_with_tz_list.ics)', () => {
       const data = ical.parseFile('./test/fixtures/test_with_tz_list.ics');
-      const event = Object.values(data).find(x => x.uid === 'E689AEB8C02C4E2CADD8C7D3D303CEAD0');
+      const event = Object.values(data).find(event => event.uid === 'E689AEB8C02C4E2CADD8C7D3D303CEAD0');
       assert.equal(event.start.tz, 'Europe/Berlin');
     });
 
@@ -690,7 +690,7 @@ END:VCALENDAR`;
     // (node-ical issue #305 / PR #307 - washougal.k12.wa.us school calendar).
     it('chooses correct tz across components (test_with_multiple_tzids_in_vtimezone.ics)', () => {
       const data = ical.parseFile('./test/fixtures/test_with_multiple_tzids_in_vtimezone.ics');
-      const event = Object.values(data).find(x => x.uid === '1891-1709856000-1709942399@www.washougal.k12.wa.us');
+      const event = Object.values(data).find(event => event.uid === '1891-1709856000-1709942399@www.washougal.k12.wa.us');
       assert.equal(event.start.toJSON(), '2024-06-27T07:00:00.000Z');
       assert.equal(event.end.toJSON(), '2024-06-28T06:00:00.000Z');
     });
@@ -700,7 +700,7 @@ END:VCALENDAR`;
   describe('Durations', () => {
     it('applies DURATION to datetime DTSTART (test_date_time_duration.ics)', () => {
       const data = ical.parseFile('./test/fixtures/test_date_time_duration.ics');
-      const event = Object.values(data).find(x => x.summary === 'period test2');
+      const event = Object.values(data).find(event => event.summary === 'period test2');
       assert.equal(event.start.toJSON(), '2024-02-15T09:00:00.000Z');
       assert.equal(event.end.toJSON(), '2024-02-15T10:15:00.000Z');
     });
@@ -708,7 +708,7 @@ END:VCALENDAR`;
     // Test_date_duration.ics – duration with date DTSTART
     it('applies DURATION to date DTSTART (test_date_duration.ics)', () => {
       const data = ical.parseFile('./test/fixtures/test_date_duration.ics');
-      const event = Object.values(data).find(x => x.summary === 'period test2');
+      const event = Object.values(data).find(event => event.summary === 'period test2');
       assert.equal(event.start.toDateString(), new Date(2024, 1, 15).toDateString());
       assert.equal(event.end.toDateString(), new Date(2024, 1, 22).toDateString());
     });
@@ -726,7 +726,7 @@ END:VEVENT
 END:VCALENDAR`;
 
       const data = ical.parseICS(ics);
-      const event = Object.values(data).find(x => x.type === 'VEVENT');
+      const event = Object.values(data).find(event => event.type === 'VEVENT');
 
       assert.ok(event, 'Event should be parsed');
       assert.ok(event.start instanceof Date, 'Start should be a Date');
@@ -764,7 +764,7 @@ END:VCALENDAR`;
         };
 
         const data = ical.parseICS(ics);
-        const event = Object.values(data).find(x => x.type === 'VEVENT');
+        const event = Object.values(data).find(event => event.type === 'VEVENT');
 
         assert.ok(event, 'Event should be parsed despite invalid DURATION:P');
         assert.equal(event.summary, 'Travels');
@@ -820,7 +820,7 @@ END:VCALENDAR`;
 
           // All durations should parse without throwing
           const data = ical.parseICS(ics);
-          const event = Object.values(data).find(x => x.type === 'VEVENT');
+          const event = Object.values(data).find(event => event.type === 'VEVENT');
 
           assert.ok(event, `Event should be parsed for DURATION:${testCase.duration}`);
           assert.ok(event.start instanceof Date, 'Start should be a Date');
@@ -848,14 +848,14 @@ END:VCALENDAR`;
   describe('DST and recurrence edge cases', () => {
     it('keeps end-of-day recurrence across DST (germany_at_end_of_day_repeating.ics)', () => {
       const data = ical.parseFile('./test/fixtures/germany_at_end_of_day_repeating.ics');
-      const event = Object.values(data).find(x => x.uid === '2m6mt1p89l2anl74915ur3hsgm@google.com');
+      const event = Object.values(data).find(event => event.uid === '2m6mt1p89l2anl74915ur3hsgm@google.com');
       assert.equal(event.start.toDateString(), new Date(2024, 9, 22, 23, 0, 0).toDateString());
     });
 
     // Whole_day_moved_over_dst_change_berlin.ics – recurrence shift over DST
     it('keeps whole-day recurrence across DST (whole_day_moved_over_dst_change_berlin.ics)', () => {
       const data = ical.parseFile('./test/fixtures/whole_day_moved_over_dst_change_berlin.ics');
-      const moved = Object.values(data).find(x => x.uid === '14nv8jl8d6dvdbl477lod4fftf@google.com');
+      const moved = Object.values(data).find(event => event.uid === '14nv8jl8d6dvdbl477lod4fftf@google.com');
       assert.ok(moved, 'Missing recurring event');
       assert.ok(moved.recurrences, 'Missing recurrence map');
       // Find the expected recurrence by local calendar date rather than by map key
@@ -887,7 +887,7 @@ END:VCALENDAR`;
     // template literal produced a non-4-digit ISO year string.
     it('does not crash on VTIMEZONE with DTSTART year 0001 (issue #495)', () => {
       const data = ical.parseFile('./test/fixtures/vtimezone-year-0001-dtstart.ics');
-      const event = Object.values(data).find(x => x.type === 'VEVENT');
+      const event = Object.values(data).find(event => event.type === 'VEVENT');
       assert.ok(event, 'event should be parsed without throwing');
       assert.equal(event.summary, 'Test event with year-0001 VTIMEZONE');
       assert.ok(event.start instanceof Date, 'start should be a Date');
