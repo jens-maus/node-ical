@@ -847,6 +847,129 @@ describe('expandRecurringEvent', () => {
       assert.strictEqual(duration, 4_500_000, 'Duration should be 1h 15min (4_500_000ms)');
     });
 
+    it('should apply a DURATION in days to each instance as a nominal duration across DST', () => {
+      // RFC 5545 §3.8.5.3: with DURATION, every instance gets the same nominal duration,
+      // so P1D ends at the wall-clock time of its start, however long that day is.
+      // With DTEND, every instance gets the same exact duration instead.
+      const parse = (dtstart, length) => Object.values(ical.parseICS([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Test//DURATION across DST//EN',
+        'BEGIN:VEVENT',
+        'UID:duration-nominal-dst@node-ical-test',
+        'DTSTAMP:20250101T000000Z',
+        dtstart,
+        length,
+        'RRULE:FREQ=DAILY;COUNT=4',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n'))).find(event => event.type === 'VEVENT');
+      const ends = event => ical.expandRecurringEvent(event, {
+        from: new Date('2025-03-01T00:00:00Z'),
+        to: new Date('2025-11-30T00:00:00Z'),
+      }).map(instance => instance.end.toISOString());
+
+      // Europe/Berlin: DST starts 2025-03-30, ends 2025-10-26. Every instance ends at 10:00 local.
+      assert.deepStrictEqual(ends(parse('DTSTART;TZID=Europe/Berlin:20250328T100000', 'DURATION:P1D')), [
+        '2025-03-29T09:00:00.000Z',
+        '2025-03-30T08:00:00.000Z',
+        '2025-03-31T08:00:00.000Z',
+        '2025-04-01T08:00:00.000Z',
+      ]);
+      assert.deepStrictEqual(ends(parse('DTSTART;TZID=Europe/Berlin:20251024T100000', 'DURATION:P1DT2H')), [
+        '2025-10-25T10:00:00.000Z',
+        '2025-10-26T11:00:00.000Z',
+        '2025-10-27T11:00:00.000Z',
+        '2025-10-28T11:00:00.000Z',
+      ]);
+      // The first instance crosses the change, the later ones must not inherit its 23 hours
+      assert.deepStrictEqual(ends(parse('DTSTART;TZID=Europe/Berlin:20250329T100000', 'DURATION:P1W')), [
+        '2025-04-05T08:00:00.000Z',
+        '2025-04-06T08:00:00.000Z',
+        '2025-04-07T08:00:00.000Z',
+        '2025-04-08T08:00:00.000Z',
+      ]);
+
+      // Exact durations keep their length
+      assert.deepStrictEqual(ends(parse('DTSTART;TZID=Europe/Berlin:20250328T100000', 'DURATION:PT24H')), [
+        '2025-03-29T09:00:00.000Z',
+        '2025-03-30T09:00:00.000Z',
+        '2025-03-31T08:00:00.000Z',
+        '2025-04-01T08:00:00.000Z',
+      ]);
+      assert.deepStrictEqual(ends(parse('DTSTART;TZID=Europe/Berlin:20250328T100000', 'DTEND;TZID=Europe/Berlin:20250329T100000')), [
+        '2025-03-29T09:00:00.000Z',
+        '2025-03-30T09:00:00.000Z',
+        '2025-03-31T08:00:00.000Z',
+        '2025-04-01T08:00:00.000Z',
+      ]);
+      // DTEND wins over a DURATION next to it
+      assert.deepStrictEqual(ends(parse('DTSTART;TZID=Europe/Berlin:20250328T100000', 'DTEND;TZID=Europe/Berlin:20250329T100000\r\nDURATION:P2D')), [
+        '2025-03-29T09:00:00.000Z',
+        '2025-03-30T09:00:00.000Z',
+        '2025-03-31T08:00:00.000Z',
+        '2025-04-01T08:00:00.000Z',
+      ]);
+    });
+
+    it('should include an ongoing instance whose nominal DURATION is longer than the first one', () => {
+      const event = Object.values(ical.parseICS([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Test//DURATION ongoing across DST//EN',
+        'BEGIN:VEVENT',
+        'UID:duration-ongoing-dst@node-ical-test',
+        'DTSTAMP:20250101T000000Z',
+        'DTSTART;TZID=Europe/Berlin:20251018T100000',
+        'DURATION:P1D',
+        'RRULE:FREQ=WEEKLY;COUNT=2',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n'))).find(event => event.type === 'VEVENT');
+
+      // The 2025-10-25 instance runs 25 hours, until 2025-10-26 10:00 CET (09:00Z)
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2025-10-26T08:30:00Z'),
+        to: new Date('2025-10-26T08:45:00Z'),
+        expandOngoing: true,
+      });
+
+      assert.deepStrictEqual(instances.map(instance => [instance.start.toISOString(), instance.end.toISOString()]), [
+        ['2025-10-25T08:00:00.000Z', '2025-10-26T09:00:00.000Z'],
+      ]);
+    });
+
+    it('should not widen the search for an exact DURATION', () => {
+      const event = Object.values(ical.parseICS([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Test//Exact DURATION search//EN',
+        'BEGIN:VEVENT',
+        'UID:duration-exact-search@node-ical-test',
+        'DTSTAMP:20250101T000000Z',
+        'DTSTART:20250101T000000Z',
+        'DURATION:PT1S',
+        'RRULE:FREQ=SECONDLY',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n'))).find(event => event.type === 'VEVENT');
+
+      // Seconds never change length, so only the instances around the window are generated,
+      // not a whole extra day of them.
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2025-01-01T12:00:00Z'),
+        to: new Date('2025-01-01T12:00:01Z'),
+        expandOngoing: true,
+        maxIterations: 1000,
+      });
+
+      assert.deepStrictEqual(instances.map(instance => instance.start.toISOString()), [
+        '2025-01-01T11:59:59.000Z',
+        '2025-01-01T12:00:00.000Z',
+        '2025-01-01T12:00:01.000Z',
+      ]);
+    });
+
     it('should use event.end when available', () => {
       const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.end);
