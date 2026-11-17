@@ -939,6 +939,37 @@ describe('expandRecurringEvent', () => {
       ]);
     });
 
+    it('should not widen the search for an exact DURATION', () => {
+      const event = Object.values(ical.parseICS([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Test//Exact DURATION search//EN',
+        'BEGIN:VEVENT',
+        'UID:duration-exact-search@node-ical-test',
+        'DTSTAMP:20250101T000000Z',
+        'DTSTART:20250101T000000Z',
+        'DURATION:PT1S',
+        'RRULE:FREQ=SECONDLY',
+        'END:VEVENT',
+        'END:VCALENDAR',
+      ].join('\r\n'))).find(event => event.type === 'VEVENT');
+
+      // Seconds never change length, so only the instances around the window are generated,
+      // not a whole extra day of them.
+      const instances = ical.expandRecurringEvent(event, {
+        from: new Date('2025-01-01T12:00:00Z'),
+        to: new Date('2025-01-01T12:00:01Z'),
+        expandOngoing: true,
+        maxIterations: 1000,
+      });
+
+      assert.deepStrictEqual(instances.map(instance => instance.start.toISOString()), [
+        '2025-01-01T11:59:59.000Z',
+        '2025-01-01T12:00:00.000Z',
+        '2025-01-01T12:00:01.000Z',
+      ]);
+    });
+
     it('should use event.end when available', () => {
       const events = ical.sync.parseFile(path.join(__dirname, 'fixtures', 'multi-event-basic.ics'));
       const event = Object.values(events).find(event => event.type === 'VEVENT' && event.end);
