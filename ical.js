@@ -445,7 +445,8 @@ const ical = {
     'LAST-MODIFIED': dateParameter('lastmodified'),
     'RECURRENCE-ID': recurrenceParameter('recurrenceid'),
     SEQUENCE(value, parameters, curr) {
-      curr.sequence = parseValue(value);
+      const sequence = Number(value);
+      curr.sequence = Number.isSafeInteger(sequence) ? sequence : parseValue(value);
       return curr;
     },
     RRULE(value, parameters, curr, stack, line) {
