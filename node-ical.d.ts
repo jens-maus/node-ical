@@ -71,10 +71,22 @@ export function fromURL(url: string, options: FetchOptions | NodeIcalCallback, c
 
 export function fromURL(url: string): Promise<CalendarResponse>;
 
+/**
+   * Parse iCalendar data in async mode and report the result to a callback.
+   *
+   * @deprecated Calling `parseICS()` with a callback is deprecated and will stop working in node-ical 1.0.
+   * Use `ical.async.parseICS()` for a Promise or a callback, or `ical.sync.parseICS()` for a direct result.
+   */
 export function parseICS(body: string, callback: NodeIcalCallback): void;
 
 export function parseICS(body: string): CalendarResponse;
 
+/**
+   * Read and parse an iCalendar file in async mode and report the result to a callback.
+   *
+   * @deprecated Calling `parseFile()` with a callback is deprecated and will stop working in node-ical 1.0.
+   * Use `ical.async.parseFile()` for a Promise or a callback, or `ical.sync.parseFile()` for a direct result.
+   */
 export function parseFile(file: string, callback: NodeIcalCallback): void;
 
 export function parseFile(file: string): CalendarResponse;
@@ -115,7 +127,9 @@ export function expandRecurringEvent(
 
 declare const _default: {
   fromURL: typeof fromURL;
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- only the callback overload is deprecated
   parseFile: typeof parseFile;
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- only the callback overload is deprecated
   parseICS: typeof parseICS;
   sync: typeof sync;
   async: typeof async;
