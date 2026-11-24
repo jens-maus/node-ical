@@ -616,7 +616,7 @@ export type Attendee = ParameterValue<string, {
   /**
     Number of guests (non-standard)
     */
-  'X-NUM-GUESTS'?: number;
+  'X-NUM-GUESTS'?: number | string;
   /**
     Delegated to
     */
