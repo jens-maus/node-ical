@@ -608,7 +608,7 @@ export type Attendee = ParameterValue<string, {
   /**
     RSVP expectation
     */
-  RSVP?: boolean;
+  RSVP?: boolean | string;
   /**
     Common Name - display name of attendee
     */

@@ -240,4 +240,8 @@ for (const component of Object.values(calendarData)) {
   }
 }
 
+// Test: attendee parameters that are not plain numbers or TRUE/FALSE stay strings
+const numberOfGuests: ical.Attendee = {val: 'mailto:a@example.com', params: {'X-NUM-GUESTS': 2, RSVP: true}};
+const textOfGuests: ical.Attendee = {val: 'mailto:a@example.com', params: {'X-NUM-GUESTS': '02', RSVP: ''}};
+
 // If this file compiles, all type constraints are correct.
