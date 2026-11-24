@@ -604,7 +604,7 @@ export type Attendee = ParameterValue<string, {
   /**
     Participation status
     */
-  PARTSTAT?: AttendeePartStat;
+  PARTSTAT?: AttendeePartStat | '';
   /**
     RSVP expectation
     */
