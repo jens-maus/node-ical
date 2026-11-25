@@ -604,11 +604,11 @@ export type Attendee = ParameterValue<string, {
   /**
     Participation status
     */
-  PARTSTAT?: AttendeePartStat;
+  PARTSTAT?: AttendeePartStat | '';
   /**
     RSVP expectation
     */
-  RSVP?: boolean;
+  RSVP?: boolean | string;
   /**
     Common Name - display name of attendee
     */
@@ -616,7 +616,7 @@ export type Attendee = ParameterValue<string, {
   /**
     Number of guests (non-standard)
     */
-  'X-NUM-GUESTS'?: number;
+  'X-NUM-GUESTS'?: number | string;
   /**
     Delegated to
     */
