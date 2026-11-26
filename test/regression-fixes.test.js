@@ -50,6 +50,25 @@ describe('regression fixes', () => {
     assert.deepEqual(event.categories, [String.raw`C:\new`, 'Notes, drafts', 'Folder\\']);
   });
 
+  it('keeps double quotes inside a text value that starts and ends with one', () => {
+    const data = ical.sync.parseICS([
+      'BEGIN:VCALENDAR',
+      'BEGIN:VEVENT',
+      'UID:text-quotes',
+      'DTSTART:20250101T100000Z',
+      'SUMMARY:"Foo" vs "Bar"',
+      'LOCATION:"Room 1"',
+      String.raw`DESCRIPTION:"Line 1\nLine 2"`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n'));
+    const event = data['text-quotes'];
+
+    assert.equal(event.summary, '"Foo" vs "Bar"');
+    assert.equal(event.location, 'Room 1');
+    assert.equal(event.description, '"Line 1\nLine 2"');
+  });
+
   it('keeps internal named parser exports callable without an object receiver', () => {
     const coreParsed = icalCore.parseICS(ICS_SAMPLE);
     const entryParsed = packageEntry.parseLines(ICS_SAMPLE.split(/\r?\n/v));
