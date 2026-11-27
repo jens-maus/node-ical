@@ -164,38 +164,31 @@ try {
 ```
 
 ### autodetect
-These are the old API examples, which still work and will be converted to the new API automatically.
-Functions with callbacks provided will also have better performance over the older versions even if they use the old API.
+These are the old API functions on the top level of the module. They still work, but `parseICS()` and `parseFile()` pick sync or async mode depending on whether you pass a callback. Prefer the explicit `ical.sync.*` and `ical.async.*` functions above.
 
-Parses a string with ICS content in sync. This can block the event loop on big files.
+Parses a string with ICS content in sync, like `ical.sync.parseICS()`. This can block the event loop on big files.
 ```javascript
 const ical = require('node-ical');
 ical.parseICS(str);
 ```
 
-Parses a string with ICS content in async to prevent the event loop from being blocked.
-```javascript
-const ical = require('node-ical');
-ical.parseICS(str, function(err, data) {
-    if (err) console.log(err);
-    console.log(data);
-});
-```
-
-Parses a string with an ICS file in sync. This can block the event loop on big files.
+Parses an ICS file in sync, like `ical.sync.parseFile()`. This can block the event loop on big files.
 ```javascript
 const ical = require('node-ical');
 const data = ical.parseFile(filename);
 ```
 
-Parses a string with an ICS file in async to prevent event loop from being blocked.
-```javascript
-const ical = require('node-ical');
-const data = ical.parseFile(filename, function(err, data) {
-    if (err) console.log(err);
-    console.log(data);
-});
-```
+> **Deprecated:** Passing a callback to `ical.parseICS()` or `ical.parseFile()` to parse in async mode is deprecated and will stop working in node-ical 1.0 ([#476](https://github.com/jens-maus/node-ical/issues/476)). It still works, but emits a `DeprecationWarning` once per process (codes `NODE_ICAL_PARSEICS_CALLBACK` and `NODE_ICAL_PARSEFILE_CALLBACK`). Switch to `ical.async.*`, which returns a Promise and also accepts the same callback:
+>
+> ```javascript
+> // before (deprecated)
+> ical.parseICS(str, function(err, data) { /* … */ });
+> ical.parseFile(filename, function(err, data) { /* … */ });
+>
+> // after: same callback, or await the returned Promise
+> ical.async.parseICS(str, function(err, data) { /* … */ });
+> const data = await ical.async.parseFile(filename);
+> ```
 
 Reads in the specified iCal file from the URL, parses it and returns the parsed data.
 ```javascript
